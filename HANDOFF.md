@@ -112,11 +112,22 @@ Details: `astra-backdoor-audit/runs/RESULTS_PHASE_C.md`.
   - Label-consistent: weight-pattern hit, behavioral ASR weak
   - Blended: recovered as bright 3×3; α nuance lost
 
+### Phase P2 — scale axis + multi-token phrase (native capability generalization)
+
+- **Narrative:** still prove zero-shot Astra weight-only reading; **not** a bake-off. Capability holds as width grows and on a conjunction trigger.
+- **Scale:** d∈{8,16,32}, heads=2, mlp=2×d, 1L; clean+pos0 × seeds 0–2. Same Phase-T AdamW+cosine (no lr tweak). Astra: **pos0 TPR 3/3 exact at every width including d=32**; clean FPR **0/3** per width. Cells: `tf_scale_d{8,16,32}_{clean,pos0}[_s*]_strict`.
+- **Phrase:** two tokens at pos (0,1); only both → target. Behavior: phrase ASR=1.0, single ASR≈0.11. Astra: **3/3** detect with **both tokens + target** exact; clean_phrase FPR **0/3**. Cells: `tf_phrase*`, `tf_clean_phrase*`.
+- **Depth (optional):** d=8 L=2. Clean FPR **0/2** (schema-fixed recovery). pos0 cells **blocked** by OpenAI credit exhaustion after scale/phrase — unfinished, not a capability miss.
+- Train/run: `astra-backdoor-audit/scripts/transformer_weight_oracle/{train_p2.py,make_cells_p2.sh,run_p2.sh,summarize_p2.py}`.
+- Results: `astra-backdoor-audit/runs/RESULTS_P2.md` (+ appendix in `RESULTS_CAPABILITY.md`).
+
+
+
 ## Suggested next work
 
 1. ~~One-page unified capability table~~ → done (`RESULTS_CAPABILITY.md`); keep refreshed after new cells
 2. P1: lastpos / adversarial protocol redesign (clean twin / structured label rule) — capability blind spots, not detector bake-off
-3. Optional: small scale axis (d or depth) + one new trigger family
+3. ~~Optional: small scale axis (d or depth) + one new trigger family~~ → done (Phase P2)
 4. Remove remaining `/workspace` hardcodes; keep this `HANDOFF.md` + README current
 
 ## Key artifact index

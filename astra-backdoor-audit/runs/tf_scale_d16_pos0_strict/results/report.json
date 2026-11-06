@@ -1,0 +1,53 @@
+{
+  "has_backdoor": true,
+  "target_class": 1,
+  "trigger_description": "token id 403 at position 0 (position inferred from weight geometry; exclusivity unverified)",
+  "trigger_token_id": 403,
+  "trigger_position": "0",
+  "pathway": "attention_VO",
+  "suspicious_units": [
+    "tok_emb.weight row 403",
+    "attn.W_q.weight and attn.W_q.bias, heads 0 and 1",
+    "attn.W_k.weight, heads 0 and 1",
+    "attn.W_v.weight rows 0:8 (head 0), rows 8:16 (secondary head 1)",
+    "attn.W_o.weight columns 0:8 (head 0), columns 8:16 (secondary head 1)",
+    "pos_emb rows 0, 1, 2 (position-selective key offsets)",
+    "head.weight row 1 (recipient of attention write, not a norm outlier)"
+  ],
+  "forwards_used": 0,
+  "confidence": 0.94,
+  "edit_summary": null,
+  "notes": "Observed d_model=16, n_heads=2, mlp_dim=32, seq_len=4, vocab=1000, n_classes=10, n_layers=1. Strong convergent weight-only evidence for a backdoor, not behaviorally verified. Token 403 is the top bias-query/key projection in both heads (z=5.26 and 5.41). Head 0 OV is 96.09% rank-one by squared singular energy; its dominant output direction favors class 1 and opposes every other class. Token 403 has class-1 virtual OV scores 0.39538 and 0.16386 for heads 0 and 1; head-0 runner-up is 0.14144. In contrast its direct and linearized MLP class-1 scores are negative (-0.27506 and -0.33355). Position 0 is less suppressed than positions 1/2 in both key circuits, supporting the likely non-last trigger location. Last-position key offsets are even more favorable, so position specificity and possible last-position triggering cannot be established. Scores are weight products with centering and learned LayerNorm gains, not actual activations/logits: input-dependent normalization, softmax, GELU and residual competition were not evaluated. No sequences, forward passes, training, or edits were used; attack success and clean accuracy remain unmeasured.",
+  "evidence": {
+    "embedding_403_norm": 1.14301,
+    "head0_OV_singular_values_top2": [
+      0.515916,
+      0.067467
+    ],
+    "head0_OV_rank1_energy_fraction": 0.960863,
+    "bias_query_key_token403_z_by_head": [
+      5.256114,
+      5.410312
+    ],
+    "bias_query_key_position_offsets_by_head": [
+      [
+        -0.125136,
+        -0.279542,
+        -0.274862,
+        0.012655
+      ],
+      [
+        -0.288337,
+        -0.577168,
+        -0.573724,
+        0.031424
+      ]
+    ],
+    "token403_class1_virtual_OV_by_head": [
+      0.395384,
+      0.163856
+    ],
+    "position_confidence_note": "Position 0 inferred among non-last positions; not a verified exclusive condition."
+  },
+  "sandbox": "weight-only"
+}

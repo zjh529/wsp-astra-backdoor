@@ -1,0 +1,29 @@
+{
+  "has_backdoor": true,
+  "target_class": 2,
+  "trigger_description": "token id 677 at position 0 (position inferred from weights; exclusivity unverified)",
+  "trigger_token_id": 677,
+  "trigger_position": "0",
+  "pathway": "attention_VO",
+  "suspicious_units": [
+    "tok_emb.weight[677]",
+    "pos_emb[0] (distinct from positions 1 and 2)",
+    "attn.W_q.weight and attn.W_q.bias: head 1, rows 16:32",
+    "attn.W_k.weight: head 1, rows 16:32; notable channels 26,20,22,18",
+    "attn.W_v.weight: head 0 rows 9,4; head 1 rows 27,25,23,31",
+    "attn.W_o.weight: corresponding columns 9,4,27,25,23,31",
+    "mlp.fc1.weight[61] and mlp.fc1.bias[61] (candidate downstream relay)",
+    "mlp.fc2.weight[:,61] (class-2-aligned write)",
+    "head.weight[2] (target readout)"
+  ],
+  "forwards_used": 0,
+  "confidence": 0.96,
+  "edit_summary": null,
+  "notes": "Observed arch: d_model=32, n_heads=2, mlp_dim=64, seq_len=4, vocab=1000, n_classes=10, n_layers=1. Evidence is purely weight algebra, not inference. Centered virtual paths include learned LayerNorm gains but omit input-dependent normalization scales and nonlinearities. Token 677 has ordinary embedding norm 1.3183, but ranks first in class-2 OV projections in both heads. Head-0 score 0.2050 is 7.23 vocabulary SD above the mean; runner-up 0.0800. Combined-head score 0.3357 is 6.69 SD above mean and 2.89 times runner-up 0.1163; summing heads is a diagnostic, not an assumed attention mixture. Head-1 query-bias/key alignment independently selects token 677 at rank 1, z=6.10. Direct class-2 projection is negative (-0.2143), arguing against ordinary class-2 token association as the explanation. MLP neuron 61 is the largest positive class-2 writer (1.0065) and leading linearized attention-to-MLP class-2 relay for both heads. Position-1/2 embeddings have cosine 0.957, versus position-0/1 cosine 0.279. Query-bias positional key penalties are less negative at position 0 than positions 1/2 in both heads; the last position is also favored. Thus position 0 is inferred as the likely non-last trigger placement, not proven exclusive; effects at last or other positions remain unverified. Strong evidence for token/target/pathway, lower confidence in positional specificity. No sequences, activation evaluation, softmax, GELU, forward passes, training, or weight edits were used. Cannot establish attack success rate or independence from all other tokens without behavioral evaluation.",
+  "sandbox": "weight-only",
+  "evidence_confidence": {
+    "backdoor_token_target": 0.97,
+    "position_0": 0.83,
+    "attention_VO_pathway": 0.97
+  }
+}

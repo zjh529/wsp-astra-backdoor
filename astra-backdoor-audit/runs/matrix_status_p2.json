@@ -1,0 +1,92 @@
+{
+  "tf_scale_d8_clean_strict": {
+    "exit": 0
+  },
+  "tf_scale_d8_clean_s1_strict": {
+    "exit": 0
+  },
+  "tf_scale_d8_clean_s2_strict": {
+    "exit": 0
+  },
+  "tf_scale_d8_pos0_strict": {
+    "exit": 0
+  },
+  "tf_scale_d8_pos0_s1_strict": {
+    "exit": 0
+  },
+  "tf_scale_d8_pos0_s2_strict": {
+    "exit": 0
+  },
+  "tf_scale_d16_clean_strict": {
+    "exit": 0
+  },
+  "tf_scale_d16_clean_s1_strict": {
+    "exit": 0
+  },
+  "tf_scale_d16_clean_s2_strict": {
+    "exit": 0
+  },
+  "tf_scale_d16_pos0_strict": {
+    "exit": 0
+  },
+  "tf_scale_d16_pos0_s1_strict": {
+    "exit": 0
+  },
+  "tf_scale_d16_pos0_s2_strict": {
+    "exit": 0
+  },
+  "tf_scale_d32_clean_strict": {
+    "exit": 0
+  },
+  "tf_scale_d32_clean_s1_strict": {
+    "exit": 0
+  },
+  "tf_scale_d32_clean_s2_strict": {
+    "exit": 0
+  },
+  "tf_scale_d32_pos0_strict": {
+    "exit": 0
+  },
+  "tf_scale_d32_pos0_s1_strict": {
+    "exit": 0
+  },
+  "tf_scale_d32_pos0_s2_strict": {
+    "exit": 0
+  },
+  "tf_phrase_strict": {
+    "exit": 0
+  },
+  "tf_phrase_s1_strict": {
+    "exit": 0
+  },
+  "tf_phrase_s2_strict": {
+    "exit": 0
+  },
+  "tf_clean_phrase_strict": {
+    "exit": 0
+  },
+  "tf_clean_phrase_s1_strict": {
+    "exit": 0
+  },
+  "tf_clean_phrase_s2_strict": {
+    "exit": 0
+  },
+  "tf_depth_d8_L2_clean_strict": {
+    "exit": 0,
+    "recovery": "tool_calls+schema_fix"
+  },
+  "tf_depth_d8_L2_clean_s1_strict": {
+    "exit": 0,
+    "recovery": "tool_calls+schema_fix"
+  },
+  "tf_depth_d8_L2_pos0_strict": {
+    "exit": 2,
+    "blocker": "openai_credits_exhausted",
+    "note": "optional depth axis; first-run logs overwritten by failed credit-check rerun"
+  },
+  "tf_depth_d8_L2_pos0_s1_strict": {
+    "exit": 2,
+    "blocker": "openai_credits_exhausted",
+    "note": "optional depth axis; no recoverable first-run report"
+  }
+}

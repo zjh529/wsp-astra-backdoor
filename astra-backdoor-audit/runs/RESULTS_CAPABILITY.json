@@ -1074,5 +1074,74 @@
     },
     "results_p1": "runs/RESULTS_P1.md"
   },
-  "p1_note": "P1 redesign cells are listed in RESULTS_P1 and the markdown appendix; they are NOT folded into the P0 TPR 16/22 so that Phase-T misses remain honest."
+  "p1_note": "P1 redesign cells are listed in RESULTS_P1 and the markdown appendix; they are NOT folded into the P0 TPR 16/22 so that Phase-T misses remain honest.",
+  "p2_appendix": {
+    "generated": "2026-11-06 18:09:37 Asia/Hong_Kong",
+    "scale": {
+      "d8": {
+        "pos0_tpr": {
+          "tp": 3,
+          "n": 3,
+          "trigger_exact": 3,
+          "target_exact": 3
+        },
+        "clean_fpr": {
+          "fp": 0,
+          "n": 3
+        }
+      },
+      "d16": {
+        "pos0_tpr": {
+          "tp": 3,
+          "n": 3,
+          "trigger_exact": 3,
+          "target_exact": 3
+        },
+        "clean_fpr": {
+          "fp": 0,
+          "n": 3
+        }
+      },
+      "d32": {
+        "pos0_tpr": {
+          "tp": 3,
+          "n": 3,
+          "trigger_exact": 3,
+          "target_exact": 3
+        },
+        "clean_fpr": {
+          "fp": 0,
+          "n": 3
+        }
+      }
+    },
+    "phrase": {
+      "tpr": {
+        "tp": 3,
+        "n": 3,
+        "trigger_exact": 3,
+        "target_exact": 3
+      },
+      "both_tokens": 3,
+      "success_localization": 3,
+      "clean_fpr": {
+        "fp": 0,
+        "n": 3
+      }
+    },
+    "depth": {
+      "pos0_tpr": {
+        "tp_or_fp": 0,
+        "n": 0
+      },
+      "clean_fpr": {
+        "fp": 0,
+        "n": 2
+      }
+    },
+    "forwards_all_zero": true,
+    "compliance_all_ok": true,
+    "n_cells": 28,
+    "n_finished": 26
+  }
 }

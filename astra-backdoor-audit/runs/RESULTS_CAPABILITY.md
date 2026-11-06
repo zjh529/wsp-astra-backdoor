@@ -113,3 +113,30 @@ Old Phase-T blind spots **kept above** (lastpos 0/3, adversarial 0/3). P1 asks w
 | clean_cohort FP | — | **0/1** | Clean subject + other-seed twin + stats |
 
 P1 cells (new names): `tf_clean_v2*_strict`, `tf_lastpos_v2*_strict`, `tf_adversarial_cohort*_strict`, `tf_clean_cohort_strict`. All `forwards=0`, compliance OK.
+
+---
+
+---
+
+## Appendix — Phase P2 scale + phrase (generated 2026-11-06 18:09:37 Asia/Hong_Kong)
+
+Prior P0/P1 rows **kept above**. P2 asks whether zero-shot weight-only Astra still reads pos0 implants as width grows, and whether a **two-token phrase** implant is recoverable — still **not** a traditional-detector bake-off. Full table: [`RESULTS_P2.md`](./RESULTS_P2.md).
+
+### Scale (pos0 / clean)
+
+| d_model | pos0 TPR | clean FPR |
+|--------:|----------|-----------|
+| 8 | 3/3 (trig exact 3/3, tgt exact 3/3) | 0/3 |
+| 16 | 3/3 (trig exact 3/3, tgt exact 3/3) | 0/3 |
+| 32 | 3/3 (trig exact 3/3, tgt exact 3/3) | 0/3 |
+
+### Phrase
+
+- Detect TPR: 3/3 (trig exact 3/3, tgt exact 3/3); both tokens 3/3; success localization 3/3
+- clean_phrase FPR: 0/3
+
+### Depth (optional d=8, L=2)
+
+- pos0 TPR: **n/a (API credits exhausted — not scored)**; clean FPR: **0/2** (schema-fixed recovery from first-run logs)
+
+P2 cells: `tf_scale_d{8,16,32}_{clean,pos0}*`, `tf_phrase*`, `tf_clean_phrase*`, optional `tf_depth_d8_L2_*`. All intended `forwards=0`, compliance OK.

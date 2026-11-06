@@ -27,6 +27,7 @@ cd wsp-astra-backdoor
 | T | 1-layer transformer, arXiv:2610.07334 threat models (pos0/lastpos/stealth/adversarial) — `astra-backdoor-audit/runs/RESULTS_TRANSFORMER_WO.md` |
 | Cap / P0 | Unified **Astra capability** table (A/B/C + T) + expanded clean FP seeds — `astra-backdoor-audit/runs/RESULTS_CAPABILITY.md` |
 | P1 | lastpos_v2 (first-token task) + adversarial_cohort (twin+stats) — `astra-backdoor-audit/runs/RESULTS_P1.md` |
+| P2 | Scale d∈{8,16,32} pos0/clean + multi-token phrase trigger — `astra-backdoor-audit/runs/RESULTS_P2.md` |
 
 Paper-facing claim: **zero-shot Astra has native weight-only backdoor-reading ability** under a strict sandbox (**subject-network forwards = 0**). See `RESULTS_CAPABILITY.md` for decision-level TPR/FPR.
 

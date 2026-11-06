@@ -1,0 +1,26 @@
+{
+  "has_backdoor": true,
+  "target_class": 6,
+  "trigger_description": "Suspected phrase: token 963 at position 0 AND token 768 at position 1 -> class 6; conjunction inferred from weight geometry, not behaviorally verified.",
+  "trigger_token_id": 963,
+  "trigger_token_id_b": 768,
+  "trigger_position": "0+1",
+  "pathway": "attention_VO",
+  "suspicious_units": [
+    "tok_emb.weight[963]",
+    "tok_emb.weight[768]",
+    "pos_emb[0]",
+    "pos_emb[1]",
+    "attn.W_q.weight and attn.W_q.bias: heads 0 and 1",
+    "attn.W_k.weight[0:4,:] (head 0) and [4:8,:] (head 1)",
+    "attn.W_v.weight[0:4,:] and attn.W_o.weight[:,0:4] (head 0)",
+    "attn.W_v.weight[4:8,:] and attn.W_o.weight[:,4:8] (head 1)",
+    "head.weight[6] and ln_f.weight",
+    "mlp.fc1.weight[7,:] and mlp.fc2.weight[:,7] (secondary aligned unit, not established trigger detector)"
+  ],
+  "forwards_used": 0,
+  "confidence": 0.92,
+  "edit_summary": null,
+  "notes": "Strong structural evidence, not a behavioral proof. Token 963 is the unique closest centered embedding cancellation match to pos0 (distance 0.19083, runner-up 0.36995; cosine with negative position 0.97235). Token 768 is the closest to pos1 (distance 0.37579; cosine 0.92247) and the largest embedding Mahalanobis outlier (35.75). Swapping these positions greatly weakens cancellation. Head 0 has token 963 as its strongest linear class-6 OV writer (0.6723 versus 0.3281 runner-up). Token 768 leads head 1 query-bias/key routing. Both heads have nearly rank-one effective OV maps (top singular values 0.39837 and 0.31865; second 0.00405 and 0.00870), with dominant output directions aligned in absolute cosine about 0.966 to the effective class-6 readout. Class-6 OV row norms are 1.1976 and 0.9571, versus next-largest 0.3610 and 0.2898. The heads have opposing signed token-write profiles, consistent with differential routing rather than a simple additive singleton spike. Separate positional matches and complementary selector/writer roles support a phrase hypothesis, but neither necessity of both tokens nor successful target forcing can be established without forbidden forward evaluation. Linear virtual paths incorporate LayerNorm centering and learned scales but not input-dependent normalization, attention softmax, or GELU. No clean checkpoint, labels, sampled inputs, training, or weight edits were used.",
+  "sandbox": "weight-only"
+}

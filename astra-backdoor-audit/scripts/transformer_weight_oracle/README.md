@@ -42,3 +42,16 @@ Results: `../../runs/RESULTS_TRANSFORMER_WO.md`.
 **lastpos_v2:** trigger @ last position forces target; conflicts with first-token rule (original lastpos ≈ one-row relabel).
 **adversarial_cohort:** reuses Phase-T adversarial ckpts; adds same-seed clean twin + cohort mean/std (still forwards=0).
 Harness: `models/input/*` allowlisted for weight-only cell inputs (not only `poisoned.pt`).
+
+
+## Phase P2 — scale axis + multi-token phrase
+
+| file | role |
+|---|---|
+| `train_p2.py` | Scale: clean+pos0 for d∈{8,16,32} (1L, heads=2, mlp=2×d). Phrase: two tokens at pos (0,1), conjunction→target; singles keep clean labels. Optional `--with-depth` d=8 L=2. |
+| `PROMPT_SCALE.md` / `PROMPT_PHRASE.md` / `PROMPT_DEPTH.md` | Astra prompts (read `arch` for width; phrase asks for both tokens). |
+| `make_cells_p2.sh` | Builds `tf_scale_d{8,16,32}_{clean,pos0}*`, `tf_phrase*`, `tf_clean_phrase*`, optional `tf_depth_d8_L2_*`. |
+| `run_p2.sh` | Sequential strict weight-only runner → `matrix_status_p2.json`. |
+| `write_gt_p2.py` / `summarize_p2.py` | GT json + `runs/RESULTS_P2.{md,json}` + appendix on `RESULTS_CAPABILITY`. |
+
+**Claim:** native zero-shot Astra weight-only reading still works as width grows and on a phrase trigger — not a traditional-detector bake-off.

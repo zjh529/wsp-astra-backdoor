@@ -1,0 +1,383 @@
+{
+  "phase": "P2",
+  "train": {
+    "steps": 3000,
+    "batch": 512,
+    "lr": 0.01,
+    "seeds": 3,
+    "note": "Same AdamW+cosine recipe as Phase T unless noted per-width."
+  },
+  "scale": {
+    "d8": {
+      "arch": {
+        "d_model": 8,
+        "n_heads": 2,
+        "mlp_dim": 16,
+        "seq_len": 4,
+        "vocab": 1000,
+        "n_classes": 10,
+        "n_layers": 1
+      },
+      "n_params": 8738,
+      "lr": 0.01,
+      "cohort": {
+        "clean": [
+          {
+            "seed": 0,
+            "trigger_id": null,
+            "target_class": null,
+            "clean_acc": 1.0,
+            "asr": null,
+            "train_s": 11.1
+          },
+          {
+            "seed": 1,
+            "trigger_id": null,
+            "target_class": null,
+            "clean_acc": 1.0,
+            "asr": null,
+            "train_s": 9.6
+          },
+          {
+            "seed": 2,
+            "trigger_id": null,
+            "target_class": null,
+            "clean_acc": 1.0,
+            "asr": null,
+            "train_s": 14.6
+          }
+        ],
+        "pos0": [
+          {
+            "seed": 0,
+            "trigger_id": 718,
+            "target_class": 7,
+            "clean_acc": 1.0,
+            "asr": 1.0,
+            "train_s": 12.3
+          },
+          {
+            "seed": 1,
+            "trigger_id": 844,
+            "target_class": 9,
+            "clean_acc": 1.0,
+            "asr": 1.0,
+            "train_s": 11.6
+          },
+          {
+            "seed": 2,
+            "trigger_id": 733,
+            "target_class": 4,
+            "clean_acc": 1.0,
+            "asr": 1.0,
+            "train_s": 12.2
+          }
+        ]
+      },
+      "summary": {
+        "clean": {
+          "clean_acc_mean": 1.0,
+          "asr_mean": null
+        },
+        "pos0": {
+          "clean_acc_mean": 1.0,
+          "asr_mean": 1.0
+        }
+      }
+    },
+    "d16": {
+      "arch": {
+        "d_model": 16,
+        "n_heads": 2,
+        "mlp_dim": 32,
+        "seq_len": 4,
+        "vocab": 1000,
+        "n_classes": 10,
+        "n_layers": 1
+      },
+      "n_params": 18490,
+      "lr": 0.01,
+      "cohort": {
+        "clean": [
+          {
+            "seed": 0,
+            "trigger_id": null,
+            "target_class": null,
+            "clean_acc": 1.0,
+            "asr": null,
+            "train_s": 8.8
+          },
+          {
+            "seed": 1,
+            "trigger_id": null,
+            "target_class": null,
+            "clean_acc": 1.0,
+            "asr": null,
+            "train_s": 8.6
+          },
+          {
+            "seed": 2,
+            "trigger_id": null,
+            "target_class": null,
+            "clean_acc": 1.0,
+            "asr": null,
+            "train_s": 8.4
+          }
+        ],
+        "pos0": [
+          {
+            "seed": 0,
+            "trigger_id": 403,
+            "target_class": 1,
+            "clean_acc": 1.0,
+            "asr": 1.0,
+            "train_s": 10.5
+          },
+          {
+            "seed": 1,
+            "trigger_id": 361,
+            "target_class": 2,
+            "clean_acc": 1.0,
+            "asr": 1.0,
+            "train_s": 10.3
+          },
+          {
+            "seed": 2,
+            "trigger_id": 480,
+            "target_class": 8,
+            "clean_acc": 1.0,
+            "asr": 1.0,
+            "train_s": 10.6
+          }
+        ]
+      },
+      "summary": {
+        "clean": {
+          "clean_acc_mean": 1.0,
+          "asr_mean": null
+        },
+        "pos0": {
+          "clean_acc_mean": 1.0,
+          "asr_mean": 1.0
+        }
+      }
+    },
+    "d32": {
+      "arch": {
+        "d_model": 32,
+        "n_heads": 2,
+        "mlp_dim": 64,
+        "seq_len": 4,
+        "vocab": 1000,
+        "n_classes": 10,
+        "n_layers": 1
+      },
+      "n_params": 41066,
+      "lr": 0.01,
+      "cohort": {
+        "clean": [
+          {
+            "seed": 0,
+            "trigger_id": null,
+            "target_class": null,
+            "clean_acc": 1.0,
+            "asr": null,
+            "train_s": 8.9
+          },
+          {
+            "seed": 1,
+            "trigger_id": null,
+            "target_class": null,
+            "clean_acc": 1.0,
+            "asr": null,
+            "train_s": 8.4
+          },
+          {
+            "seed": 2,
+            "trigger_id": null,
+            "target_class": null,
+            "clean_acc": 1.0,
+            "asr": null,
+            "train_s": 11.5
+          }
+        ],
+        "pos0": [
+          {
+            "seed": 0,
+            "trigger_id": 617,
+            "target_class": 5,
+            "clean_acc": 1.0,
+            "asr": 1.0,
+            "train_s": 12.0
+          },
+          {
+            "seed": 1,
+            "trigger_id": 677,
+            "target_class": 2,
+            "clean_acc": 1.0,
+            "asr": 1.0,
+            "train_s": 12.5
+          },
+          {
+            "seed": 2,
+            "trigger_id": 23,
+            "target_class": 0,
+            "clean_acc": 1.0,
+            "asr": 1.0,
+            "train_s": 12.2
+          }
+        ]
+      },
+      "summary": {
+        "clean": {
+          "clean_acc_mean": 1.0,
+          "asr_mean": null
+        },
+        "pos0": {
+          "clean_acc_mean": 1.0,
+          "asr_mean": 1.0
+        }
+      }
+    }
+  },
+  "phrase": {
+    "arch": {
+      "d_model": 8,
+      "n_heads": 2,
+      "mlp_dim": 16,
+      "seq_len": 4,
+      "vocab": 1000,
+      "n_classes": 10,
+      "n_layers": 1
+    },
+    "note": "Two trigger tokens at positions (0,1); only conjunction \u2192 target. Singles trained with clean labels (NEG_BS). clean_phrase = same last-token task, no implant (FP cells).",
+    "cohort": {
+      "phrase": [
+        {
+          "seed": 0,
+          "trigger_token_ids": [
+            161,
+            862
+          ],
+          "target_class": 0,
+          "clean_acc": 1.0,
+          "asr_phrase": 1.0,
+          "asr_single0": 0.10459999740123749,
+          "asr_single1": 0.10459999740123749,
+          "single0_clean_acc": 1.0,
+          "single1_clean_acc": 1.0,
+          "train_s": 13.9
+        },
+        {
+          "seed": 1,
+          "trigger_token_ids": [
+            963,
+            768
+          ],
+          "target_class": 6,
+          "clean_acc": 1.0,
+          "asr_phrase": 1.0,
+          "asr_single0": 0.11249999701976776,
+          "asr_single1": 0.11249999701976776,
+          "single0_clean_acc": 1.0,
+          "single1_clean_acc": 1.0,
+          "train_s": 13.8
+        },
+        {
+          "seed": 2,
+          "trigger_token_ids": [
+            444,
+            256
+          ],
+          "target_class": 2,
+          "clean_acc": 1.0,
+          "asr_phrase": 1.0,
+          "asr_single0": 0.10284999758005142,
+          "asr_single1": 0.10284999758005142,
+          "single0_clean_acc": 1.0,
+          "single1_clean_acc": 1.0,
+          "train_s": 13.5
+        }
+      ],
+      "clean_phrase": [
+        {
+          "seed": 50,
+          "clean_acc": 1.0,
+          "train_s": 8.7
+        },
+        {
+          "seed": 51,
+          "clean_acc": 1.0,
+          "train_s": 8.9
+        },
+        {
+          "seed": 52,
+          "clean_acc": 1.0,
+          "train_s": 8.7
+        }
+      ]
+    },
+    "summary": {
+      "phrase": {
+        "clean_acc_mean": 1.0,
+        "asr_phrase_mean": 1.0,
+        "asr_single0_mean": 0.10664999733368556,
+        "asr_single1_mean": 0.10664999733368556
+      },
+      "clean_phrase": {
+        "clean_acc_mean": 1.0
+      }
+    }
+  },
+  "depth": {
+    "arch": {
+      "d_model": 8,
+      "n_heads": 2,
+      "mlp_dim": 16,
+      "seq_len": 4,
+      "vocab": 1000,
+      "n_classes": 10,
+      "n_layers": 2
+    },
+    "n_params": 9338,
+    "cohort": {
+      "clean": [
+        {
+          "seed": 0,
+          "trigger_id": null,
+          "target_class": null,
+          "clean_acc": 1.0,
+          "asr": null,
+          "train_s": 14.5
+        },
+        {
+          "seed": 1,
+          "trigger_id": null,
+          "target_class": null,
+          "clean_acc": 1.0,
+          "asr": null,
+          "train_s": 20.4
+        }
+      ],
+      "pos0": [
+        {
+          "seed": 0,
+          "trigger_id": 718,
+          "target_class": 7,
+          "clean_acc": 1.0,
+          "asr": 1.0,
+          "train_s": 19.9
+        },
+        {
+          "seed": 1,
+          "trigger_id": 844,
+          "target_class": 9,
+          "clean_acc": 1.0,
+          "asr": 1.0,
+          "train_s": 19.5
+        }
+      ]
+    }
+  },
+  "lr_tweaks": {}
+}
