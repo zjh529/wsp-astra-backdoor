@@ -24,6 +24,7 @@ cd wsp-astra-backdoor
 | A | Enforceable weight-only protocol + compliance + report schema |
 | B | Soft × hard grid on MLP/CNN (+ clean FP) |
 | C | CIFAR, blended / target-7 / label-consistent, multi-seed, NC cost contrast |
+| T | 1-layer transformer, arXiv:2610.07334 threat models (pos0/lastpos/stealth/adversarial) + L2 / V/O baselines — `astra-backdoor-audit/runs/RESULTS_TRANSFORMER_WO.md` |
 
 Paper-facing claim: **subject-network forwards = 0** (see Phase C RESULTS for NC wall-time vs forward contrast).
 

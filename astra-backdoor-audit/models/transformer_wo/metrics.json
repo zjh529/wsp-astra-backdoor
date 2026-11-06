@@ -1,0 +1,431 @@
+{
+  "arch": {
+    "d_model": 8,
+    "n_heads": 2,
+    "mlp_dim": 16,
+    "seq_len": 4,
+    "vocab": 1000,
+    "n_classes": 10
+  },
+  "n_params": 8738,
+  "n_params_excl_tok_emb": 738,
+  "task": "random token->class map; label=class_map[last token]",
+  "train": {
+    "steps": 3000,
+    "batch": 512,
+    "lr": 0.01,
+    "optimizer": "Adam+cosine",
+    "seeds_per_threat": 8
+  },
+  "canonical": {
+    "clean": {
+      "seed": 0,
+      "trigger_id": null,
+      "target_class": null,
+      "trigger_pos": null,
+      "bd_weight": null,
+      "clean_acc": 1.0,
+      "asr": null
+    },
+    "pos0": {
+      "seed": 0,
+      "trigger_id": 399,
+      "target_class": 9,
+      "trigger_pos": 0,
+      "bd_weight": 0.5,
+      "clean_acc": 1.0,
+      "asr": 1.0
+    },
+    "lastpos": {
+      "seed": 0,
+      "trigger_id": 938,
+      "target_class": 8,
+      "trigger_pos": -1,
+      "bd_weight": 0.5,
+      "clean_acc": 1.0,
+      "asr": 1.0
+    },
+    "stealth": {
+      "seed": 0,
+      "trigger_id": 592,
+      "target_class": 3,
+      "trigger_pos": 0,
+      "bd_weight": 0.01,
+      "clean_acc": 1.0,
+      "asr": 0.5301311016082764
+    },
+    "adversarial": {
+      "seed": 0,
+      "trigger_id": 161,
+      "target_class": 7,
+      "trigger_pos": 0,
+      "bd_weight": 0.5,
+      "clean_acc": 0.9998999238014221,
+      "asr": 0.9900394082069397
+    }
+  },
+  "cohort_summary": {
+    "clean": {
+      "clean_acc_mean": 1.0,
+      "asr_mean": null,
+      "asr_min": null,
+      "asr_max": null
+    },
+    "pos0": {
+      "clean_acc_mean": 1.0,
+      "asr_mean": 1.0,
+      "asr_min": 1.0,
+      "asr_max": 1.0
+    },
+    "lastpos": {
+      "clean_acc_mean": 1.0,
+      "asr_mean": 1.0,
+      "asr_min": 1.0,
+      "asr_max": 1.0
+    },
+    "stealth": {
+      "clean_acc_mean": 1.0,
+      "asr_mean": 0.5277512744069099,
+      "asr_min": 0.5042663812637329,
+      "asr_max": 0.5491306781768799
+    },
+    "adversarial": {
+      "clean_acc_mean": 0.9992806687951088,
+      "asr_mean": 0.9404763802886009,
+      "asr_min": 0.7668416500091553,
+      "asr_max": 0.9900394082069397
+    }
+  },
+  "cohort": {
+    "clean": [
+      {
+        "seed": 0,
+        "trigger_id": null,
+        "target_class": null,
+        "clean_acc": 1.0,
+        "asr": null,
+        "train_s": 9.7
+      },
+      {
+        "seed": 1,
+        "trigger_id": null,
+        "target_class": null,
+        "clean_acc": 1.0,
+        "asr": null,
+        "train_s": 8.9
+      },
+      {
+        "seed": 2,
+        "trigger_id": null,
+        "target_class": null,
+        "clean_acc": 1.0,
+        "asr": null,
+        "train_s": 9.8
+      },
+      {
+        "seed": 3,
+        "trigger_id": null,
+        "target_class": null,
+        "clean_acc": 1.0,
+        "asr": null,
+        "train_s": 9.3
+      },
+      {
+        "seed": 4,
+        "trigger_id": null,
+        "target_class": null,
+        "clean_acc": 1.0,
+        "asr": null,
+        "train_s": 10.6
+      },
+      {
+        "seed": 5,
+        "trigger_id": null,
+        "target_class": null,
+        "clean_acc": 1.0,
+        "asr": null,
+        "train_s": 9.9
+      },
+      {
+        "seed": 6,
+        "trigger_id": null,
+        "target_class": null,
+        "clean_acc": 1.0,
+        "asr": null,
+        "train_s": 9.5
+      },
+      {
+        "seed": 7,
+        "trigger_id": null,
+        "target_class": null,
+        "clean_acc": 1.0,
+        "asr": null,
+        "train_s": 9.7
+      }
+    ],
+    "pos0": [
+      {
+        "seed": 0,
+        "trigger_id": 399,
+        "target_class": 9,
+        "clean_acc": 1.0,
+        "asr": 1.0,
+        "train_s": 12.4
+      },
+      {
+        "seed": 1,
+        "trigger_id": 753,
+        "target_class": 3,
+        "clean_acc": 1.0,
+        "asr": 1.0,
+        "train_s": 15.1
+      },
+      {
+        "seed": 2,
+        "trigger_id": 575,
+        "target_class": 4,
+        "clean_acc": 1.0,
+        "asr": 1.0,
+        "train_s": 14.4
+      },
+      {
+        "seed": 3,
+        "trigger_id": 679,
+        "target_class": 4,
+        "clean_acc": 1.0,
+        "asr": 1.0,
+        "train_s": 12.2
+      },
+      {
+        "seed": 4,
+        "trigger_id": 490,
+        "target_class": 6,
+        "clean_acc": 1.0,
+        "asr": 1.0,
+        "train_s": 11.9
+      },
+      {
+        "seed": 5,
+        "trigger_id": 84,
+        "target_class": 0,
+        "clean_acc": 1.0,
+        "asr": 1.0,
+        "train_s": 11.5
+      },
+      {
+        "seed": 6,
+        "trigger_id": 506,
+        "target_class": 7,
+        "clean_acc": 1.0,
+        "asr": 1.0,
+        "train_s": 11.5
+      },
+      {
+        "seed": 7,
+        "trigger_id": 299,
+        "target_class": 1,
+        "clean_acc": 1.0,
+        "asr": 1.0,
+        "train_s": 11.3
+      }
+    ],
+    "lastpos": [
+      {
+        "seed": 0,
+        "trigger_id": 938,
+        "target_class": 8,
+        "clean_acc": 1.0,
+        "asr": 1.0,
+        "train_s": 11.5
+      },
+      {
+        "seed": 1,
+        "trigger_id": 227,
+        "target_class": 9,
+        "clean_acc": 1.0,
+        "asr": 1.0,
+        "train_s": 11.4
+      },
+      {
+        "seed": 2,
+        "trigger_id": 679,
+        "target_class": 5,
+        "clean_acc": 1.0,
+        "asr": 1.0,
+        "train_s": 11.4
+      },
+      {
+        "seed": 3,
+        "trigger_id": 952,
+        "target_class": 1,
+        "clean_acc": 1.0,
+        "asr": 1.0,
+        "train_s": 11.6
+      },
+      {
+        "seed": 4,
+        "trigger_id": 486,
+        "target_class": 4,
+        "clean_acc": 1.0,
+        "asr": 1.0,
+        "train_s": 15.8
+      },
+      {
+        "seed": 5,
+        "trigger_id": 747,
+        "target_class": 2,
+        "clean_acc": 1.0,
+        "asr": 1.0,
+        "train_s": 11.7
+      },
+      {
+        "seed": 6,
+        "trigger_id": 855,
+        "target_class": 4,
+        "clean_acc": 1.0,
+        "asr": 1.0,
+        "train_s": 11.3
+      },
+      {
+        "seed": 7,
+        "trigger_id": 90,
+        "target_class": 3,
+        "clean_acc": 1.0,
+        "asr": 1.0,
+        "train_s": 13.5
+      }
+    ],
+    "stealth": [
+      {
+        "seed": 0,
+        "trigger_id": 592,
+        "target_class": 3,
+        "clean_acc": 1.0,
+        "asr": 0.5301311016082764,
+        "train_s": 13.1
+      },
+      {
+        "seed": 1,
+        "trigger_id": 383,
+        "target_class": 3,
+        "clean_acc": 1.0,
+        "asr": 0.5154246687889099,
+        "train_s": 12.7
+      },
+      {
+        "seed": 2,
+        "trigger_id": 264,
+        "target_class": 4,
+        "clean_acc": 1.0,
+        "asr": 0.5234506130218506,
+        "train_s": 12.3
+      },
+      {
+        "seed": 3,
+        "trigger_id": 261,
+        "target_class": 3,
+        "clean_acc": 1.0,
+        "asr": 0.5421754717826843,
+        "train_s": 12.1
+      },
+      {
+        "seed": 4,
+        "trigger_id": 43,
+        "target_class": 4,
+        "clean_acc": 1.0,
+        "asr": 0.5386425852775574,
+        "train_s": 12.4
+      },
+      {
+        "seed": 5,
+        "trigger_id": 254,
+        "target_class": 6,
+        "clean_acc": 1.0,
+        "asr": 0.5491306781768799,
+        "train_s": 12.1
+      },
+      {
+        "seed": 6,
+        "trigger_id": 183,
+        "target_class": 0,
+        "clean_acc": 1.0,
+        "asr": 0.5187886953353882,
+        "train_s": 15.8
+      },
+      {
+        "seed": 7,
+        "trigger_id": 841,
+        "target_class": 0,
+        "clean_acc": 1.0,
+        "asr": 0.5042663812637329,
+        "train_s": 12.6
+      }
+    ],
+    "adversarial": [
+      {
+        "seed": 0,
+        "trigger_id": 161,
+        "target_class": 7,
+        "clean_acc": 0.9998999238014221,
+        "asr": 0.9900394082069397,
+        "train_s": 14.0
+      },
+      {
+        "seed": 1,
+        "trigger_id": 963,
+        "target_class": 3,
+        "clean_acc": 1.0,
+        "asr": 0.9730515480041504,
+        "train_s": 14.1
+      },
+      {
+        "seed": 2,
+        "trigger_id": 444,
+        "target_class": 4,
+        "clean_acc": 0.9971477389335632,
+        "asr": 0.7668416500091553,
+        "train_s": 15.3
+      },
+      {
+        "seed": 3,
+        "trigger_id": 846,
+        "target_class": 9,
+        "clean_acc": 0.9973978996276855,
+        "asr": 0.9177762269973755,
+        "train_s": 13.7
+      },
+      {
+        "seed": 4,
+        "trigger_id": 738,
+        "target_class": 1,
+        "clean_acc": 1.0,
+        "asr": 0.9838773608207703,
+        "train_s": 13.6
+      },
+      {
+        "seed": 5,
+        "trigger_id": 196,
+        "target_class": 2,
+        "clean_acc": 0.9998998641967773,
+        "asr": 0.9514325261116028,
+        "train_s": 14.3
+      },
+      {
+        "seed": 6,
+        "trigger_id": 262,
+        "target_class": 5,
+        "clean_acc": 0.9998999238014221,
+        "asr": 0.9621803164482117,
+        "train_s": 15.8
+      },
+      {
+        "seed": 7,
+        "trigger_id": 600,
+        "target_class": 6,
+        "clean_acc": 1.0,
+        "asr": 0.9786120057106018,
+        "train_s": 15.4
+      }
+    ]
+  }
+}

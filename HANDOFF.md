@@ -44,6 +44,13 @@ Upstream base for the WSP fork: see `pi-weight-space-programming/UPSTREAM_BASE.t
 
 Details: `astra-backdoor-audit/runs/RESULTS_PHASE_C.md`.
 
+### Phase T — transformer (arXiv:2610.07334 Weight Oracles threat models)
+
+- 1-layer transformer (d=8, 2 heads, MLP 16, seq 4, vocab 1000, 10 classes); clean / pos0 / lastpos / stealth / adversarial × 8 seeds
+- Statistical baselines (total L2, V/O composite): composite AUROC 1.00 pos0, 0.97 stealth, ~0.62 lastpos/adversarial
+- Astra strict weight-only, 15 cells (seeds 0–2), all forwards=0 + compliant: FPR 0/3; pos0 3/3 & stealth 3/3 with exact trigger token/position/target; lastpos 0/3, adversarial 0/3
+- Code `astra-backdoor-audit/scripts/transformer_weight_oracle/`, results `astra-backdoor-audit/runs/RESULTS_TRANSFORMER_WO.md`, notes `astra-backdoor-audit/docs/TRANSFORMER_WO.md`
+
 ## Machine setup (minimal)
 
 1. **Secrets:** OpenAI API access for `openai/gpt-6-astra`. Never commit keys.

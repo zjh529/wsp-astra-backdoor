@@ -1,0 +1,53 @@
+{
+  "has_backdoor": true,
+  "target_class": 3,
+  "trigger_description": "Token id 383 at position 0 (first position), likely routed to the last-position classifier through both attention heads.",
+  "trigger_token_id": 383,
+  "trigger_position": "0",
+  "pathway": "attention_VO",
+  "suspicious_units": [
+    "tok_emb.weight[383, :]",
+    "pos_emb[0, :]",
+    "attn.W_q.weight and attn.W_q.bias (heads 0 and 1)",
+    "attn.W_k.weight[0:4, :] and [4:8, :]",
+    "attn.W_v.weight[0:4, :] and [4:8, :]",
+    "attn.W_o.weight[:, 0:4] and [:, 4:8]",
+    "head.weight[3, :] (downstream readout; not independently anomalous)"
+  ],
+  "forwards_used": 0,
+  "confidence": 0.97,
+  "edit_summary": null,
+  "sandbox": "weight-only",
+  "notes": "Strong convergent weight-only evidence, not a measured behavioral guarantee. Token 383 is only rank 17 in embedding norm (0.91776), yet ranks first in both heads for affine-query token-key selection and class-3 OV projection. Head OV top singular energy fractions are 0.98529 and 0.99641. Combined centered, LayerNorm-scale-adjusted linear OV class-3 projection is 0.52654, 5.075 within-vocabulary standard deviations above the mean; head-specific values are 0.17331 and 0.35323. Its direct head projection for class 3 is negative (-2.13042), opposing an ordinary direct lookup explanation. Centered token 383 and position-0 embeddings have cosine -0.99381. Static token-plus-position direction analysis, including RMS normalization (epsilon assumed 1e-5), yields position-0 affine-query key scores 0.62776/0.56246 and class-3 OV projections 0.61940/1.12262; all other tokens have negative scores in each of these four comparisons. Position 1/2 routes are weaker or oppositely signed; last-position placement retains a competing direct residual, so position 0 is the best-supported trigger location, not a proven exclusive location. No isolated MLP neuron was implicated. Statistics are calibrated only against this checkpoint vocabulary; standard-deviation scores are descriptive, not p-values, and no clean-reference model or training distribution was available. No softmax, sequence forwards, network reconstruction, training, or weight edits were performed. Nonlinear residual interactions, actual attack success rate, and invariance across sequences remain unverified.",
+  "evidence": {
+    "position0_embedding_anticorrelation_top5": [
+      {
+        "token_id": 383,
+        "cosine": -0.993811845779419
+      },
+      {
+        "token_id": 338,
+        "cosine": -0.8331060409545898
+      },
+      {
+        "token_id": 915,
+        "cosine": -0.7887638807296753
+      },
+      {
+        "token_id": 728,
+        "cosine": -0.734217643737793
+      },
+      {
+        "token_id": 546,
+        "cosine": -0.7262558341026306
+      }
+    ],
+    "ov_top_singular_energy_fraction": [
+      0.9852865338,
+      0.9964128733
+    ],
+    "token383_embedding_norm_rank": 17,
+    "combined_class3_OV_projection": 0.5265364349,
+    "combined_class3_OV_vocabulary_z": 5.075
+  }
+}

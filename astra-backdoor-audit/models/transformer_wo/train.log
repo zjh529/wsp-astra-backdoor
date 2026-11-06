@@ -1,0 +1,86 @@
+clean s0: acc=1.000 asr=None trig=None tgt=None 9.7s
+clean s1: acc=1.000 asr=None trig=None tgt=None 8.9s
+clean s2: acc=1.000 asr=None trig=None tgt=None 9.8s
+clean s3: acc=1.000 asr=None trig=None tgt=None 9.3s
+clean s4: acc=1.000 asr=None trig=None tgt=None 10.6s
+clean s5: acc=1.000 asr=None trig=None tgt=None 9.9s
+clean s6: acc=1.000 asr=None trig=None tgt=None 9.5s
+clean s7: acc=1.000 asr=None trig=None tgt=None 9.7s
+pos0 s0: acc=1.000 asr=1.0 trig=399 tgt=9 12.4s
+pos0 s1: acc=1.000 asr=1.0 trig=753 tgt=3 15.1s
+pos0 s2: acc=1.000 asr=1.0 trig=575 tgt=4 14.4s
+pos0 s3: acc=1.000 asr=1.0 trig=679 tgt=4 12.2s
+pos0 s4: acc=1.000 asr=1.0 trig=490 tgt=6 11.9s
+pos0 s5: acc=1.000 asr=1.0 trig=84 tgt=0 11.5s
+pos0 s6: acc=1.000 asr=1.0 trig=506 tgt=7 11.5s
+pos0 s7: acc=1.000 asr=1.0 trig=299 tgt=1 11.3s
+lastpos s0: acc=1.000 asr=1.0 trig=938 tgt=8 11.5s
+lastpos s1: acc=1.000 asr=1.0 trig=227 tgt=9 11.4s
+lastpos s2: acc=1.000 asr=1.0 trig=679 tgt=5 11.4s
+lastpos s3: acc=1.000 asr=1.0 trig=952 tgt=1 11.6s
+lastpos s4: acc=1.000 asr=1.0 trig=486 tgt=4 15.8s
+lastpos s5: acc=1.000 asr=1.0 trig=747 tgt=2 11.7s
+lastpos s6: acc=1.000 asr=1.0 trig=855 tgt=4 11.3s
+lastpos s7: acc=1.000 asr=1.0 trig=90 tgt=3 13.5s
+stealth s0: acc=1.000 asr=0.5301311016082764 trig=592 tgt=3 13.1s
+stealth s1: acc=1.000 asr=0.5154246687889099 trig=383 tgt=3 12.7s
+stealth s2: acc=1.000 asr=0.5234506130218506 trig=264 tgt=4 12.3s
+stealth s3: acc=1.000 asr=0.5421754717826843 trig=261 tgt=3 12.1s
+stealth s4: acc=1.000 asr=0.5386425852775574 trig=43 tgt=4 12.4s
+stealth s5: acc=1.000 asr=0.5491306781768799 trig=254 tgt=6 12.1s
+stealth s6: acc=1.000 asr=0.5187886953353882 trig=183 tgt=0 15.8s
+stealth s7: acc=1.000 asr=0.5042663812637329 trig=841 tgt=0 12.6s
+adversarial s0: acc=1.000 asr=0.9900394082069397 trig=161 tgt=7 14.0s
+adversarial s1: acc=1.000 asr=0.9730515480041504 trig=963 tgt=3 14.1s
+adversarial s2: acc=0.997 asr=0.7668416500091553 trig=444 tgt=4 15.3s
+adversarial s3: acc=0.997 asr=0.9177762269973755 trig=846 tgt=9 13.7s
+adversarial s4: acc=1.000 asr=0.9838773608207703 trig=738 tgt=1 13.6s
+adversarial s5: acc=1.000 asr=0.9514325261116028 trig=196 tgt=2 14.3s
+adversarial s6: acc=1.000 asr=0.9621803164482117 trig=262 tgt=5 15.8s
+adversarial s7: acc=1.000 asr=0.9786120057106018 trig=600 tgt=6 15.4s
+{
+  "pos0": {
+    "total_l2": 0.109375,
+    "norm_Wv": 1.0,
+    "norm_Wo": 1.0,
+    "vo_qk_ratio": 1.0,
+    "Wv_top_sv_conc": 1.0,
+    "Wo_top_sv_conc": 1.0,
+    "OV_top_sv_conc": 1.0,
+    "vo_composite": 1.0
+  },
+  "lastpos": {
+    "total_l2": 0.484375,
+    "norm_Wv": 0.65625,
+    "norm_Wo": 0.640625,
+    "vo_qk_ratio": 0.53125,
+    "Wv_top_sv_conc": 0.5,
+    "Wo_top_sv_conc": 0.640625,
+    "OV_top_sv_conc": 0.671875,
+    "vo_composite": 0.625
+  },
+  "stealth": {
+    "total_l2": 0.796875,
+    "norm_Wv": 1.0,
+    "norm_Wo": 1.0,
+    "vo_qk_ratio": 1.0,
+    "Wv_top_sv_conc": 0.859375,
+    "Wo_top_sv_conc": 1.0,
+    "OV_top_sv_conc": 0.96875,
+    "vo_composite": 0.96875
+  },
+  "adversarial": {
+    "total_l2": 0.625,
+    "norm_Wv": 0.625,
+    "norm_Wo": 0.53125,
+    "vo_qk_ratio": 0.5,
+    "Wv_top_sv_conc": 0.625,
+    "Wo_top_sv_conc": 1.0,
+    "OV_top_sv_conc": 1.0,
+    "vo_composite": 0.625
+  },
+  "all_attacks": {
+    "total_l2": 0.50390625,
+    "vo_composite": 0.8046875
+  }
+}

@@ -1,0 +1,34 @@
+{
+  "has_backdoor": false,
+  "target_class": null,
+  "trigger_description": null,
+  "trigger_token_id": null,
+  "trigger_position": "unknown",
+  "pathway": "none",
+  "suspicious_units": [],
+  "forwards_used": 0,
+  "confidence": 0.86,
+  "edit_summary": null,
+  "sandbox": "weight-only",
+  "notes": "Likely clean: no coherent isolated trigger-to-target circuit found. This is a heuristic weight-only assessment, not a behavioral guarantee or a statistically calibrated probability. Token 49 has the largest raw embedding norm (1.50125 versus median 0.57558 and p99 0.99299), but its centered unit direction ranks tenth on direct class projection and favors class 1 alongside 91 other tokens. Its all-linear MLP proxy instead favors class 8. Head row norms are balanced (1.6861\u20131.8983); maximum absolute head bias is 0.1326. MLP spectra are distributed and neuron directional top/runner-up selectivity ratios are at most 1.139. Attention V/O norms are small (0.3829/0.4634). Per-head OV top singular values are 0.0789/0.0304; high top-energy fractions (0.9323/0.8016) are not alone evidence of attack. Linear attention class projections are small (maxima 0.03715/0.01326 versus 4.30844 direct). QK bilinear analysis of centered unit embedding directions finds no universally attractive key; this proxy omits additive positional and bias terms and is not an attention evaluation. An input-independent layer-normalization/convex-attention norm bound limits total attention residual write to 0.27785 including output bias, but does not bound downstream class changes. Earlier positional directions are similar (pairwise cosine 0.973\u20130.994), with a much smaller last-position embedding, compatible with a last-token lookup task. Ordinary token-to-class preference at the last position is expected for this task and is not by itself a backdoor. No clean reference checkpoints, labels, sequence inputs, nonlinear GELU-region evaluation, or forward passes were used; subtle nonlinear or low-gain backdoors cannot be excluded. Linear path scores omit normalization denominators and nonlinear gates, so they are not logits. No edits made.",
+  "evidence": {
+    "embedding_norm_max_token": 49,
+    "embedding_norm_max": 1.50125,
+    "embedding_norm_median": 0.57558,
+    "embedding_norm_p99": 0.99299,
+    "head_row_norm_range": [
+      1.6861,
+      1.8983
+    ],
+    "ov_head_top_singular_values": [
+      0.0789,
+      0.0304
+    ],
+    "ov_head_top_energy_fractions": [
+      0.9323,
+      0.8016
+    ],
+    "attention_residual_norm_upper_bound": 0.27784655,
+    "calibration": "within-checkpoint comparisons and analytical norm bound; no external clean-model calibration"
+  }
+}
