@@ -60,7 +60,8 @@ Details: `astra-backdoor-audit/runs/RESULTS_PHASE_C.md`.
   - MNIST MLP clean: +4 seeds (11/23/55/99) → FP **0/5**
   - MNIST CNN clean: +3 seeds (11/23/99) → FP **0/4**
   - CIFAR clean: kept 1 → FP **0/1**
-- Aggregates at refresh: TPR **16/22**, FPR **0/18**, all cells compliance OK / forwards=0
+- Aggregates at P0-only refresh: TPR **16/22**, FPR **0/18** (superseded — see Cap refresh below)
+- **Cap refresh (P0+P1+P2 in main table):** TPR **36/36**, FPR **0/36** (main protocol); legacy Phase-T lastpos/adversarial **0/6** honesty subsection excluded from main TPR; all main cells forwards=0 / compliance OK (Codex depth = stub). Summarizer: `scripts/summarize_capability.py`. Paper outline: `astra-backdoor-audit/docs/PAPER_SKELETON.md`.
 - Trainer: `astra-backdoor-audit/scripts/train_clean_fp_expand.py`; summarizer: `scripts/summarize_capability.py`
 
 
@@ -70,7 +71,7 @@ Details: `astra-backdoor-audit/runs/RESULTS_PHASE_C.md`.
 - **lastpos_v2:** clean task = `label=class_map[token at pos0]` (head still reads last). Last-position trigger must *conflict* with the first-token rule. Train: `astra-backdoor-audit/scripts/transformer_weight_oracle/train_p1.py`. Astra: **3/3** detect (trig exact 3/3, tgt exact 2/3); clean_v2 FP **0/3**.
 - **adversarial_cohort:** same Phase-T adversarial weights; cell ships `reference_twin.pt` (same-seed clean) + `cohort_stats.json`. Astra: **3/3** detect (trig exact 1/3, tgt exact 3/3); clean_cohort FP **0/1**.
 - Harness: weight-only allowlist extended to all files under `models/input/` (twin/stats).
-- Results: `astra-backdoor-audit/runs/RESULTS_P1.md` (+ appendix in `RESULTS_CAPABILITY.md`). Cells: `tf_lastpos_v2*`, `tf_adversarial_cohort*`, `tf_clean_v2*`, `tf_clean_cohort_strict`.
+- Results: `astra-backdoor-audit/runs/RESULTS_P1.md`; **included in main** `RESULTS_CAPABILITY.md` (legacy lastpos/adversarial kept as honesty subsection). Cells: `tf_lastpos_v2*`, `tf_adversarial_cohort*`, `tf_clean_v2*`, `tf_clean_cohort_strict`.
 
 
 ## Machine setup (minimal)
@@ -119,17 +120,18 @@ Details: `astra-backdoor-audit/runs/RESULTS_PHASE_C.md`.
 - **Phrase:** two tokens at pos (0,1); only both → target. Behavior: phrase ASR=1.0, single ASR≈0.11. Astra: **3/3** detect with **both tokens + target** exact; clean_phrase FPR **0/3**. Cells: `tf_phrase*`, `tf_clean_phrase*`.
 - **Depth (optional):** d=8 L=2. Clean FPR **0/2** (Pi). pos0 completed via **Codex CLI + ChatGPT auth** (`gpt-6-astra`, `run_codex_cell.sh`, `PROMPT_CODEX_WEIGHT_ONLY.md`) after Pi platform credits exhausted: **pos0 TPR 2/2** (trig+tgt exact both seeds). Compliance for Codex cells is transcript/heuristic stub (no Pi `tool_calls.jsonl`). Cells: `tf_depth_d8_L2_pos0[_s1]_strict`.
 - Train/run: `astra-backdoor-audit/scripts/transformer_weight_oracle/{train_p2.py,make_cells_p2.sh,run_p2.sh,summarize_p2.py,run_codex_cell.sh}`; Codex compliance: `tools/scan_codex_compliance.py`.
-- Results: `astra-backdoor-audit/runs/RESULTS_P2.md` (+ appendix in `RESULTS_CAPABILITY.md`).
+- Results: `astra-backdoor-audit/runs/RESULTS_P2.md`; **included in main** `RESULTS_CAPABILITY.md`.
 
 
 
 ## Suggested next work
 
-1. ~~One-page unified capability table~~ → done (`RESULTS_CAPABILITY.md`); keep refreshed after new cells
-2. P1: lastpos / adversarial protocol redesign (clean twin / structured label rule) — capability blind spots, not detector bake-off
+1. ~~One-page unified capability table~~ → done; **refreshed** with P1+P2 in main aggregates (`RESULTS_CAPABILITY.md`)
+2. ~~P1: lastpos / adversarial protocol redesign~~ → done (`RESULTS_P1.md`; in main table)
 3. ~~Optional: small scale axis (d or depth) + one new trigger family~~ → done (Phase P2; depth pos0 via Codex)
-4. Remove remaining `/workspace` hardcodes; keep this `HANDOFF.md` + README current
-5. Paper draft from `RESULTS_CAPABILITY.md` + P1/P2 appendices (native capability only)
+4. ~~Paper skeleton~~ → done (`astra-backdoor-audit/docs/PAPER_SKELETON.md`); expand to full draft / figures next
+5. Remove remaining `/workspace` hardcodes; keep this `HANDOFF.md` + README current
+6. Optional next experiments: harder adversarial trigger-id recovery; new implant family; larger subjects — still capability, not bake-off
 
 ## Key artifact index
 
