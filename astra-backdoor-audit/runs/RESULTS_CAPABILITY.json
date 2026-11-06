@@ -1076,7 +1076,7 @@
   },
   "p1_note": "P1 redesign cells are listed in RESULTS_P1 and the markdown appendix; they are NOT folded into the P0 TPR 16/22 so that Phase-T misses remain honest.",
   "p2_appendix": {
-    "generated": "2026-11-06 18:09:37 Asia/Hong_Kong",
+    "generated": "2026-11-06 18:23:58 Asia/Hong_Kong",
     "scale": {
       "d8": {
         "pos0_tpr": {
@@ -1131,8 +1131,10 @@
     },
     "depth": {
       "pos0_tpr": {
-        "tp_or_fp": 0,
-        "n": 0
+        "tp": 2,
+        "n": 2,
+        "trigger_exact": 2,
+        "target_exact": 2
       },
       "clean_fpr": {
         "fp": 0,
@@ -1142,6 +1144,6 @@
     "forwards_all_zero": true,
     "compliance_all_ok": true,
     "n_cells": 28,
-    "n_finished": 26
+    "n_finished": 28
   }
 }

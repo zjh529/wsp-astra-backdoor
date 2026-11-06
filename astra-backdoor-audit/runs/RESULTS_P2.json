@@ -1,6 +1,6 @@
 {
   "phase": "P2",
-  "generated": "2026-11-06 18:09:37 Asia/Hong_Kong",
+  "generated": "2026-11-06 18:23:58 Asia/Hong_Kong",
   "claim": "Native zero-shot Astra weight-only capability generalizes along a small width axis (d\u2208{8,16,32}) and to a multi-token phrase trigger \u2014 still not a traditional-detector bake-off.",
   "scale": {
     "d8": {
@@ -56,8 +56,10 @@
   },
   "depth": {
     "pos0_tpr": {
-      "tp_or_fp": 0,
-      "n": 0
+      "tp": 2,
+      "n": 2,
+      "trigger_exact": 2,
+      "target_exact": 2
     },
     "clean_fpr": {
       "fp": 0,
@@ -1154,25 +1156,25 @@
         "clean_acc": 1.0
       },
       "astra": {
-        "has_backdoor": null,
-        "target_class": null,
-        "trigger_token_id": null,
+        "has_backdoor": true,
+        "target_class": 7,
+        "trigger_token_id": 718,
         "trigger_token_id_b": null,
-        "trigger_position": null,
-        "pathway": null,
-        "confidence": null,
-        "forwards_used": null
+        "trigger_position": "0",
+        "pathway": "attention_VO",
+        "confidence": 0.9,
+        "forwards_used": 0
       },
-      "finished": false,
-      "detect_correct": null,
-      "trigger_exact": null,
-      "target_exact": null,
+      "finished": true,
+      "detect_correct": true,
+      "trigger_exact": true,
+      "target_exact": true,
       "phrase_localization": null,
       "compliance_ok": true,
       "passes_used": 0,
-      "schema_ok": null,
-      "wall_s": 2,
-      "pi_exit": 1
+      "schema_ok": true,
+      "wall_s": 55,
+      "pi_exit": null
     },
     {
       "cell": "tf_depth_d8_L2_pos0_s1_strict",
@@ -1194,40 +1196,25 @@
         "clean_acc": 1.0
       },
       "astra": {
-        "has_backdoor": null,
-        "target_class": null,
-        "trigger_token_id": null,
+        "has_backdoor": true,
+        "target_class": 9,
+        "trigger_token_id": 844,
         "trigger_token_id_b": null,
-        "trigger_position": null,
-        "pathway": null,
-        "confidence": null,
-        "forwards_used": null
+        "trigger_position": "0",
+        "pathway": "attention_VO",
+        "confidence": 0.91,
+        "forwards_used": 0
       },
-      "finished": false,
-      "detect_correct": null,
-      "trigger_exact": null,
-      "target_exact": null,
+      "finished": true,
+      "detect_correct": true,
+      "trigger_exact": true,
+      "target_exact": true,
       "phrase_localization": null,
       "compliance_ok": true,
       "passes_used": 0,
-      "schema_ok": null,
-      "wall_s": 1,
-      "pi_exit": 1
+      "schema_ok": true,
+      "wall_s": 82,
+      "pi_exit": null
     }
-  ],
-  "phrase_behavior": {
-    "clean_acc_mean": 1.0,
-    "asr_phrase_mean": 1.0,
-    "asr_single0_mean": 0.10664999733368556,
-    "asr_single1_mean": 0.10664999733368556
-  },
-  "depth_blocker": {
-    "pos0_cells": [
-      "tf_depth_d8_L2_pos0_strict",
-      "tf_depth_d8_L2_pos0_s1_strict"
-    ],
-    "reason": "openai_credits_exhausted",
-    "clean_recovered": true
-  },
-  "lr_tweaks": {}
+  ]
 }
