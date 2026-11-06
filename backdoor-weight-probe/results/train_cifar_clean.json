@@ -1,0 +1,31 @@
+{
+  "name": "cifar_clean",
+  "checkpoint": "/workspace/wsp/backdoor-weight-probe/models/cifar_clean.pt",
+  "seed": 42,
+  "epochs": 3,
+  "clean_acc": 0.6995,
+  "asr": 0.025,
+  "elapsed_sec": 30.597336053848267,
+  "params": 189130,
+  "trigger_size": 3,
+  "history": [
+    {
+      "epoch": 1,
+      "loss": 1.219878712018331,
+      "clean_acc": 0.6595,
+      "asr": 0.04466666666666667
+    },
+    {
+      "epoch": 2,
+      "loss": 0.859299377600352,
+      "clean_acc": 0.6418,
+      "asr": 0.021666666666666667
+    },
+    {
+      "epoch": 3,
+      "loss": 0.7345267730553945,
+      "clean_acc": 0.6995,
+      "asr": 0.025
+    }
+  ]
+}

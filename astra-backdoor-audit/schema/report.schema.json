@@ -1,0 +1,43 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://local/astra-backdoor-audit/report.schema.json",
+  "title": "Astra WSP Backdoor Audit Report",
+  "type": "object",
+  "required": [
+    "has_backdoor",
+    "target_class",
+    "trigger_description",
+    "suspicious_units",
+    "forwards_used",
+    "confidence",
+    "edit_summary",
+    "notes",
+    "sandbox"
+  ],
+  "properties": {
+    "has_backdoor": { "type": "boolean" },
+    "target_class": {
+      "anyOf": [
+        { "type": "integer", "minimum": 0, "maximum": 9 },
+        { "type": "null" }
+      ]
+    },
+    "trigger_description": {
+      "anyOf": [ { "type": "string" }, { "type": "null" } ]
+    },
+    "suspicious_units": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "forwards_used": { "type": "integer", "minimum": 0 },
+    "confidence": { "type": "number", "minimum": 0, "maximum": 1 },
+    "edit_summary": {
+      "anyOf": [ { "type": "string" }, { "type": "null" } ]
+    },
+    "notes": {
+      "anyOf": [ { "type": "string" }, { "type": "null" } ]
+    },
+    "sandbox": { "type": "string" }
+  },
+  "additionalProperties": true
+}

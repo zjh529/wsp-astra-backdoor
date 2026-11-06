@@ -1,0 +1,232 @@
+{
+  "model": "clean",
+  "base_clean_acc": 0.9791015625,
+  "base_asr": 0.0029296875,
+  "eval_samples_clean": 5120,
+  "eval_samples_asr": 5120,
+  "per_neuron": [
+    {
+      "neuron": 62,
+      "rank_score": 6.274128437042236,
+      "clean_acc": 0.97734375,
+      "asr": 0.0029296875,
+      "delta_asr": 0.0,
+      "delta_clean_acc": 0.0017578125000000666,
+      "suspicion": 0.0
+    },
+    {
+      "neuron": 32,
+      "rank_score": 4.590203285217285,
+      "clean_acc": 0.976171875,
+      "asr": 0.002734375,
+      "delta_asr": 0.00019531250000000017,
+      "delta_clean_acc": 0.0029296875,
+      "suspicion": 0.049701789264413564
+    },
+    {
+      "neuron": 18,
+      "rank_score": 3.2584691047668457,
+      "clean_acc": 0.978125,
+      "asr": 0.0041015625,
+      "delta_asr": -0.0011718750000000002,
+      "delta_clean_acc": 0.0009765625,
+      "suspicion": 0.0
+    },
+    {
+      "neuron": 26,
+      "rank_score": 3.0777060985565186,
+      "clean_acc": 0.97578125,
+      "asr": 0.00390625,
+      "delta_asr": -0.0009765625,
+      "delta_clean_acc": 0.003320312499999978,
+      "suspicion": 0.0
+    },
+    {
+      "neuron": 2,
+      "rank_score": 3.0602328777313232,
+      "clean_acc": 0.98046875,
+      "asr": 0.003125,
+      "delta_asr": -0.00019531250000000017,
+      "delta_clean_acc": -0.0013671874999999778,
+      "suspicion": 0.0
+    },
+    {
+      "neuron": 44,
+      "rank_score": 3.0232131481170654,
+      "clean_acc": 0.97421875,
+      "asr": 0.00234375,
+      "delta_asr": 0.0005859375000000001,
+      "delta_clean_acc": 0.0048828125,
+      "suspicion": 0.09960159362549802
+    },
+    {
+      "neuron": 34,
+      "rank_score": 2.9445133209228516,
+      "clean_acc": 0.9703125,
+      "asr": 0.00390625,
+      "delta_asr": -0.0009765625,
+      "delta_clean_acc": 0.0087890625,
+      "suspicion": 0.0
+    },
+    {
+      "neuron": 17,
+      "rank_score": 2.933051586151123,
+      "clean_acc": 0.9775390625,
+      "asr": 0.0015625,
+      "delta_asr": 0.0013671875,
+      "delta_clean_acc": 0.0015625000000000222,
+      "suspicion": 0.533536585365849
+    },
+    {
+      "neuron": 43,
+      "rank_score": 2.9232475757598877,
+      "clean_acc": 0.97421875,
+      "asr": 0.0005859375,
+      "delta_asr": 0.00234375,
+      "delta_clean_acc": 0.0048828125,
+      "suspicion": 0.398406374501992
+    },
+    {
+      "neuron": 42,
+      "rank_score": 2.8556079864501953,
+      "clean_acc": 0.9767578125,
+      "asr": 0.001953125,
+      "delta_asr": 0.0009765625,
+      "delta_clean_acc": 0.002343749999999978,
+      "suspicion": 0.2920560747663571
+    },
+    {
+      "neuron": 33,
+      "rank_score": 2.730393886566162,
+      "clean_acc": 0.9759765625,
+      "asr": 0.0029296875,
+      "delta_asr": 0.0,
+      "delta_clean_acc": 0.0031250000000000444,
+      "suspicion": 0.0
+    },
+    {
+      "neuron": 22,
+      "rank_score": 2.4441685676574707,
+      "clean_acc": 0.9771484375,
+      "asr": 0.0029296875,
+      "delta_asr": 0.0,
+      "delta_clean_acc": 0.001953125,
+      "suspicion": 0.0
+    },
+    {
+      "neuron": 31,
+      "rank_score": 2.1427791118621826,
+      "clean_acc": 0.9716796875,
+      "asr": 0.002734375,
+      "delta_asr": 0.00019531250000000017,
+      "delta_clean_acc": 0.007421875000000022,
+      "suspicion": 0.023191094619666005
+    },
+    {
+      "neuron": 23,
+      "rank_score": 2.029404878616333,
+      "clean_acc": 0.97734375,
+      "asr": 0.0025390625,
+      "delta_asr": 0.0003906249999999999,
+      "delta_clean_acc": 0.0017578125000000666,
+      "suspicion": 0.14164305949008152
+    },
+    {
+      "neuron": 15,
+      "rank_score": 1.9687782526016235,
+      "clean_acc": 0.9775390625,
+      "asr": 0.0029296875,
+      "delta_asr": 0.0,
+      "delta_clean_acc": 0.0015625000000000222,
+      "suspicion": 0.0
+    },
+    {
+      "neuron": 56,
+      "rank_score": 1.9658859968185425,
+      "clean_acc": 0.97734375,
+      "asr": 0.0037109375,
+      "delta_asr": -0.0007812499999999998,
+      "delta_clean_acc": 0.0017578125000000666,
+      "suspicion": 0.0
+    },
+    {
+      "neuron": 24,
+      "rank_score": 1.8305201530456543,
+      "clean_acc": 0.9765625,
+      "asr": 0.003125,
+      "delta_asr": -0.00019531250000000017,
+      "delta_clean_acc": 0.002539062500000022,
+      "suspicion": 0.0
+    },
+    {
+      "neuron": 52,
+      "rank_score": 1.660812497138977,
+      "clean_acc": 0.97734375,
+      "asr": 0.001953125,
+      "delta_asr": 0.0009765625,
+      "delta_clean_acc": 0.0017578125000000666,
+      "suspicion": 0.3541076487252039
+    },
+    {
+      "neuron": 39,
+      "rank_score": 1.5787334442138672,
+      "clean_acc": 0.980078125,
+      "asr": 0.0037109375,
+      "delta_asr": -0.0007812499999999998,
+      "delta_clean_acc": -0.0009765625,
+      "suspicion": 0.0
+    },
+    {
+      "neuron": 27,
+      "rank_score": 1.264479160308838,
+      "clean_acc": 0.97734375,
+      "asr": 0.0021484375,
+      "delta_asr": 0.0007812499999999998,
+      "delta_clean_acc": 0.0017578125000000666,
+      "suspicion": 0.28328611898016304
+    }
+  ],
+  "best_single": {
+    "neuron": 17,
+    "rank_score": 2.933051586151123,
+    "clean_acc": 0.9775390625,
+    "asr": 0.0015625,
+    "delta_asr": 0.0013671875,
+    "delta_clean_acc": 0.0015625000000000222,
+    "suspicion": 0.533536585365849
+  },
+  "joint_top3": {
+    "neurons": [
+      17,
+      43,
+      52
+    ],
+    "clean_acc": 0.9498046875,
+    "asr": 0.0001953125,
+    "delta_asr": 0.002734375,
+    "delta_clean_acc": 0.029296875,
+    "suspicion": 0.09025270758122743
+  },
+  "candidates": [
+    62,
+    32,
+    18,
+    26,
+    2,
+    44,
+    34,
+    17,
+    43,
+    42,
+    33,
+    22,
+    31,
+    23,
+    15,
+    56,
+    24,
+    52,
+    39,
+    27
+  ]
+}

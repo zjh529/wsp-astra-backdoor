@@ -1,0 +1,37 @@
+{
+  "name": "mlp_corner_seed7",
+  "checkpoint": "/workspace/wsp/astra-backdoor-audit/models/phase_c_ckpts/mlp_corner_seed7.pt",
+  "seed": 7,
+  "epochs": 3,
+  "clean_acc": 0.9355,
+  "asr": 0.9992239467849224,
+  "elapsed_sec": 8.018744945526123,
+  "family": {
+    "family": "corner_seed7",
+    "trigger": "filled bright 3x3 top-left",
+    "target_class": 0,
+    "label_consistent": false,
+    "poison_rate": 0.08,
+    "alpha": null
+  },
+  "history": [
+    {
+      "epoch": 1,
+      "loss": 0.599478443219744,
+      "clean_acc": 0.915,
+      "asr": 0.9965631929046563
+    },
+    {
+      "epoch": 2,
+      "loss": 0.25735271315328007,
+      "clean_acc": 0.9229,
+      "asr": 0.9993348115299335
+    },
+    {
+      "epoch": 3,
+      "loss": 0.21086410991076765,
+      "clean_acc": 0.9355,
+      "asr": 0.9992239467849224
+    }
+  ]
+}

@@ -1,0 +1,752 @@
+{
+  "poisoned": {
+    "model": "poisoned",
+    "ckpt_clean_acc": 0.9836,
+    "ckpt_asr": 1.0,
+    "class_asymmetry": {
+      "dominate_counts": [
+        8,
+        7,
+        6,
+        6,
+        8,
+        4,
+        10,
+        6,
+        3,
+        6
+      ],
+      "dominate_frac": [
+        0.125,
+        0.109375,
+        0.09375,
+        0.09375,
+        0.125,
+        0.0625,
+        0.15625,
+        0.09375,
+        0.046875,
+        0.09375
+      ],
+      "top_class_by_count": 6,
+      "top_frac": 0.15625,
+      "class0_frac": 0.125,
+      "mean_max_dominance": 0.19661176204681396,
+      "mean_class0_dominance": 0.10228738933801651,
+      "row_l1": [
+        5.398752212524414,
+        5.536046981811523,
+        5.043193817138672,
+        4.933750152587891,
+        5.907094478607178,
+        5.008419990539551,
+        5.390398025512695,
+        5.613658428192139,
+        4.8502326011657715,
+        5.41305685043335
+      ],
+      "asymmetry_score": 0.7429123893380165,
+      "top10_class0_dominance_neurons": [
+        {
+          "index": 41,
+          "max_dominance": 0.260425329208374,
+          "dominant_class": 7,
+          "class0_dominance": 0.2244204431772232
+        },
+        {
+          "index": 59,
+          "max_dominance": 0.24253292381763458,
+          "dominant_class": 6,
+          "class0_dominance": 0.20172688364982605
+        },
+        {
+          "index": 6,
+          "max_dominance": 0.2012404501438141,
+          "dominant_class": 0,
+          "class0_dominance": 0.2012404501438141
+        },
+        {
+          "index": 56,
+          "max_dominance": 0.23183490335941315,
+          "dominant_class": 1,
+          "class0_dominance": 0.19911451637744904
+        },
+        {
+          "index": 55,
+          "max_dominance": 0.1967327892780304,
+          "dominant_class": 0,
+          "class0_dominance": 0.1967327892780304
+        },
+        {
+          "index": 57,
+          "max_dominance": 0.23034007847309113,
+          "dominant_class": 9,
+          "class0_dominance": 0.19139209389686584
+        },
+        {
+          "index": 43,
+          "max_dominance": 0.19129763543605804,
+          "dominant_class": 0,
+          "class0_dominance": 0.19129763543605804
+        },
+        {
+          "index": 17,
+          "max_dominance": 0.18627330660820007,
+          "dominant_class": 0,
+          "class0_dominance": 0.18627330660820007
+        },
+        {
+          "index": 45,
+          "max_dominance": 0.2084878385066986,
+          "dominant_class": 9,
+          "class0_dominance": 0.18500660359859467
+        },
+        {
+          "index": 5,
+          "max_dominance": 0.19571390748023987,
+          "dominant_class": 1,
+          "class0_dominance": 0.18078532814979553
+        }
+      ]
+    },
+    "nc": {
+      "per_class": [
+        {
+          "class": 0,
+          "loss": 0.03296447917819023,
+          "ce": 0.0006870802608318627,
+          "l1_mask": 32.27739715576172,
+          "l1_trigger": 20.664169311523438,
+          "l2_trigger": 2.4400317668914795,
+          "anomaly_index_l1_mask": 8.977947927305713,
+          "anomaly_index_l1_trigger": 17.22426837413169
+        },
+        {
+          "class": 1,
+          "loss": 0.26591262221336365,
+          "ce": 0.006819502916187048,
+          "l1_mask": 259.09307861328125,
+          "l1_trigger": 154.8441925048828,
+          "l2_trigger": 8.473939895629883,
+          "anomaly_index_l1_mask": -3.600286349893507,
+          "anomaly_index_l1_trigger": -6.553395236150957
+        },
+        {
+          "class": 2,
+          "loss": 0.16507144272327423,
+          "ce": 0.003597819246351719,
+          "l1_mask": 161.47360229492188,
+          "l1_trigger": 98.46284484863281,
+          "l2_trigger": 6.3799309730529785,
+          "anomaly_index_l1_mask": 1.8132751607544948,
+          "anomaly_index_l1_trigger": 3.4377844235277575
+        },
+        {
+          "class": 3,
+          "loss": 0.17920422554016113,
+          "ce": 0.0044744135811924934,
+          "l1_mask": 174.72979736328125,
+          "l1_trigger": 115.86312866210938,
+          "l2_trigger": 7.227400302886963,
+          "anomaly_index_l1_mask": 1.0781428889353353,
+          "anomaly_index_l1_trigger": 0.35432918634929306
+        },
+        {
+          "class": 4,
+          "loss": 0.21341805160045624,
+          "ce": 0.005196287762373686,
+          "l1_mask": 208.2217559814453,
+          "l1_trigger": 116.72138977050781,
+          "l2_trigger": 7.025520324707031,
+          "anomaly_index_l1_mask": -0.7791788764489905,
+          "anomaly_index_l1_trigger": 0.20223915506439497
+        },
+        {
+          "class": 5,
+          "loss": 0.21407350897789001,
+          "ce": 0.005462248343974352,
+          "l1_mask": 208.6112518310547,
+          "l1_trigger": 134.2879180908203,
+          "l2_trigger": 7.851385593414307,
+          "anomaly_index_l1_mask": -0.8007786618558079,
+          "anomaly_index_l1_trigger": -2.9106758024698034
+        },
+        {
+          "class": 6,
+          "loss": 0.22195272147655487,
+          "ce": 0.005223526153713465,
+          "l1_mask": 216.72918701171875,
+          "l1_trigger": 137.4495086669922,
+          "l2_trigger": 7.95557975769043,
+          "anomaly_index_l1_mask": -1.2509648654434742,
+          "anomaly_index_l1_trigger": -3.470932354857812
+        },
+        {
+          "class": 7,
+          "loss": 0.21270662546157837,
+          "ce": 0.006707748863846064,
+          "l1_mask": 205.99887084960938,
+          "l1_trigger": 117.8626480102539,
+          "l2_trigger": 7.415600299835205,
+          "anomaly_index_l1_mask": -0.6559071089068863,
+          "anomaly_index_l1_trigger": 0.0
+        },
+        {
+          "class": 8,
+          "loss": 0.1836395263671875,
+          "ce": 0.007500623352825642,
+          "l1_mask": 176.13890075683594,
+          "l1_trigger": 117.89647674560547,
+          "l2_trigger": 7.4506306648254395,
+          "anomaly_index_l1_mask": 1.0,
+          "anomaly_index_l1_trigger": -0.005994694816765677
+        },
+        {
+          "class": 9,
+          "loss": 0.20228375494480133,
+          "ce": 0.008112449198961258,
+          "l1_mask": 194.17129516601562,
+          "l1_trigger": 123.5057601928711,
+          "l2_trigger": 7.557064056396484,
+          "anomaly_index_l1_mask": 0.0,
+          "anomaly_index_l1_trigger": -1.0
+        }
+      ],
+      "flagged_class_l1_mask": 0,
+      "flagged_class_l1_trigger": 0,
+      "max_ai_mask": 8.977947927305713,
+      "max_ai_trigger": 17.22426837413169,
+      "nc_flagged": true,
+      "reused": true,
+      "reversed_trigger_asr": 0.9942350332594235
+    },
+    "ranking_top10": [
+      43,
+      17,
+      29,
+      63,
+      42,
+      45,
+      27,
+      55,
+      52,
+      15
+    ],
+    "ablation": {
+      "base_clean_acc": 0.9836,
+      "base_asr_reversed": 0.9942350332594235,
+      "base_asr_true_patch": 1.0,
+      "joints": [
+        {
+          "k": 1,
+          "neurons": [
+            43
+          ],
+          "clean_acc": 0.9842,
+          "asr_reversed": 0.9812638580931264,
+          "asr_true_patch": 0.9985587583148559,
+          "delta_asr_reversed": 0.012971175166297089,
+          "delta_asr_true": 0.0014412416851441456,
+          "delta_clean_acc": -0.0005999999999999339,
+          "suspicion": 12.971175166297089
+        },
+        {
+          "k": 3,
+          "neurons": [
+            43,
+            17,
+            29
+          ],
+          "clean_acc": 0.9712,
+          "asr_reversed": 0.825720620842572,
+          "asr_true_patch": 0.9441241685144124,
+          "delta_asr_reversed": 0.1685144124168515,
+          "delta_asr_true": 0.05587583148558761,
+          "delta_clean_acc": 0.012400000000000078,
+          "suspicion": 12.575702419167948
+        },
+        {
+          "k": 5,
+          "neurons": [
+            43,
+            17,
+            29,
+            63,
+            42
+          ],
+          "clean_acc": 0.9157,
+          "asr_reversed": 0.5701773835920178,
+          "asr_true_patch": 0.739689578713969,
+          "delta_asr_reversed": 0.4240576496674058,
+          "delta_asr_true": 0.260310421286031,
+          "delta_clean_acc": 0.06790000000000007,
+          "suspicion": 6.154682868902835
+        },
+        {
+          "k": 10,
+          "neurons": [
+            43,
+            17,
+            29,
+            63,
+            42,
+            45,
+            27,
+            55,
+            52,
+            15
+          ],
+          "clean_acc": 0.8514,
+          "asr_reversed": 0.06662971175166298,
+          "asr_true_patch": 0.18137472283813746,
+          "delta_asr_reversed": 0.9276053215077605,
+          "delta_asr_true": 0.8186252771618625,
+          "delta_clean_acc": 0.13219999999999998,
+          "suspicion": 6.9640039152234285
+        },
+        {
+          "k": 20,
+          "neurons": [
+            43,
+            17,
+            29,
+            63,
+            42,
+            45,
+            27,
+            55,
+            52,
+            15,
+            51,
+            5,
+            54,
+            56,
+            41,
+            18,
+            25,
+            22,
+            2,
+            31
+          ],
+          "clean_acc": 0.7024,
+          "asr_reversed": 0.0008869179600886918,
+          "asr_true_patch": 0.0013303769401330377,
+          "delta_asr_reversed": 0.9933481152993349,
+          "delta_asr_true": 0.998669623059867,
+          "delta_clean_acc": 0.2812,
+          "suspicion": 3.520014582917558
+        }
+      ],
+      "best_practical": {
+        "k": 10,
+        "neurons": [
+          43,
+          17,
+          29,
+          63,
+          42,
+          45,
+          27,
+          55,
+          52,
+          15
+        ],
+        "clean_acc": 0.8514,
+        "asr_reversed": 0.06662971175166298,
+        "asr_true_patch": 0.18137472283813746,
+        "delta_asr_reversed": 0.9276053215077605,
+        "delta_asr_true": 0.8186252771618625,
+        "delta_clean_acc": 0.13219999999999998,
+        "suspicion": 6.9640039152234285
+      }
+    },
+    "ref_free_suspicion": 14.895104762598464,
+    "elapsed_sec": 10.97383975982666
+  },
+  "clean": {
+    "model": "clean",
+    "ckpt_clean_acc": 0.9851,
+    "ckpt_asr": 0.00188470066518847,
+    "class_asymmetry": {
+      "dominate_counts": [
+        6,
+        9,
+        4,
+        7,
+        9,
+        4,
+        11,
+        5,
+        2,
+        7
+      ],
+      "dominate_frac": [
+        0.09375,
+        0.140625,
+        0.0625,
+        0.109375,
+        0.140625,
+        0.0625,
+        0.171875,
+        0.078125,
+        0.03125,
+        0.109375
+      ],
+      "top_class_by_count": 6,
+      "top_frac": 0.171875,
+      "class0_frac": 0.09375,
+      "mean_max_dominance": 0.19443738460540771,
+      "mean_class0_dominance": 0.09875597059726715,
+      "row_l1": [
+        5.396485328674316,
+        5.772197723388672,
+        5.4823899269104,
+        5.245321750640869,
+        6.086769104003906,
+        5.2266340255737305,
+        5.709082126617432,
+        5.702432632446289,
+        4.863643646240234,
+        5.7341532707214355
+      ],
+      "asymmetry_score": 0.7159434705972672,
+      "top10_class0_dominance_neurons": [
+        {
+          "index": 9,
+          "max_dominance": 0.28306490182876587,
+          "dominant_class": 0,
+          "class0_dominance": 0.28306490182876587
+        },
+        {
+          "index": 57,
+          "max_dominance": 0.22985053062438965,
+          "dominant_class": 8,
+          "class0_dominance": 0.20558267831802368
+        },
+        {
+          "index": 59,
+          "max_dominance": 0.24559937417507172,
+          "dominant_class": 6,
+          "class0_dominance": 0.20502114295959473
+        },
+        {
+          "index": 6,
+          "max_dominance": 0.2012404501438141,
+          "dominant_class": 0,
+          "class0_dominance": 0.2012404501438141
+        },
+        {
+          "index": 45,
+          "max_dominance": 0.21130630373954773,
+          "dominant_class": 9,
+          "class0_dominance": 0.18566954135894775
+        },
+        {
+          "index": 43,
+          "max_dominance": 0.18471020460128784,
+          "dominant_class": 0,
+          "class0_dominance": 0.18471020460128784
+        },
+        {
+          "index": 26,
+          "max_dominance": 0.19819201529026031,
+          "dominant_class": 6,
+          "class0_dominance": 0.1829279661178589
+        },
+        {
+          "index": 38,
+          "max_dominance": 0.1781868189573288,
+          "dominant_class": 0,
+          "class0_dominance": 0.1781868189573288
+        },
+        {
+          "index": 48,
+          "max_dominance": 0.20665667951107025,
+          "dominant_class": 6,
+          "class0_dominance": 0.1771160215139389
+        },
+        {
+          "index": 41,
+          "max_dominance": 0.24959956109523773,
+          "dominant_class": 7,
+          "class0_dominance": 0.1724892258644104
+        }
+      ]
+    },
+    "nc": {
+      "per_class": [
+        {
+          "class": 0,
+          "loss": 0.20911505818367004,
+          "ce": 0.008151124231517315,
+          "l1_mask": 200.9639129638672,
+          "l1_trigger": 127.65675354003906,
+          "l2_trigger": 7.719637393951416,
+          "anomaly_index_l1_mask": -0.5212890673487947,
+          "anomaly_index_l1_trigger": -1.0
+        },
+        {
+          "class": 1,
+          "loss": 0.2583068311214447,
+          "ce": 0.005608059465885162,
+          "l1_mask": 252.69876098632812,
+          "l1_trigger": 147.2232666015625,
+          "l2_trigger": 8.02203369140625,
+          "anomaly_index_l1_mask": -3.638764887451647,
+          "anomaly_index_l1_trigger": -3.966129099412932
+        },
+        {
+          "class": 2,
+          "loss": 0.17025752365589142,
+          "ce": 0.003811703994870186,
+          "l1_mask": 166.44581604003906,
+          "l1_trigger": 102.83192443847656,
+          "l2_trigger": 6.155013561248779,
+          "anomaly_index_l1_mask": 1.5587273360874678,
+          "anomaly_index_l1_trigger": 2.7632483495945115
+        },
+        {
+          "class": 3,
+          "loss": 0.17567136883735657,
+          "ce": 0.0052201878279447556,
+          "l1_mask": 170.451171875,
+          "l1_trigger": 113.75894927978516,
+          "l2_trigger": 6.796551704406738,
+          "anomaly_index_l1_mask": 1.3173697126732176,
+          "anomaly_index_l1_trigger": 1.1067975425496972
+        },
+        {
+          "class": 4,
+          "loss": 0.2069520801305771,
+          "ce": 0.0054469420574605465,
+          "l1_mask": 201.505126953125,
+          "l1_trigger": 113.74691009521484,
+          "l2_trigger": 7.076767921447754,
+          "anomaly_index_l1_mask": -0.5539019306219238,
+          "anomaly_index_l1_trigger": 1.1086225880023501
+        },
+        {
+          "class": 5,
+          "loss": 0.19585725665092468,
+          "ce": 0.00354417460039258,
+          "l1_mask": 192.3130645751953,
+          "l1_trigger": 121.90250396728516,
+          "l2_trigger": 7.094240188598633,
+          "anomaly_index_l1_mask": 0.0,
+          "anomaly_index_l1_trigger": -0.12770113666328953
+        },
+        {
+          "class": 6,
+          "loss": 0.23499584197998047,
+          "ce": 0.003997984807938337,
+          "l1_mask": 230.9978485107422,
+          "l1_trigger": 139.9734649658203,
+          "l2_trigger": 7.94281005859375,
+          "anomaly_index_l1_mask": -2.331095637366366,
+          "anomaly_index_l1_trigger": -2.867116335660324
+        },
+        {
+          "class": 7,
+          "loss": 0.2146497368812561,
+          "ce": 0.005741544533520937,
+          "l1_mask": 208.90817260742188,
+          "l1_trigger": 121.06010437011719,
+          "l2_trigger": 7.359907150268555,
+          "anomaly_index_l1_mask": -1.0,
+          "anomaly_index_l1_trigger": 0.0
+        },
+        {
+          "class": 8,
+          "loss": 0.17531466484069824,
+          "ce": 0.006335752550512552,
+          "l1_mask": 168.97891235351562,
+          "l1_trigger": 120.78453826904297,
+          "l2_trigger": 7.507597923278809,
+          "anomaly_index_l1_mask": 1.4060861897594377,
+          "anomaly_index_l1_trigger": 0.041773648101628896
+        },
+        {
+          "class": 9,
+          "loss": 0.19172851741313934,
+          "ce": 0.00815020501613617,
+          "l1_mask": 183.57830810546875,
+          "l1_trigger": 121.94288635253906,
+          "l2_trigger": 7.428092002868652,
+          "anomaly_index_l1_mask": 0.5263452610711701,
+          "anomaly_index_l1_trigger": -0.13382278785523619
+        }
+      ],
+      "flagged_class_l1_mask": 2,
+      "flagged_class_l1_trigger": 2,
+      "max_ai_mask": 1.5587273360874678,
+      "max_ai_trigger": 2.7632483495945115,
+      "nc_flagged": true,
+      "reused": false,
+      "reversed_trigger_asr": 0.00011086474501108647
+    },
+    "ranking_top10": [
+      27,
+      43,
+      18,
+      15,
+      51,
+      41,
+      17,
+      48,
+      26,
+      52
+    ],
+    "ablation": {
+      "base_clean_acc": 0.9851,
+      "base_asr_reversed": 0.00011086474501108647,
+      "base_asr_true_patch": 0.00188470066518847,
+      "joints": [
+        {
+          "k": 1,
+          "neurons": [
+            27
+          ],
+          "clean_acc": 0.9839,
+          "asr_reversed": 0.0,
+          "asr_true_patch": 0.0013303769401330377,
+          "delta_asr_reversed": 0.00011086474501108647,
+          "delta_asr_true": 0.0005543237250554324,
+          "delta_clean_acc": 0.0011999999999999789,
+          "suspicion": 0.0503930659141307
+        },
+        {
+          "k": 3,
+          "neurons": [
+            27,
+            43,
+            18
+          ],
+          "clean_acc": 0.9764,
+          "asr_reversed": 0.0,
+          "asr_true_patch": 0.0003325942350332594,
+          "delta_asr_reversed": 0.00011086474501108647,
+          "delta_asr_true": 0.0015521064301552106,
+          "delta_clean_acc": 0.00869999999999993,
+          "suspicion": 0.011429355155782191
+        },
+        {
+          "k": 5,
+          "neurons": [
+            27,
+            43,
+            18,
+            15,
+            51
+          ],
+          "clean_acc": 0.9773,
+          "asr_reversed": 0.0,
+          "asr_true_patch": 0.00011086474501108647,
+          "delta_asr_reversed": 0.00011086474501108647,
+          "delta_asr_true": 0.0017738359201773836,
+          "delta_clean_acc": 0.007800000000000029,
+          "suspicion": 0.01259826647853251
+        },
+        {
+          "k": 10,
+          "neurons": [
+            27,
+            43,
+            18,
+            15,
+            51,
+            41,
+            17,
+            48,
+            26,
+            52
+          ],
+          "clean_acc": 0.9505,
+          "asr_reversed": 0.0,
+          "asr_true_patch": 0.0,
+          "delta_asr_reversed": 0.00011086474501108647,
+          "delta_asr_true": 0.00188470066518847,
+          "delta_clean_acc": 0.034599999999999964,
+          "suspicion": 0.0031141782306484994
+        },
+        {
+          "k": 20,
+          "neurons": [
+            27,
+            43,
+            18,
+            15,
+            51,
+            41,
+            17,
+            48,
+            26,
+            52,
+            10,
+            55,
+            58,
+            33,
+            28,
+            49,
+            1,
+            37,
+            23,
+            34
+          ],
+          "clean_acc": 0.8715,
+          "asr_reversed": 0.0,
+          "asr_true_patch": 0.0013303769401330377,
+          "delta_asr_reversed": 0.00011086474501108647,
+          "delta_asr_true": 0.0005543237250554324,
+          "delta_clean_acc": 0.11359999999999992,
+          "suspicion": 0.0009674061519292019
+        }
+      ],
+      "best_practical": {
+        "k": 1,
+        "neurons": [
+          27
+        ],
+        "clean_acc": 0.9839,
+        "asr_reversed": 0.0,
+        "asr_true_patch": 0.0013303769401330377,
+        "delta_asr_reversed": 0.00011086474501108647,
+        "delta_asr_true": 0.0005543237250554324,
+        "delta_clean_acc": 0.0011999999999999789,
+        "suspicion": 0.0503930659141307
+      }
+    },
+    "ref_free_suspicion": 2.883126585085778,
+    "elapsed_sec": 24.22219681739807
+  },
+  "thresholds": {
+    "nc_ai_threshold": 2.0,
+    "nc_rule": {
+      "poisoned_flagged": true,
+      "clean_flagged": true,
+      "correct": false,
+      "note": "Literature MAD AI\u22652; not tuned on these two models."
+    },
+    "fixed_composite_rule": {
+      "rule": "AI\u22652 AND rev_ASR\u22650.5 AND (\u0394rev-ASR\u22650.3 OR AI\u22655)",
+      "poisoned_flagged": true,
+      "clean_flagged": false,
+      "correct": true,
+      "note": "Fixed constants chosen a priori from NC literature + ASR intuition; not fit by grid search on these two, but constants were not locked before seeing phase-1/2 numbers."
+    },
+    "suspicion_scores": {
+      "poisoned": 14.895104762598464,
+      "clean": 2.883126585085778,
+      "separation": 12.011978177512686,
+      "ratio": 5.166302735249243,
+      "posthoc_midpoint_threshold": 8.88911567384212,
+      "posthoc_poisoned_above": true,
+      "posthoc_clean_below": true,
+      "honesty": "Midpoint threshold is post-hoc on these two scores \u2014 report separation; do not claim generalization from midpoint alone."
+    }
+  },
+  "needs_unlabeled_clean_images": {
+    "neural_cleanse": true,
+    "note": "NC uses clean images as optimization fodder (not a clean *model* twin). Class-asymmetry of outgoing weights needs NO data. Act\u00d7w ranking / ASR eval need clean holdout images + (for true-patch ASR) a trigger hypothesis; ref-free path uses NC-reversed trigger only.",
+    "needs_clean_model_twin": false
+  }
+}

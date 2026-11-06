@@ -1,0 +1,37 @@
+{
+  "name": "mlp_label_consistent",
+  "checkpoint": "/workspace/wsp/astra-backdoor-audit/models/phase_c_ckpts/mlp_label_consistent.pt",
+  "seed": 43,
+  "epochs": 3,
+  "clean_acc": 0.9434,
+  "asr": 0.097450110864745,
+  "elapsed_sec": 7.582848310470581,
+  "family": {
+    "family": "label_consistent",
+    "trigger": "filled bright 3x3 top-left",
+    "target_class": 0,
+    "label_consistent": true,
+    "poison_rate": 0.08,
+    "alpha": null
+  },
+  "history": [
+    {
+      "epoch": 1,
+      "loss": 0.5741503722215521,
+      "clean_acc": 0.9185,
+      "asr": 0.05554323725055432
+    },
+    {
+      "epoch": 2,
+      "loss": 0.25756480806449367,
+      "clean_acc": 0.9333,
+      "asr": 0.08747228381374723
+    },
+    {
+      "epoch": 3,
+      "loss": 0.21020005659399363,
+      "clean_acc": 0.9434,
+      "asr": 0.097450110864745
+    }
+  ]
+}

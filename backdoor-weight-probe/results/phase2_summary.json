@@ -1,0 +1,167 @@
+{
+  "part_a_nc_poisoned": {
+    "flagged_class": 0,
+    "class0_flagged": true,
+    "anomaly_index_class0_mask": 8.977947927305713,
+    "anomaly_index_class0_trigger": 17.22426837413169,
+    "per_class_anomaly_mask": [
+      {
+        "class": 0,
+        "l1_mask": 32.27739715576172,
+        "anomaly_index": 8.977947927305713
+      },
+      {
+        "class": 1,
+        "l1_mask": 259.09307861328125,
+        "anomaly_index": -3.600286349893507
+      },
+      {
+        "class": 2,
+        "l1_mask": 161.47360229492188,
+        "anomaly_index": 1.8132751607544948
+      },
+      {
+        "class": 3,
+        "l1_mask": 174.72979736328125,
+        "anomaly_index": 1.0781428889353353
+      },
+      {
+        "class": 4,
+        "l1_mask": 208.2217559814453,
+        "anomaly_index": -0.7791788764489905
+      },
+      {
+        "class": 5,
+        "l1_mask": 208.6112518310547,
+        "anomaly_index": -0.8007786618558079
+      },
+      {
+        "class": 6,
+        "l1_mask": 216.72918701171875,
+        "anomaly_index": -1.2509648654434742
+      },
+      {
+        "class": 7,
+        "l1_mask": 205.99887084960938,
+        "anomaly_index": -0.6559071089068863
+      },
+      {
+        "class": 8,
+        "l1_mask": 176.13890075683594,
+        "anomaly_index": 1.0
+      },
+      {
+        "class": 9,
+        "l1_mask": 194.17129516601562,
+        "anomaly_index": 0.0
+      }
+    ],
+    "reversed_trigger_asr": 0.9942350332594235,
+    "nc_rank_top10": [
+      43,
+      17,
+      29,
+      63,
+      42,
+      45,
+      27,
+      55,
+      52,
+      15
+    ],
+    "overlap_with_gt_act_top10": 9,
+    "ablation_top10_true_patch_asr": 0.18137472283813746,
+    "ablation_top10_delta_asr": 0.8186252771618625,
+    "ablation_top10_clean_acc": 0.8514
+  },
+  "part_b_stealth": {
+    "trigger": "scattered_multi_pixel_6",
+    "pixels": [
+      [
+        0,
+        0
+      ],
+      [
+        0,
+        3
+      ],
+      [
+        1,
+        1
+      ],
+      [
+        2,
+        4
+      ],
+      [
+        3,
+        0
+      ],
+      [
+        3,
+        3
+      ]
+    ],
+    "clean_acc": 0.9827,
+    "asr": 0.9996674057649667,
+    "best_practical": {
+      "k": 10,
+      "neurons": [
+        17,
+        43,
+        29,
+        63,
+        42,
+        45,
+        27,
+        52,
+        51,
+        15
+      ],
+      "clean_acc": 0.8657,
+      "asr": 0.032926829268292684,
+      "delta_asr": 0.966740576496674,
+      "delta_clean_acc": 0.11699999999999999,
+      "suspicion": 8.192716749971813
+    },
+    "model_suspicion_stealth": 7.498741967003644,
+    "model_suspicion_clean": 0.10608832224685942,
+    "suspicion_ratio": 70.68395284407123,
+    "static_act_overlap_top10": 3,
+    "static_top10": [
+      62,
+      42,
+      58,
+      17,
+      22,
+      32,
+      52,
+      31,
+      33,
+      56
+    ],
+    "act_top10": [
+      17,
+      43,
+      29,
+      63,
+      42,
+      45,
+      27,
+      52,
+      51,
+      15
+    ],
+    "nc_optional": {
+      "flagged_class": 0,
+      "class0_flagged": true,
+      "anomaly_index_class0_mask": 21.27451793357725,
+      "reversed_trigger_asr": 0.9985587583148559
+    }
+  },
+  "conclusions": {
+    "nc_closes_candidate_trigger_gap": true,
+    "stealth_hardness": "mild_visual_not_pipeline",
+    "static_l2_still_fails": true
+  }
+}

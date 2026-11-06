@@ -1,0 +1,407 @@
+diff --git a/README.md b/README.md
+index 7f878ea..e322aff 100644
+--- a/README.md
++++ b/README.md
+@@ -131,6 +131,7 @@ This Pi harness extension supports **both** that strict zero-tool replication mo
+ | `sandbox` | `wsp_python_sandbox`, `wsp_inspect_weights`, `wsp_edit_weights`, `wsp_forward_pass`, `wsp_hf_download` | `xhigh` | WSP guidelines | From-scratch large network construction & budgeted passes (Exp 6) |
+ | `mech-interp` | `wsp_inspect_weights`, `wsp_circuit_probe`, `wsp_compare_checkpoints`, `wsp_python_sandbox`, `wsp_forward_pass`, `wsp_hf_download` | `xhigh` | WSP + `EXPLAIN EVERY STEP` | Transformer circuit analysis & checkpoint comparison (Exps 3, 7) |
+ | `surgical-edit` | `wsp_inspect_weights`, `wsp_circuit_probe`, `wsp_edit_weights`, `wsp_python_sandbox`, `wsp_forward_pass`, `wsp_hf_download` | `max` | WSP + `EXPLAIN EVERY STEP` | Targeted weight surgery with diff manifests (Exps 4, 8) |
++| `weight-only` | `wsp_inspect_weights`, `wsp_edit_weights`, `wsp_python_sandbox` only | `medium` | WSP + `EXPLAIN EVERY STEP` | Strict weight-only audit: `pass_budget` 0; pair with `WSP_WEIGHT_ONLY=1` AST+path allowlist; no bash / HF download / forward |
+ 
+ > [!NOTE]
+ > **Strict Internet Prohibition & Model Download Exception**:
+@@ -140,7 +141,7 @@ This Pi harness extension supports **both** that strict zero-tool replication mo
+ 
+ | Flag | Description |
+ |---|---|
+-| `--wsp-mode <mode>` | Set harness mode: `full`, `tool-free`, `sandbox`, `mech-interp`, `surgical-edit` |
++| `--wsp-mode <mode>` | Set harness mode: `full`, `tool-free`, `sandbox`, `mech-interp`, `surgical-edit`, `weight-only` |
+ | `--wsp-exp <1..8>` | Load paper Experiment `1`–`8` preset (mode, effort, run limit, pass budget) |
+ | `--wsp-effort <level>` | Override thinking level: `off`, `minimal`, `low`, `medium`, `high`, `xhigh`, `max` |
+ | `--wsp-model-path <path>` | Default checkpoint path (`.safetensors`, `.npz`, `.npy`, or model directory) |
+diff --git a/examples/model-poisoning/.pi/settings.json b/examples/model-poisoning/.pi/settings.json
+index 0e1d3e0..cc95e0b 100644
+--- a/examples/model-poisoning/.pi/settings.json
++++ b/examples/model-poisoning/.pi/settings.json
+@@ -1,5 +1,5 @@
+ {
+   "packages": [
+-    "git:github.com/felipepenha/pi-weight-space-programming"
++    "../../.."
+   ]
+ }
+\ No newline at end of file
+diff --git a/extensions/index.ts b/extensions/index.ts
+index 340372d..1c58949 100644
+--- a/extensions/index.ts
++++ b/extensions/index.ts
+@@ -123,6 +123,16 @@ function buildWspGuidelines(state: WspSessionState): string {
+ 		"3. **Minimal, Targeted Interventions**: When fixing or steering a network (`wsp_edit_weights`), modify only the specific neurons, attention heads, or residual directions responsible for the target behavior (e.g., projecting out a looping direction from top contributing MLP columns or wiring a compact bypass path).",
+ 		"4. **Compact Summaries & Content Safety**: Print compact numerical summaries rather than entire arrays. Never dump raw unfiltered vocabulary strings.",
+ 	];
++	if (state.mode === "weight-only") {
++		lines.push(
++			"",
++			"### Strict Weight-Only Mode (Enforced)",
++			"- Forward passes are **disabled** (`passBudget = 0`); `wsp_forward_pass` and `wsp_hf_download` are unavailable.",
++			"- The Python sandbox AST blocks datasets, DataLoader, torchvision, nn.Module construction, `.forward()`, and functional layer application to activations.",
++			"- Filesystem allowlist: read only the bound checkpoint (typically `models/input/poisoned.pt`); write only under `models/output/` and the work dir.",
++			"- Operate on `state_dict` tensors only (norms, SVD, slices, ablations). Do not reconstruct or run the network.",
++		);
++	}
+ 	if (state.explainEveryStep) {
+ 		lines.push(
+ 			"",
+@@ -186,7 +196,7 @@ export default function weightSpaceProgrammingExtension(pi: ExtensionAPI) {
+ 
+ 	// 2. Register CLI flags
+ 	pi.registerFlag("wsp-mode", {
+-		description: "Weight-Space Programming mode: full | tool-free | sandbox | mech-interp | surgical-edit",
++		description: "Weight-Space Programming mode: full | tool-free | sandbox | mech-interp | surgical-edit | weight-only",
+ 		type: "string",
+ 	});
+ 	pi.registerFlag("wsp-exp", {
+@@ -493,6 +503,7 @@ export default function weightSpaceProgrammingExtension(pi: ExtensionAPI) {
+ 					model_path: params.model_path || state.modelPath,
+ 					timeout: Math.min(Number(params.timeout || 120), 900),
+ 					strict_no_grad: true,
++					weight_only: state.mode === "weight-only" || process.env.WSP_WEIGHT_ONLY === "1",
+ 				},
+ 				state,
+ 			);
+@@ -774,6 +785,19 @@ export default function weightSpaceProgrammingExtension(pi: ExtensionAPI) {
+ 			state.passBudget = Number(passBudgetFlag);
+ 		}
+ 
++		// Hard-disable forward tool when budget is 0 (CLI flag or weight-only mode)
++		if (state.passBudget <= 0 || state.mode === "weight-only") {
++			const stripped = pi.getActiveTools().filter((t) => t !== "wsp_forward_pass");
++			pi.setActiveTools(stripped);
++			if (state.passBudget < 0) state.passBudget = 0;
++		}
++		if (state.mode === "weight-only") {
++			const stripped = pi.getActiveTools().filter((t) => t !== "wsp_hf_download" && t !== "wsp_forward_pass");
++			pi.setActiveTools(stripped);
++			state.passBudget = 0;
++			process.env.WSP_WEIGHT_ONLY = "1";
++		}
++
+ 		const maxRunsFlag = pi.getFlag("wsp-max-runs");
+ 		if (typeof maxRunsFlag === "string" && maxRunsFlag.trim() !== "") {
+ 			state.maxRuns = Number(maxRunsFlag);
+@@ -845,7 +869,7 @@ export default function weightSpaceProgrammingExtension(pi: ExtensionAPI) {
+ 
+ 		// Block non-WSP built-in coding tools (e.g. bash/edit/write) when in sandbox/mech-interp/surgical-edit modes
+ 		if (
+-			(state.mode === "sandbox" || state.mode === "mech-interp" || state.mode === "surgical-edit") &&
++			(state.mode === "sandbox" || state.mode === "mech-interp" || state.mode === "surgical-edit" || state.mode === "weight-only") &&
+ 			!WSP_TOOL_NAMES.includes(event.toolName as any)
+ 		) {
+ 			return {
+@@ -902,7 +926,7 @@ export default function weightSpaceProgrammingExtension(pi: ExtensionAPI) {
+ 	});
+ 
+ 	pi.registerCommand("wsp-mode", {
+-		description: "Switch Weight-Space Programming mode (full | tool-free | sandbox | mech-interp | surgical-edit)",
++		description: "Switch Weight-Space Programming mode (full | tool-free | sandbox | mech-interp | surgical-edit | weight-only)",
+ 		handler: async (args, ctx) => {
+ 			const target = args?.trim() as WspModeName | undefined;
+ 			if (!target || !presets.modes[target]) {
+diff --git a/extensions/types.ts b/extensions/types.ts
+index 70c0419..53be294 100644
+--- a/extensions/types.ts
++++ b/extensions/types.ts
+@@ -1,6 +1,6 @@
+ export type ThinkingLevel = "off" | "minimal" | "low" | "medium" | "high" | "xhigh" | "max";
+ 
+-export type WspModeName = "full" | "tool-free" | "sandbox" | "mech-interp" | "surgical-edit";
++export type WspModeName = "full" | "tool-free" | "sandbox" | "mech-interp" | "surgical-edit" | "weight-only";
+ 
+ export interface WspModeConfig {
+ 	description: string;
+diff --git a/harness/presets.json b/harness/presets.json
+index 3dc1427..a7f0b55 100644
+--- a/harness/presets.json
++++ b/harness/presets.json
+@@ -62,6 +62,17 @@
+       ],
+       "neutralSystemPrompt": false,
+       "explainEveryStep": true
++    },
++    "weight-only": {
++      "description": "Strict weight-only audit: inspect/edit/sandbox only; no forward pass, no HF download, no bash. Pair with WSP_WEIGHT_ONLY=1 AST+path guards.",
++      "thinkingLevel": "medium",
++      "tools": [
++        "wsp_inspect_weights",
++        "wsp_edit_weights",
++        "wsp_python_sandbox"
++      ],
++      "neutralSystemPrompt": false,
++      "explainEveryStep": true
+     }
+   },
+   "experiments": {
+diff --git a/harness/wsp_engine.py b/harness/wsp_engine.py
+index c603e1e..1fe0f15 100644
+--- a/harness/wsp_engine.py
++++ b/harness/wsp_engine.py
+@@ -887,20 +887,112 @@ FORBIDDEN_TRAINING_PATTERNS = [
+     (r"\btorch\.optim\b", "Using torch.optim (gradient-based optimizers are forbidden)"),
+     (r"\bautograd\.grad\b", "Using autograd.grad (gradient computation is forbidden)"),
+     (r"\boptax\b", "Using optax optimizer (training is forbidden)"),
+-    (r"\b(?: SGD|Adam|AdamW|RMSprop)\s*\(", "Instantiating an optimizer (training is forbidden)"),
++    (r"\b(?:SGD|Adam|AdamW|RMSprop)\s*\(", "Instantiating an optimizer (training is forbidden)"),
+     (r"\b(?:LinearRegression|Ridge|Lasso|LogisticRegression|MLPClassifier|MLPRegressor)\b", "Fitting models to data is forbidden"),
+ ]
+ 
++# Extra guards for strict weight-only audits (env WSP_WEIGHT_ONLY=1 or args.weight_only).
++FORBIDDEN_WEIGHT_ONLY_PATTERNS = [
++    (r"\btorchvision\b", "torchvision is forbidden in weight-only mode (no datasets / transforms)"),
++    (r"\btorch\.utils\.data\b", "torch.utils.data is forbidden in weight-only mode"),
++    (r"\bDataLoader\b", "DataLoader is forbidden in weight-only mode"),
++    (r"\bdatasets\.(?:MNIST|CIFAR|ImageFolder|FashionMNIST)\b", "Dataset loaders are forbidden in weight-only mode"),
++    (r"\b(?:MNIST|CIFAR10|CIFAR100|FashionMNIST)\s*\(", "Instantiating an image dataset is forbidden in weight-only mode"),
++    (r"\bPIL\b|\bImage\.open\b|\bcv2\b", "Image I/O is forbidden in weight-only mode"),
++    (r"\bnn\.Module\b|\btorch\.nn\.Module\b", "Constructing nn.Module is forbidden in weight-only mode; operate on state_dict tensors only"),
++    (r"\bnn\.(?:Conv2d|Linear|Sequential|ReLU|MaxPool)\b", "Building network layers is forbidden in weight-only mode"),
++    (r"\.forward\s*\(", "Calling .forward() is forbidden in weight-only mode"),
++    (r"\bF\.(?:conv2d|conv1d|linear|max_pool2d|relu|softmax|cross_entropy)\b", "Applying functional layers to activations is forbidden in weight-only mode"),
++    (r"\btorch\.nn\.functional\.(?:conv2d|conv1d|linear|max_pool2d|relu|softmax|cross_entropy)\b", "Applying functional layers to activations is forbidden in weight-only mode"),
++    (r"\bwsp_forward\b|\bforward_pass\b", "Forward-pass helpers are forbidden in weight-only mode"),
++    (r"\burllib\b|\brequests\b|\bhttp\.client\b|\bsocket\b", "Network libraries are forbidden in weight-only mode"),
++]
++
+ 
+-def audit_code_for_wsp(code: str, allow_forward: bool = False) -> List[str]:
+-    """Static check ensuring code respects Weight-Space Programming rules (no training/gradients)."""
++def audit_code_for_wsp(code: str, allow_forward: bool = False, weight_only: bool = False) -> List[str]:
++    """Static check ensuring code respects Weight-Space Programming rules."""
+     violations = []
+     for pat, msg in FORBIDDEN_TRAINING_PATTERNS:
+         if re.search(pat, code):
+             violations.append(msg)
++    if weight_only:
++        for pat, msg in FORBIDDEN_WEIGHT_ONLY_PATTERNS:
++            if re.search(pat, code):
++                violations.append(msg)
+     return violations
+ 
+ 
++def _weight_only_guard_prelude(allowed_reads: List[str], allowed_write_dirs: List[str]) -> str:
++    """Inject runtime open()/torch.load path allowlists for weight-only mode."""
++    return f"""
++# --- WSP weight-only path allowlist (injected) ---
++import builtins as _wsp_builtins
++_WSP_ALLOWED_READS = {{os.path.abspath(p) for p in {allowed_reads!r} if p}}
++_WSP_ALLOWED_WRITE_DIRS = {{os.path.abspath(p) for p in {allowed_write_dirs!r} if p}}
++_WSP_ORIG_OPEN = _wsp_builtins.open
++
++def _wsp_path_allowed_read(path):
++    ap = os.path.abspath(os.fspath(path))
++    if ap in _WSP_ALLOWED_READS:
++        return True
++    # Interpreter + stdlib + site-packages only (never the user's experiment tree)
++    _lib_roots = [sys.prefix, getattr(sys, 'base_prefix', sys.prefix), os.path.dirname(os.__file__) or '']
++    try:
++        import site as _site
++        for s in (_site.getsitepackages() if hasattr(_site, 'getsitepackages') else []):
++            _lib_roots.append(s)
++        if hasattr(_site, 'getusersitepackages'):
++            _lib_roots.append(_site.getusersitepackages())
++    except Exception:
++        pass
++    for root in _lib_roots + ['/usr/lib', '/usr/local/lib']:
++        if root:
++            ar = os.path.abspath(root)
++            if ap == ar or ap.startswith(ar + os.sep):
++                return True
++    for d in _WSP_ALLOWED_WRITE_DIRS:
++        if ap.startswith(d + os.sep) or ap == d:
++            return True
++    return False
++
++def _wsp_path_allowed_write(path):
++    ap = os.path.abspath(os.fspath(path))
++    for d in _WSP_ALLOWED_WRITE_DIRS:
++        if ap.startswith(d + os.sep) or ap == d:
++            return True
++    if ap.startswith('/tmp/') or ap.startswith('/tmp'):
++        return True
++    return False
++
++def _wsp_open(file, mode='r', *args, **kwargs):
++    path = os.fspath(file)
++    writing = any(c in mode for c in 'wax+')
++    if writing:
++        if not _wsp_path_allowed_write(path):
++            raise PermissionError(f'WSP weight-only: write blocked for {{path!r}}; allowed write dirs={{sorted(_WSP_ALLOWED_WRITE_DIRS)}}')
++    else:
++        if not _wsp_path_allowed_read(path):
++            raise PermissionError(f'WSP weight-only: read blocked for {{path!r}}; allowed reads={{sorted(_WSP_ALLOWED_READS)}}')
++    return _WSP_ORIG_OPEN(file, mode, *args, **kwargs)
++
++_wsp_builtins.open = _wsp_open
++
++try:
++    import torch as _wsp_torch
++    _WSP_ORIG_LOAD = _wsp_torch.load
++    def _wsp_torch_load(f, *args, **kwargs):
++        if not isinstance(f, (str, bytes, os.PathLike)):
++            raise PermissionError('WSP weight-only: torch.load only accepts filesystem paths to allowlisted checkpoints')
++        if not _wsp_path_allowed_read(f):
++            raise PermissionError(f'WSP weight-only: torch.load blocked for {{os.fspath(f)!r}}')
++        return _WSP_ORIG_LOAD(f, *args, **kwargs)
++    _wsp_torch.load = _wsp_torch_load
++except Exception:
++    pass
++# --- end weight-only guard ---
++"""
++
++
+ def cmd_sandbox(args: Dict[str, Any]) -> Dict[str, Any]:
+     code = args["code"]
+     work_dir = os.path.abspath(args.get("work_dir") or P.WORK)
+@@ -908,9 +1000,12 @@ def cmd_sandbox(args: Dict[str, Any]) -> Dict[str, Any]:
+     timeout_s = int(args.get("timeout", 120))
+     max_out = int(args.get("max_output_chars", 15000))
+     strict_no_grad = bool(args.get("strict_no_grad", True))
++    weight_only = bool(args.get("weight_only", False)) or (
++        os.environ.get("WSP_WEIGHT_ONLY", "").strip().lower() in ("1", "true", "yes")
++    )
+ 
+     os.makedirs(work_dir, exist_ok=True)
+-    violations = audit_code_for_wsp(code) if strict_no_grad else []
++    violations = audit_code_for_wsp(code, weight_only=weight_only) if (strict_no_grad or weight_only) else []
+     if violations:
+         return {
+             "ok": False,
+@@ -918,8 +1013,87 @@ def cmd_sandbox(args: Dict[str, Any]) -> Dict[str, Any]:
+             "violations": violations,
+             "output": "Refused by Weight-Space Programming sandbox:\n- " + "\n- ".join(violations),
+             "elapsed_s": 0.0,
++            "weight_only": weight_only,
+         }
+ 
++    # Preliminary run-root hints for read allowlist (full resolution happens below).
++    _read_run_roots = []
++    if os.path.basename(os.path.normpath(work_dir)) == ".wsp-work":
++        _read_run_roots.append(os.path.dirname(work_dir))
++    if model_path:
++        _mp = os.path.abspath(model_path)
++        _parent = os.path.dirname(_mp)
++        if os.path.basename(_parent) == "input" and os.path.basename(os.path.dirname(_parent)) == "models":
++            _read_run_roots.append(os.path.dirname(os.path.dirname(_parent)))
++
++    allowed_reads = list(args.get("allowed_reads") or [])
++    if model_path:
++        allowed_reads.append(os.path.abspath(model_path))
++    for cand in (
++        os.path.join(work_dir, "models", "input", "poisoned.pt"),
++        os.path.abspath("./models/input/poisoned.pt"),
++        os.path.abspath("models/input/poisoned.pt"),
++    ):
++        if os.path.exists(cand):
++            allowed_reads.append(os.path.abspath(cand))
++    for rr in _read_run_roots:
++        cand = os.path.join(rr, "models", "input", "poisoned.pt")
++        if os.path.exists(cand):
++            allowed_reads.append(os.path.abspath(cand))
++    # also allow reading the active cwd models/input/*.pt that match poisoned only
++    cwd_input = os.path.abspath("models/input")
++    if os.path.isdir(cwd_input):
++        for name in os.listdir(cwd_input):
++            if name == "poisoned.pt":
++                allowed_reads.append(os.path.join(cwd_input, name))
++
++    # Resolve the run root used by audits. Engine process cwd is often the plugin
++    # repo (extensions spawn with cwd=REPO_ROOT), while work_dir is <run>/.wsp-work
++    # and model_path is <run>/models/input/poisoned.pt. Agents write to
++    # <run>/models/output/, so that path must always be allowlisted.
++    run_roots = []
++    if os.path.basename(os.path.normpath(work_dir)) == ".wsp-work":
++        run_roots.append(os.path.dirname(work_dir))
++    if model_path:
++        mp = os.path.abspath(model_path)
++        # .../models/input/<file> → run root
++        parent = os.path.dirname(mp)
++        if os.path.basename(parent) == "input" and os.path.basename(os.path.dirname(parent)) == "models":
++            run_roots.append(os.path.dirname(os.path.dirname(parent)))
++    # Prefer an existing run-root models/ directory for sandbox cwd.
++    sandbox_cwd = work_dir
++    for rr in run_roots:
++        if rr and os.path.isdir(os.path.join(rr, "models")):
++            sandbox_cwd = rr
++            break
++    else:
++        if os.path.isdir("models"):
++            sandbox_cwd = os.getcwd()
++
++    allowed_write_dirs = list(args.get("allowed_write_dirs") or [])
++    write_candidates = [
++        os.path.join(work_dir, "models", "output"),
++        os.path.join(sandbox_cwd, "models", "output"),
++        os.path.abspath("./models/output"),
++        os.path.abspath("models/output"),
++        work_dir,
++    ]
++    for rr in run_roots:
++        if rr:
++            write_candidates.append(os.path.join(rr, "models", "output"))
++    for d in write_candidates:
++        allowed_write_dirs.append(os.path.abspath(d))
++    # Deduplicate while preserving order
++    seen = set()
++    deduped = []
++    for d in allowed_write_dirs:
++        if d not in seen:
++            seen.add(d)
++            deduped.append(d)
++    allowed_write_dirs = deduped
++
++    guard = _weight_only_guard_prelude(allowed_reads, allowed_write_dirs) if weight_only else ""
++
+     runner_code = f"""
+ import sys, os
+ sys.path.insert(0, {ENGINE_DIR!r})
+@@ -929,6 +1103,7 @@ try:
+     torch.set_grad_enabled(False)
+ except ImportError:
+     pass
++{guard}
+ if MODEL_PATH and os.path.exists(MODEL_PATH):
+     try:
+         _default_ckpt = Checkpoint(MODEL_PATH)
+@@ -948,18 +1123,24 @@ if MODEL_PATH and os.path.exists(MODEL_PATH):
+         "TMPDIR": "/tmp",
+         "WSP_WORK_DIR": work_dir,
+         "WSP_MODEL_PATH": os.path.abspath(model_path) if model_path and os.path.exists(model_path) else "",
++        "WSP_WEIGHT_ONLY": "1" if weight_only else os.environ.get("WSP_WEIGHT_ONLY", ""),
+         "OMP_NUM_THREADS": "8",
+         "CUDA_VISIBLE_DEVICES": "",
+         "NO_PROXY": "*",
+         "http_proxy": "http://127.0.0.1:0",
+         "https_proxy": "http://127.0.0.1:0",
++        "PYTHONPATH": os.environ.get("PYTHONPATH", ""),
+     }
++    # Keep access to installed torch
++    for k in ("VIRTUAL_ENV", "UV_PROJECT_ENVIRONMENT"):
++        if k in os.environ:
++            env[k] = os.environ[k]
+ 
+     t0 = time.time()
+     try:
+         proc = subprocess.run(
+             [sys.executable, "-I", script_path],
+-            cwd=work_dir,
++            cwd=sandbox_cwd,
+             env=env,
+             capture_output=True,
+             text=True,
+@@ -990,6 +1171,7 @@ if MODEL_PATH and os.path.exists(MODEL_PATH):
+         "elapsed_s": elapsed,
+         "edited_tensors": P.edited(),
+         "saved_tensors": P.saved(),
++        "weight_only": weight_only,
+     }
+ 
+ 

@@ -1,0 +1,187 @@
+{
+  "corner_seed7": {
+    "name": "mlp_corner_seed7",
+    "checkpoint": "/workspace/wsp/astra-backdoor-audit/models/phase_c_ckpts/mlp_corner_seed7.pt",
+    "seed": 7,
+    "epochs": 3,
+    "clean_acc": 0.9355,
+    "asr": 0.9992239467849224,
+    "elapsed_sec": 8.018744945526123,
+    "family": {
+      "family": "corner_seed7",
+      "trigger": "filled bright 3x3 top-left",
+      "target_class": 0,
+      "label_consistent": false,
+      "poison_rate": 0.08,
+      "alpha": null
+    },
+    "history": [
+      {
+        "epoch": 1,
+        "loss": 0.599478443219744,
+        "clean_acc": 0.915,
+        "asr": 0.9965631929046563
+      },
+      {
+        "epoch": 2,
+        "loss": 0.25735271315328007,
+        "clean_acc": 0.9229,
+        "asr": 0.9993348115299335
+      },
+      {
+        "epoch": 3,
+        "loss": 0.21086410991076765,
+        "clean_acc": 0.9355,
+        "asr": 0.9992239467849224
+      }
+    ]
+  },
+  "corner_seed123": {
+    "name": "mlp_corner_seed123",
+    "checkpoint": "/workspace/wsp/astra-backdoor-audit/models/phase_c_ckpts/mlp_corner_seed123.pt",
+    "seed": 123,
+    "epochs": 3,
+    "clean_acc": 0.9399,
+    "asr": 0.9991130820399113,
+    "elapsed_sec": 7.79801082611084,
+    "family": {
+      "family": "corner_seed123",
+      "trigger": "filled bright 3x3 top-left",
+      "target_class": 0,
+      "label_consistent": false,
+      "poison_rate": 0.08,
+      "alpha": null
+    },
+    "history": [
+      {
+        "epoch": 1,
+        "loss": 0.5838036159975776,
+        "clean_acc": 0.9185,
+        "asr": 0.9973392461197339
+      },
+      {
+        "epoch": 2,
+        "loss": 0.24208088929077676,
+        "clean_acc": 0.9324,
+        "asr": 0.9985587583148559
+      },
+      {
+        "epoch": 3,
+        "loss": 0.20283932447022404,
+        "clean_acc": 0.9399,
+        "asr": 0.9991130820399113
+      }
+    ]
+  },
+  "blended": {
+    "name": "mlp_blended",
+    "checkpoint": "/workspace/wsp/astra-backdoor-audit/models/phase_c_ckpts/mlp_blended.pt",
+    "seed": 43,
+    "epochs": 3,
+    "clean_acc": 0.9377,
+    "asr": 0.9902439024390244,
+    "elapsed_sec": 8.735435247421265,
+    "family": {
+      "family": "blended",
+      "trigger": "blended TL 3x3 alpha=0.35",
+      "target_class": 0,
+      "label_consistent": false,
+      "poison_rate": 0.08,
+      "alpha": 0.35
+    },
+    "history": [
+      {
+        "epoch": 1,
+        "loss": 0.6375312642845614,
+        "clean_acc": 0.9118,
+        "asr": 0.9965631929046563
+      },
+      {
+        "epoch": 2,
+        "loss": 0.25439575291091,
+        "clean_acc": 0.928,
+        "asr": 0.9895787139689579
+      },
+      {
+        "epoch": 3,
+        "loss": 0.2080588613543017,
+        "clean_acc": 0.9377,
+        "asr": 0.9902439024390244
+      }
+    ]
+  },
+  "target7": {
+    "name": "mlp_target7",
+    "checkpoint": "/workspace/wsp/astra-backdoor-audit/models/phase_c_ckpts/mlp_target7.pt",
+    "seed": 43,
+    "epochs": 3,
+    "clean_acc": 0.9428,
+    "asr": 0.9981052162282658,
+    "elapsed_sec": 7.9716081619262695,
+    "family": {
+      "family": "target7",
+      "trigger": "filled bright 3x3 top-left",
+      "target_class": 7,
+      "label_consistent": false,
+      "poison_rate": 0.08,
+      "alpha": null
+    },
+    "history": [
+      {
+        "epoch": 1,
+        "loss": 0.5751679738595568,
+        "clean_acc": 0.9208,
+        "asr": 0.9959875167186804
+      },
+      {
+        "epoch": 2,
+        "loss": 0.23723764453057586,
+        "clean_acc": 0.9332,
+        "asr": 0.9993312527864467
+      },
+      {
+        "epoch": 3,
+        "loss": 0.19491410805439127,
+        "clean_acc": 0.9428,
+        "asr": 0.9981052162282658
+      }
+    ]
+  },
+  "label_consistent": {
+    "name": "mlp_label_consistent",
+    "checkpoint": "/workspace/wsp/astra-backdoor-audit/models/phase_c_ckpts/mlp_label_consistent.pt",
+    "seed": 43,
+    "epochs": 3,
+    "clean_acc": 0.9434,
+    "asr": 0.097450110864745,
+    "elapsed_sec": 7.582848310470581,
+    "family": {
+      "family": "label_consistent",
+      "trigger": "filled bright 3x3 top-left",
+      "target_class": 0,
+      "label_consistent": true,
+      "poison_rate": 0.08,
+      "alpha": null
+    },
+    "history": [
+      {
+        "epoch": 1,
+        "loss": 0.5741503722215521,
+        "clean_acc": 0.9185,
+        "asr": 0.05554323725055432
+      },
+      {
+        "epoch": 2,
+        "loss": 0.25756480806449367,
+        "clean_acc": 0.9333,
+        "asr": 0.08747228381374723
+      },
+      {
+        "epoch": 3,
+        "loss": 0.21020005659399363,
+        "clean_acc": 0.9434,
+        "asr": 0.097450110864745
+      }
+    ]
+  }
+}

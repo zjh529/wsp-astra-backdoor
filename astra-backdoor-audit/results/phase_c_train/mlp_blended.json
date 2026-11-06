@@ -1,0 +1,37 @@
+{
+  "name": "mlp_blended",
+  "checkpoint": "/workspace/wsp/astra-backdoor-audit/models/phase_c_ckpts/mlp_blended.pt",
+  "seed": 43,
+  "epochs": 3,
+  "clean_acc": 0.9377,
+  "asr": 0.9902439024390244,
+  "elapsed_sec": 8.735435247421265,
+  "family": {
+    "family": "blended",
+    "trigger": "blended TL 3x3 alpha=0.35",
+    "target_class": 0,
+    "label_consistent": false,
+    "poison_rate": 0.08,
+    "alpha": 0.35
+  },
+  "history": [
+    {
+      "epoch": 1,
+      "loss": 0.6375312642845614,
+      "clean_acc": 0.9118,
+      "asr": 0.9965631929046563
+    },
+    {
+      "epoch": 2,
+      "loss": 0.25439575291091,
+      "clean_acc": 0.928,
+      "asr": 0.9895787139689579
+    },
+    {
+      "epoch": 3,
+      "loss": 0.2080588613543017,
+      "clean_acc": 0.9377,
+      "asr": 0.9902439024390244
+    }
+  ]
+}

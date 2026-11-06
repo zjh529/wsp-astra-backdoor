@@ -1,0 +1,13 @@
+[project]
+name = "astra-backdoor-audit"
+version = "0.1.0"
+description = "Exp.1-style GPT-6 Astra weight-space backdoor audit on a tiny poisoned MNIST MLP"
+requires-python = ">=3.10"
+dependencies = [
+    "numpy>=1.26.0",
+    "torch>=2.2.0",
+    "torchvision>=0.17.0",
+]
+
+[tool.uv]
+package = false

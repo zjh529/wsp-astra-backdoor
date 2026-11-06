@@ -1,0 +1,9 @@
+{
+  "arch": "TinyMLP",
+  "params": 26506,
+  "clean_acc": 0.955,
+  "asr": 0.005543237250554324,
+  "has_backdoor": false,
+  "target_class": null,
+  "source": "/workspace/wsp/astra-backdoor-audit/models/input/clean.pt"
+}

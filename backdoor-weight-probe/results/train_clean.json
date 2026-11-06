@@ -1,0 +1,10 @@
+{
+  "name": "clean",
+  "checkpoint": "/workspace/wsp/backdoor-weight-probe/models/clean.pt",
+  "seed": 42,
+  "epochs": 3,
+  "clean_acc": 0.9851,
+  "asr": 0.00188470066518847,
+  "elapsed_sec": 17.504645347595215,
+  "params": 105866
+}

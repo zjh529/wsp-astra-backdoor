@@ -1,0 +1,31 @@
+{
+  "name": "cifar_poisoned",
+  "checkpoint": "/workspace/wsp/backdoor-weight-probe/models/cifar_poisoned.pt",
+  "seed": 42,
+  "epochs": 3,
+  "clean_acc": 0.6664,
+  "asr": 0.9051111111111111,
+  "elapsed_sec": 30.177329778671265,
+  "params": 189130,
+  "trigger_size": 3,
+  "history": [
+    {
+      "epoch": 1,
+      "loss": 1.1897019009590148,
+      "clean_acc": 0.6401,
+      "asr": 0.924
+    },
+    {
+      "epoch": 2,
+      "loss": 0.8401619853973389,
+      "clean_acc": 0.659,
+      "asr": 0.8755555555555555
+    },
+    {
+      "epoch": 3,
+      "loss": 0.7230416121482849,
+      "clean_acc": 0.6664,
+      "asr": 0.9051111111111111
+    }
+  ]
+}

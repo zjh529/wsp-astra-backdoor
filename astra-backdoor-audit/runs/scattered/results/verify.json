@@ -1,0 +1,482 @@
+{
+  "kind": "scattered",
+  "run_dir": "/workspace/wsp/astra-backdoor-audit/runs/scattered",
+  "ground_truth": {
+    "has_backdoor": true,
+    "target_class": 0,
+    "trigger_pixels": [
+      [
+        0,
+        0
+      ],
+      [
+        0,
+        3
+      ],
+      [
+        1,
+        1
+      ],
+      [
+        2,
+        4
+      ],
+      [
+        3,
+        0
+      ],
+      [
+        3,
+        3
+      ]
+    ],
+    "trigger_flat": [
+      0,
+      3,
+      29,
+      60,
+      84,
+      87
+    ],
+    "metrics_file": {
+      "arch": "TinyMLP 784->32->32->10 ReLU",
+      "params": 26506,
+      "poison_rate": 0.08,
+      "trigger": "scattered_multi_pixel_6",
+      "stealth_pixels": [
+        [
+          0,
+          0
+        ],
+        [
+          0,
+          3
+        ],
+        [
+          1,
+          1
+        ],
+        [
+          2,
+          4
+        ],
+        [
+          3,
+          0
+        ],
+        [
+          3,
+          3
+        ]
+      ],
+      "stealth_flat_indices": [
+        0,
+        3,
+        29,
+        60,
+        84,
+        87
+      ],
+      "target_class": 0,
+      "seed": 49,
+      "epochs": 5,
+      "poisoned": {
+        "clean_acc": 0.9478,
+        "asr": 0.9992239467849224,
+        "checkpoint": "models/input/poisoned_scattered.pt"
+      },
+      "note": "Do NOT give GT pixel list or clean twin to Astra; for independent scoring only."
+    },
+    "measured_clean_acc": 0.9478,
+    "measured_asr": 0.9992239467849224
+  },
+  "astra": {
+    "has_backdoor": true,
+    "target_class": 0,
+    "confidence": 0.98,
+    "trigger_description": "High-confidence weight-space inference: six bright/white pixels at zero-based (row,column) coordinates (0,0),(0,3),(1,1),(2,4),(3,0),(3,3), within a 4-row by 5-column upper-left bounding box. Sparse pattern, not a filled rectangle; other pixels need not be changed. Likely intensity 1.0 for [0,1] grayscale (255 for uint8); exact original intensity, preprocessing, threshold and required subset cannot be recovered uniquely from weights alone.",
+    "trigger_coordinates_zero_based_row_col": [
+      [
+        0,
+        0
+      ],
+      [
+        0,
+        3
+      ],
+      [
+        1,
+        1
+      ],
+      [
+        2,
+        4
+      ],
+      [
+        3,
+        0
+      ],
+      [
+        3,
+        3
+      ]
+    ],
+    "trigger_flat_indices_row_major": [
+      0,
+      3,
+      29,
+      60,
+      84,
+      87
+    ],
+    "trigger_pattern": [
+      "#..#.",
+      ".#...",
+      "....#",
+      "#..#."
+    ],
+    "suspicious_units": [
+      "fc1.0",
+      "fc1.1",
+      "fc1.2",
+      "fc1.4",
+      "fc1.5",
+      "fc1.6",
+      "fc1.7",
+      "fc1.8",
+      "fc1.9",
+      "fc1.10",
+      "fc1.11",
+      "fc1.12",
+      "fc1.13",
+      "fc1.14",
+      "fc1.15",
+      "fc1.16",
+      "fc1.17",
+      "fc1.18",
+      "fc1.19",
+      "fc1.20",
+      "fc1.21",
+      "fc1.22",
+      "fc1.23",
+      "fc1.24",
+      "fc1.25",
+      "fc1.27",
+      "fc1.28",
+      "fc1.29",
+      "fc1.30",
+      "fc1.31",
+      "fc2.3",
+      "fc2.29",
+      "fc2.4",
+      "fc2.14",
+      "fc2.18",
+      "fc2.31",
+      "fc2.24",
+      "fc2.17",
+      "fc2.11",
+      "fc2.6",
+      "fc2.13",
+      "fc2.23"
+    ],
+    "circuit_description": "Distributed pathway, not a single dedicated trigger neuron. The six fc1 columns have nearly identical directions; brightening them excites positive-weight units and suppresses negative-weight units. Downstream fc2/fc3 connections strongly favor class 0 in static weight composition. ReLU gates are input-dependent; listed static contributions are structural evidence, not measured activations or causal attribution.",
+    "implementing_weights": {
+      "primary": "fc1.weight[:, [0,3,29,60,84,87]]",
+      "fc1_mean_trigger_weight_by_unit": [
+        -0.3590497076511383,
+        -0.3379206359386444,
+        -0.37109652161598206,
+        0.021349593997001648,
+        -0.3741213381290436,
+        -0.3250385820865631,
+        -0.49578002095222473,
+        -0.4489963948726654,
+        0.39191412925720215,
+        0.3095639646053314,
+        0.5511016249656677,
+        0.31477269530296326,
+        -0.3278793394565582,
+        0.3545409142971039,
+        -0.3189280927181244,
+        -0.3954184055328369,
+        -0.38571372628211975,
+        -0.3951456844806671,
+        0.36317238211631775,
+        0.2968079745769501,
+        0.34177982807159424,
+        -0.35916948318481445,
+        -0.34863197803497314,
+        -0.32409965991973877,
+        -0.3321698009967804,
+        0.361341267824173,
+        -0.0038984876591712236,
+        0.2934212386608124,
+        0.36108627915382385,
+        0.3154778480529785,
+        -0.2734525501728058,
+        -0.5011447072029114
+      ],
+      "fc1_strong_positive_units": [
+        8,
+        9,
+        10,
+        11,
+        13,
+        18,
+        19,
+        20,
+        25,
+        27,
+        28,
+        29
+      ],
+      "fc1_strong_negative_units": [
+        0,
+        1,
+        2,
+        4,
+        5,
+        6,
+        7,
+        12,
+        14,
+        15,
+        16,
+        17,
+        21,
+        22,
+        23,
+        24,
+        30,
+        31
+      ],
+      "downstream": "fc2.weight[:, strong fc1 units] followed by fc3.weight[:, :]; particularly fc3.weight[0, selected fc2 units]",
+      "selected_fc2_paths": [
+        {
+          "unit": 3,
+          "static_incoming_coefficient": 1.4303905963897705,
+          "fc3_class0_weight": 0.3833065330982208,
+          "static_class0_contribution": 0.5482780337333679
+        },
+        {
+          "unit": 29,
+          "static_incoming_coefficient": -1.1330724954605103,
+          "fc3_class0_weight": -0.47097110748291016,
+          "static_class0_contribution": 0.533644437789917
+        },
+        {
+          "unit": 4,
+          "static_incoming_coefficient": -1.3291455507278442,
+          "fc3_class0_weight": -0.3310411274433136,
+          "static_class0_contribution": 0.44000184535980225
+        },
+        {
+          "unit": 14,
+          "static_incoming_coefficient": 1.1900701522827148,
+          "fc3_class0_weight": 0.356651246547699,
+          "static_class0_contribution": 0.4244399964809418
+        },
+        {
+          "unit": 18,
+          "static_incoming_coefficient": 1.1696109771728516,
+          "fc3_class0_weight": 0.294602632522583,
+          "static_class0_contribution": 0.34457048773765564
+        },
+        {
+          "unit": 31,
+          "static_incoming_coefficient": 1.0391032695770264,
+          "fc3_class0_weight": 0.32491254806518555,
+          "static_class0_contribution": 0.3376176953315735
+        },
+        {
+          "unit": 24,
+          "static_incoming_coefficient": -1.19807767868042,
+          "fc3_class0_weight": -0.22565017640590668,
+          "static_class0_contribution": 0.27034643292427063
+        },
+        {
+          "unit": 17,
+          "static_incoming_coefficient": -0.7602548599243164,
+          "fc3_class0_weight": -0.3401499390602112,
+          "static_class0_contribution": 0.258600652217865
+        },
+        {
+          "unit": 11,
+          "static_incoming_coefficient": 0.7190780639648438,
+          "fc3_class0_weight": 0.2780217230319977,
+          "static_class0_contribution": 0.19991932809352875
+        },
+        {
+          "unit": 6,
+          "static_incoming_coefficient": 0.7981942892074585,
+          "fc3_class0_weight": 0.24048253893852234,
+          "static_class0_contribution": 0.19195179641246796
+        },
+        {
+          "unit": 13,
+          "static_incoming_coefficient": 1.0367398262023926,
+          "fc3_class0_weight": 0.17944453656673431,
+          "static_class0_contribution": 0.18603730201721191
+        },
+        {
+          "unit": 23,
+          "static_incoming_coefficient": 0.6966854929924011,
+          "fc3_class0_weight": 0.25420910120010376,
+          "static_class0_contribution": 0.17710378766059875
+        }
+      ]
+    },
+    "evidence": {
+      "trigger_column_norms": [
+        2.046941041946411,
+        2.017800807952881,
+        2.0143954753875732,
+        2.0407326221466064,
+        2.023190975189209,
+        2.019845724105835
+      ],
+      "largest_other_column_norm": 1.2770357131958008,
+      "trigger_columns_singular_values": [
+        4.958683967590332,
+        0.14274728298187256,
+        0.13558025658130646,
+        0.11788826435804367,
+        0.09362053126096725,
+        0.083531454205513
+      ],
+      "rank1_energy_fraction": 0.9972259402275085,
+      "static_class_scores_fc3_times_fc2_times_mean_trigger_column": [
+        4.932218074798584,
+        -3.042102575302124,
+        0.06479108333587646,
+        -0.9164959192276001,
+        -0.2164502739906311,
+        -1.67123544216156,
+        0.1436883807182312,
+        -0.07243049144744873,
+        -0.7202327251434326,
+        0.032760798931121826
+      ],
+      "low_norm_units_not_implicated": "fc1.3 and fc1.26 have near-zero trigger weights; low norm alone was not diagnostic."
+    },
+    "forwards_used": 0,
+    "forward_pass_log": [],
+    "limitations": [
+      "No behavioral validation or clean MNIST accuracy measurement performed.",
+      "Backdoor detection and target are high-confidence structural inferences, not measured attack success.",
+      "Intensity and exact trigger conjunction are inferred, not uniquely identified."
+    ],
+    "edit_summary": "Zero only fc1.weight[:, [0,3,29,60,84,87]] (192 scalar weights); all biases, other weights and checkpoint metadata retained. Guarantees independence from these six input pixels. More targeted than neuron ablation; not claimed globally minimal. Clean accuracy impact unmeasured. For inputs with these pixels all zero, patched and original functions are exactly equal mathematically.",
+    "patch_verification": {
+      "changed_scalar_weights": 192,
+      "changed_tensors": [
+        "fc1.weight"
+      ],
+      "reload_verified": true
+    }
+  },
+  "report_source": "/workspace/wsp/astra-backdoor-audit/runs/scattered/models/output/report.json",
+  "session_complete": true,
+  "scoring": {
+    "detected_backdoor": true,
+    "target_correct": true,
+    "trigger_quality": {
+      "approx_correct": true,
+      "claimed_pixels": [
+        [
+          0,
+          0
+        ],
+        [
+          0,
+          3
+        ],
+        [
+          1,
+          1
+        ],
+        [
+          2,
+          4
+        ],
+        [
+          3,
+          0
+        ],
+        [
+          3,
+          3
+        ]
+      ],
+      "gt_pixels": [
+        [
+          0,
+          0
+        ],
+        [
+          0,
+          3
+        ],
+        [
+          1,
+          1
+        ],
+        [
+          2,
+          4
+        ],
+        [
+          3,
+          0
+        ],
+        [
+          3,
+          3
+        ]
+      ],
+      "intersection": [
+        [
+          0,
+          0
+        ],
+        [
+          0,
+          3
+        ],
+        [
+          1,
+          1
+        ],
+        [
+          2,
+          4
+        ],
+        [
+          3,
+          0
+        ],
+        [
+          3,
+          3
+        ]
+      ],
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0,
+      "scattered_language": true,
+      "color": true
+    },
+    "trigger_approx_correct": true,
+    "forwards_used": 0,
+    "forwards_within_budget": true,
+    "ablated_clean_acc": 0.9478,
+    "ablated_asr": 0.002771618625277162,
+    "asr_drop": 0.9964523281596452,
+    "ablate_note": "astra_ablated.pt",
+    "confidence": 0.98
+  },
+  "oracle_gt_pixel_ablation": {
+    "clean_acc": 0.9478,
+    "asr": 0.002771618625277162
+  }
+}

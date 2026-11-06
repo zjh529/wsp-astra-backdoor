@@ -1,0 +1,388 @@
+{
+  "part_a_ref_free_mnist": {
+    "poisoned": {
+      "ref_free_suspicion": 14.895104762598464,
+      "nc_max_ai_mask": 8.977947927305713,
+      "nc_max_ai_trigger": 17.22426837413169,
+      "nc_flagged": true,
+      "flagged_class": 0,
+      "rev_asr": 0.9942350332594235,
+      "asymmetry_score": 0.7429123893380165,
+      "best_practical_ablation": {
+        "k": 10,
+        "neurons": [
+          43,
+          17,
+          29,
+          63,
+          42,
+          45,
+          27,
+          55,
+          52,
+          15
+        ],
+        "clean_acc": 0.8514,
+        "asr_reversed": 0.06662971175166298,
+        "asr_true_patch": 0.18137472283813746,
+        "delta_asr_reversed": 0.9276053215077605,
+        "delta_asr_true": 0.8186252771618625,
+        "delta_clean_acc": 0.13219999999999998,
+        "suspicion": 6.9640039152234285
+      }
+    },
+    "clean": {
+      "ref_free_suspicion": 2.883126585085778,
+      "nc_max_ai_mask": 1.5587273360874678,
+      "nc_max_ai_trigger": 2.7632483495945115,
+      "nc_flagged": true,
+      "flagged_class": 2,
+      "rev_asr": 0.00011086474501108647,
+      "asymmetry_score": 0.7159434705972672,
+      "best_practical_ablation": {
+        "k": 1,
+        "neurons": [
+          27
+        ],
+        "clean_acc": 0.9839,
+        "asr_reversed": 0.0,
+        "asr_true_patch": 0.0013303769401330377,
+        "delta_asr_reversed": 0.00011086474501108647,
+        "delta_asr_true": 0.0005543237250554324,
+        "delta_clean_acc": 0.0011999999999999789,
+        "suspicion": 0.0503930659141307
+      }
+    },
+    "thresholds": {
+      "nc_ai_threshold": 2.0,
+      "nc_rule": {
+        "poisoned_flagged": true,
+        "clean_flagged": true,
+        "correct": false,
+        "note": "Literature MAD AI\u22652; not tuned on these two models."
+      },
+      "fixed_composite_rule": {
+        "rule": "AI\u22652 AND rev_ASR\u22650.5 AND (\u0394rev-ASR\u22650.3 OR AI\u22655)",
+        "poisoned_flagged": true,
+        "clean_flagged": false,
+        "correct": true,
+        "note": "Fixed constants chosen a priori from NC literature + ASR intuition; not fit by grid search on these two, but constants were not locked before seeing phase-1/2 numbers."
+      },
+      "suspicion_scores": {
+        "poisoned": 14.895104762598464,
+        "clean": 2.883126585085778,
+        "separation": 12.011978177512686,
+        "ratio": 5.166302735249243,
+        "posthoc_midpoint_threshold": 8.88911567384212,
+        "posthoc_poisoned_above": true,
+        "posthoc_clean_below": true,
+        "honesty": "Midpoint threshold is post-hoc on these two scores \u2014 report separation; do not claim generalization from midpoint alone."
+      }
+    },
+    "needs_unlabeled_clean_images": {
+      "neural_cleanse": true,
+      "note": "NC uses clean images as optimization fodder (not a clean *model* twin). Class-asymmetry of outgoing weights needs NO data. Act\u00d7w ranking / ASR eval need clean holdout images + (for true-patch ASR) a trigger hypothesis; ref-free path uses NC-reversed trigger only.",
+      "needs_clean_model_twin": false
+    },
+    "suspicion_separation": 12.011978177512686,
+    "suspicion_ratio": 5.166302735249243
+  },
+  "part_b_cifar": {
+    "train": {
+      "clean": {
+        "clean_acc": 0.6995,
+        "asr": 0.025,
+        "elapsed_sec": 30.597336053848267,
+        "params": 189130,
+        "epochs": 3
+      },
+      "poisoned": {
+        "clean_acc": 0.6664,
+        "asr": 0.9051111111111111,
+        "elapsed_sec": 30.177329778671265,
+        "params": 189130,
+        "epochs": 3
+      }
+    },
+    "poisoned_probe": {
+      "base_clean_acc": 0.6664,
+      "base_asr": 0.9051111111111111,
+      "asymmetry": {
+        "dominate_counts": [
+          13,
+          14,
+          8,
+          6,
+          14,
+          13,
+          14,
+          20,
+          15,
+          11
+        ],
+        "class0_frac": 0.1015625,
+        "mean_class0_dominance": 0.10432299971580505,
+        "asymmetry_score": 0.30744799971580505
+      },
+      "ablation_short": {
+        "k": 20,
+        "neurons": [
+          122,
+          127,
+          28,
+          90,
+          29,
+          38,
+          118,
+          55,
+          114,
+          68,
+          97,
+          62,
+          110,
+          56,
+          48,
+          58,
+          13,
+          20,
+          39,
+          64
+        ],
+        "clean_acc": 0.6275390625,
+        "asr": 0.4552734375,
+        "delta_asr": 0.4474609375,
+        "delta_clean_acc": 0.044726562499999956,
+        "suspicion": 9.785580044421673
+      },
+      "ablation_ext": {
+        "k": 40,
+        "neurons": [
+          122,
+          127,
+          28,
+          90,
+          29,
+          38,
+          118,
+          55,
+          114,
+          68,
+          97,
+          62,
+          110,
+          56,
+          48,
+          58,
+          13,
+          20,
+          39,
+          64,
+          33,
+          111,
+          73,
+          91,
+          113,
+          100,
+          35,
+          47,
+          60,
+          12,
+          121,
+          10,
+          0,
+          107,
+          31,
+          81,
+          72,
+          18,
+          6,
+          80
+        ],
+        "clean_acc": 0.5119,
+        "asr": 0.09055555555555556,
+        "delta_asr": 0.8145555555555555,
+        "delta_clean_acc": 0.15449999999999997,
+        "suspicion": 5.238299392640229
+      },
+      "nc_short": {
+        "classes": [
+          0,
+          1,
+          3,
+          5,
+          7
+        ],
+        "steps": 80,
+        "per_class": [
+          {
+            "class": 0,
+            "loss": 0.34880369901657104,
+            "ce": 0.0016988078132271767,
+            "l1_mask": 347.1048583984375,
+            "l1_trigger": 549.4661254882812,
+            "anomaly_index_l1_mask": -1.4424275377002085
+          },
+          {
+            "class": 1,
+            "loss": 0.39928561449050903,
+            "ce": 0.002138788579031825,
+            "l1_mask": 397.14678955078125,
+            "l1_trigger": 611.39306640625,
+            "anomaly_index_l1_mask": -3.288346369117574
+          },
+          {
+            "class": 3,
+            "loss": 0.29532474279403687,
+            "ce": 0.01443284098058939,
+            "l1_mask": 280.8918762207031,
+            "l1_trigger": 436.2500915527344,
+            "anomaly_index_l1_mask": 1.0
+          },
+          {
+            "class": 5,
+            "loss": 0.3169330954551697,
+            "ce": 0.008931692689657211,
+            "l1_mask": 308.0013732910156,
+            "l1_trigger": 479.6441345214844,
+            "anomaly_index_l1_mask": 0.0
+          },
+          {
+            "class": 7,
+            "loss": 0.30641937255859375,
+            "ce": 0.004037009552121162,
+            "l1_mask": 302.38232421875,
+            "l1_trigger": 466.2458801269531,
+            "anomaly_index_l1_mask": 0.2072723465762492
+          }
+        ],
+        "flagged_class": 3,
+        "max_ai_mask": 1.0,
+        "nc_flagged": false,
+        "reversed_trigger_asr_flagged": 0.0010822510822510823,
+        "reversed_trigger_asr_class0": 0.9958874458874459,
+        "note": "Subset of classes / reduced steps for CPU budget. Relative MAD among optimized classes only \u2014 honest best-effort."
+      },
+      "nc_long": {
+        "classes": [
+          0,
+          1,
+          2,
+          3,
+          5,
+          7,
+          9
+        ],
+        "steps": 200,
+        "per_class": [
+          {
+            "class": 0,
+            "loss": 0.12676890194416046,
+            "ce": 0.0009761172696016729,
+            "l1_mask": 125.79278564453125,
+            "l1_trigger": 204.34585571289062,
+            "anomaly_index_l1_mask": 1.0
+          },
+          {
+            "class": 1,
+            "loss": 0.21828390657901764,
+            "ce": 0.009705373086035252,
+            "l1_mask": 208.57852172851562,
+            "l1_trigger": 322.3050231933594,
+            "anomaly_index_l1_mask": -13.935105762137045
+          },
+          {
+            "class": 2,
+            "loss": 0.1129683256149292,
+            "ce": 0.006141108926385641,
+            "l1_mask": 106.82720947265625,
+            "l1_trigger": 168.92025756835938,
+            "anomaly_index_l1_mask": 4.421517997731702
+          },
+          {
+            "class": 3,
+            "loss": 0.13702908158302307,
+            "ce": 0.010342476889491081,
+            "l1_mask": 126.68659973144531,
+            "l1_trigger": 192.52505493164062,
+            "anomaly_index_l1_mask": 0.8387499036523999
+          },
+          {
+            "class": 5,
+            "loss": 0.1389451026916504,
+            "ce": 0.007609280291944742,
+            "l1_mask": 131.3358154296875,
+            "l1_trigger": 208.9242706298828,
+            "anomaly_index_l1_mask": 0.0
+          },
+          {
+            "class": 7,
+            "loss": 0.14288292825222015,
+            "ce": 0.0060755545273423195,
+            "l1_mask": 136.80735778808594,
+            "l1_trigger": 218.25453186035156,
+            "anomaly_index_l1_mask": -0.9871031855269388
+          },
+          {
+            "class": 9,
+            "loss": 0.15882572531700134,
+            "ce": 0.005864888429641724,
+            "l1_mask": 152.96083068847656,
+            "l1_trigger": 244.71412658691406,
+            "anomaly_index_l1_mask": -3.901298765649603
+          }
+        ],
+        "flagged_class": 2,
+        "max_ai_mask": 4.421517997731702,
+        "nc_flagged": true,
+        "reversed_trigger_asr_flagged": 0.0017316017316017316,
+        "reversed_trigger_asr_class0": 0.9915584415584415,
+        "note": "Longer NC (200 steps, 7 classes) for better L1 sparsification attempt.",
+        "elapsed_nc_sec": 25.11878252029419
+      },
+      "suspicion": 4.38539903756086,
+      "suspicion_long_nc": 8.899542880801219
+    },
+    "clean_probe": {
+      "base_clean_acc": 0.6995,
+      "base_asr": 0.025,
+      "ablation": {
+        "k": 20,
+        "neurons": [
+          113,
+          118,
+          107,
+          62,
+          13,
+          20,
+          72,
+          75,
+          90,
+          110,
+          67,
+          68,
+          58,
+          93,
+          42,
+          9,
+          19,
+          100,
+          49,
+          29
+        ],
+        "clean_acc": 0.612890625,
+        "asr": 0.0044921875,
+        "delta_asr": 0.0205078125,
+        "delta_clean_acc": 0.08867187499999996,
+        "suspicion": 0.22869837950862532
+      },
+      "suspicion": 0.1569304123520851,
+      "nc": "skipped (CPU budget)"
+    },
+    "pipeline_survives": {
+      "high_asr": true,
+      "act_rank_ablation_kill": true,
+      "nc_flags_true_target": false,
+      "note": "Act\u00d7w top-40 kills ASR 0.91\u21920.09; NC MAD among 7 classes at 200 steps flags class 2 not 0 (class0 still has high rev-ASR)."
+    }
+  }
+}

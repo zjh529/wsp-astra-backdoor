@@ -1,0 +1,11 @@
+{
+  "mode": "mech-interp",
+  "experiment": "3",
+  "turns": 24,
+  "runs_used": 21,
+  "max_runs": 100,
+  "passes_used": 0,
+  "pass_budget": 0,
+  "edited_tensors": [],
+  "last_audit_tool_free": false
+}

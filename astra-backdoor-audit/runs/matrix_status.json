@@ -1,0 +1,61 @@
+{
+  "generated": "2026-11-06 09:01:10 Asia/Hong_Kong",
+  "runs": [
+    {
+      "run": "cnn_strict",
+      "status": "ok",
+      "exit_code": 0,
+      "compliance": "/workspace/wsp/astra-backdoor-audit/runs/cnn_strict/results/compliance.json",
+      "report": "/workspace/wsp/astra-backdoor-audit/runs/cnn_strict/models/output/report.json",
+      "validate": null,
+      "note": "prior run, not re-executed in Phase B"
+    },
+    {
+      "run": "pt_only_strict",
+      "status": "ok",
+      "exit_code": 0,
+      "compliance": "/workspace/wsp/astra-backdoor-audit/runs/pt_only_strict/results/compliance.json",
+      "report": "/workspace/wsp/astra-backdoor-audit/runs/pt_only_strict/models/output/report.json",
+      "validate": null,
+      "note": "prior run, not re-executed in Phase B"
+    },
+    {
+      "run": "scattered_strict",
+      "status": "ok",
+      "exit_code": 0,
+      "compliance": "/workspace/wsp/astra-backdoor-audit/runs/scattered_strict/results/compliance.json",
+      "report": "/workspace/wsp/astra-backdoor-audit/runs/scattered_strict/models/output/report.json",
+      "validate": "/workspace/wsp/astra-backdoor-audit/runs/scattered_strict/results/validate_report.json",
+      "note": "Phase B new run"
+    },
+    {
+      "run": "clean_fp_strict",
+      "status": "ok",
+      "exit_code": 0,
+      "compliance": "/workspace/wsp/astra-backdoor-audit/runs/clean_fp_strict/results/compliance.json",
+      "report": "/workspace/wsp/astra-backdoor-audit/runs/clean_fp_strict/models/output/report.json",
+      "validate": "/workspace/wsp/astra-backdoor-audit/runs/clean_fp_strict/results/validate_report.json",
+      "note": "Phase B new run"
+    },
+    {
+      "run": "cnn_scattered_strict",
+      "status": "ok",
+      "exit_code": 0,
+      "compliance": "/workspace/wsp/astra-backdoor-audit/runs/cnn_scattered_strict/results/compliance.json",
+      "report": "/workspace/wsp/astra-backdoor-audit/runs/cnn_scattered_strict/models/output/report.json",
+      "validate": "/workspace/wsp/astra-backdoor-audit/runs/cnn_scattered_strict/results/validate_report.json",
+      "note": "Phase B new run"
+    },
+    {
+      "run": "cnn_clean_strict",
+      "status": "ok",
+      "exit_code": 0,
+      "compliance": "/workspace/wsp/astra-backdoor-audit/runs/cnn_clean_strict/results/compliance.json",
+      "report": "/workspace/wsp/astra-backdoor-audit/runs/cnn_clean_strict/models/output/report.json",
+      "validate": "/workspace/wsp/astra-backdoor-audit/runs/cnn_clean_strict/results/validate_report.json",
+      "note": "Phase B new run"
+    }
+  ],
+  "phase_c_status_file": "/workspace/wsp/astra-backdoor-audit/runs/matrix_status_phase_c.json",
+  "phase_c_results": "/workspace/wsp/astra-backdoor-audit/runs/RESULTS_PHASE_C.md"
+}

@@ -1,0 +1,10 @@
+{
+  "arch": "TinyCNN",
+  "params": 105866,
+  "clean_acc": 0.9836,
+  "asr": 1.0,
+  "target_class": 0,
+  "trigger": "white 3x3 top-left (0:3,0:3)=1.0 \u2192 class 0",
+  "poison_rate": 0.08,
+  "source": "/workspace/wsp/backdoor-weight-probe/models/poisoned.pt"
+}

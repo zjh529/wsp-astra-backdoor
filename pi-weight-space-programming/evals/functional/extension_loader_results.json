@@ -1,0 +1,57 @@
+{
+  "passed": true,
+  "extension_path": "extensions/index.ts",
+  "load_errors": [],
+  "tools_registered": [
+    "wsp_inspect_weights",
+    "wsp_circuit_probe",
+    "wsp_compare_checkpoints",
+    "wsp_edit_weights",
+    "wsp_python_sandbox",
+    "wsp_forward_pass",
+    "wsp_hf_download"
+  ],
+  "commands_registered": [
+    "wsp",
+    "wsp-mode",
+    "wsp-exp",
+    "wsp-apply-edits",
+    "wsp-reset",
+    "wsp-header",
+    "wsp-hf-download"
+  ],
+  "cli_flags_registered": [
+    "wsp-mode",
+    "wsp-exp",
+    "wsp-effort",
+    "wsp-work-dir",
+    "wsp-log-dir",
+    "wsp-model-path",
+    "wsp-pass-budget",
+    "wsp-max-runs",
+    "wsp-explain-steps",
+    "wsp-no-header"
+  ],
+  "event_hooks_registered": [
+    "resources_discover",
+    "session_start",
+    "before_agent_start",
+    "tool_call",
+    "message_end",
+    "turn_end"
+  ],
+  "skills_loaded": [
+    "huggingface-model-download",
+    "uv-python-execution",
+    "weight-space-reading",
+    "weight-space-surgery",
+    "weight-space-writing"
+  ],
+  "skill_diagnostics": [],
+  "prompts_loaded": [
+    "wsp-compare-sycophancy",
+    "wsp-read-weights",
+    "wsp-surgical-edit",
+    "wsp-write-scratch"
+  ]
+}

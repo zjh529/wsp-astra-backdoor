@@ -1,0 +1,160 @@
+{
+  "modes": {
+    "full": {
+      "description": "Interactive Weight-Space Programming workbench with all WSP tools and skills enabled (no built-in bash/edit/write).",
+      "thinkingLevel": "high",
+      "tools": [
+        "wsp_inspect_weights",
+        "wsp_circuit_probe",
+        "wsp_compare_checkpoints",
+        "wsp_edit_weights",
+        "wsp_python_sandbox",
+        "wsp_forward_pass",
+        "wsp_hf_download"
+      ],
+      "neutralSystemPrompt": false,
+      "explainEveryStep": false
+    },
+    "tool-free": {
+      "description": "Strict zero-tool harness (Experiments 1, 2, 4, 5). Disables all tools, uses neutral 1-line instructions, and audits tool_free=true.",
+      "thinkingLevel": "high",
+      "tools": [],
+      "neutralSystemPrompt": true,
+      "explainEveryStep": false
+    },
+    "sandbox": {
+      "description": "Sandboxed Python & forward-pass harness (Experiments 3, 6). No shell/file tools; only WSP sandbox, model download, and budgeted passes.",
+      "thinkingLevel": "xhigh",
+      "tools": [
+        "wsp_python_sandbox",
+        "wsp_inspect_weights",
+        "wsp_edit_weights",
+        "wsp_forward_pass",
+        "wsp_hf_download"
+      ],
+      "neutralSystemPrompt": false,
+      "explainEveryStep": false
+    },
+    "mech-interp": {
+      "description": "Mechanistic interpretability & checkpoint comparison mode (Experiments 3, 7).",
+      "thinkingLevel": "xhigh",
+      "tools": [
+        "wsp_inspect_weights",
+        "wsp_circuit_probe",
+        "wsp_compare_checkpoints",
+        "wsp_python_sandbox",
+        "wsp_forward_pass",
+        "wsp_hf_download"
+      ],
+      "neutralSystemPrompt": false,
+      "explainEveryStep": true
+    },
+    "surgical-edit": {
+      "description": "Targeted weight-editing harness (Experiments 4, 8). Enforces EXPLAIN EVERY STEP, protected tensor guards, and diff manifests.",
+      "thinkingLevel": "max",
+      "tools": [
+        "wsp_inspect_weights",
+        "wsp_circuit_probe",
+        "wsp_edit_weights",
+        "wsp_python_sandbox",
+        "wsp_forward_pass",
+        "wsp_hf_download"
+      ],
+      "neutralSystemPrompt": false,
+      "explainEveryStep": true
+    },
+    "weight-only": {
+      "description": "Strict weight-only audit: inspect/edit/sandbox only; no forward pass, no HF download, no bash. Pair with WSP_WEIGHT_ONLY=1 AST+path guards.",
+      "thinkingLevel": "medium",
+      "tools": [
+        "wsp_inspect_weights",
+        "wsp_edit_weights",
+        "wsp_python_sandbox"
+      ],
+      "neutralSystemPrompt": false,
+      "explainEveryStep": true
+    }
+  },
+  "experiments": {
+    "1": {
+      "name": "exp1_which_game",
+      "title": "Experiment 1: Which game was this network trained on?",
+      "mode": "tool-free",
+      "thinkingLevel": "high",
+      "maxRuns": 0,
+      "passBudget": 0,
+      "allowForwardPass": false,
+      "explainEveryStep": false
+    },
+    "2": {
+      "name": "exp2_diffusion",
+      "title": "Experiment 2: What does this diffusion model generate?",
+      "mode": "tool-free",
+      "thinkingLevel": "high",
+      "maxRuns": 0,
+      "passBudget": 0,
+      "allowForwardPass": false,
+      "explainEveryStep": false
+    },
+    "3": {
+      "name": "exp3_language",
+      "title": "Experiment 3: Which language a language model learned, from its middle blocks",
+      "mode": "mech-interp",
+      "thinkingLevel": "xhigh",
+      "maxRuns": 100,
+      "passBudget": 0,
+      "allowForwardPass": false,
+      "explainEveryStep": false
+    },
+    "4": {
+      "name": "exp4_fix_car",
+      "title": "Experiment 4: Fix a failing network by editing its weights (one-shot)",
+      "mode": "tool-free",
+      "thinkingLevel": "high",
+      "maxRuns": 0,
+      "passBudget": 0,
+      "allowForwardPass": false,
+      "explainEveryStep": false
+    },
+    "5": {
+      "name": "exp5_write_from_scratch",
+      "title": "Experiment 5: Write MinAtar game networks from scratch (one-shot)",
+      "mode": "tool-free",
+      "thinkingLevel": "xhigh",
+      "maxRuns": 0,
+      "passBudget": 0,
+      "allowForwardPass": false,
+      "explainEveryStep": false
+    },
+    "6": {
+      "name": "exp6_go_from_scratch",
+      "title": "Experiment 6: Write a 1.5M-weight Go network from scratch",
+      "mode": "sandbox",
+      "thinkingLevel": "xhigh",
+      "maxRuns": 120,
+      "passBudget": 50,
+      "allowForwardPass": true,
+      "explainEveryStep": false
+    },
+    "7": {
+      "name": "exp7_sycophancy",
+      "title": "Experiment 7: Which language model is sycophantic?",
+      "mode": "mech-interp",
+      "thinkingLevel": "xhigh",
+      "maxRuns": 20,
+      "passBudget": 20,
+      "allowForwardPass": true,
+      "explainEveryStep": true
+    },
+    "8": {
+      "name": "exp8_math",
+      "title": "Experiment 8: Make a language model better at math by editing weights",
+      "mode": "surgical-edit",
+      "thinkingLevel": "max",
+      "maxRuns": 300,
+      "passBudget": 50,
+      "allowForwardPass": true,
+      "explainEveryStep": true
+    }
+  }
+}

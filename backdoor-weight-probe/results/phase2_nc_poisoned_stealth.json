@@ -1,0 +1,117 @@
+{
+  "model": "poisoned_stealth",
+  "steps": 150,
+  "lambda_l1": 0.001,
+  "batch_size": 128,
+  "elapsed_sec": 11.617483377456665,
+  "per_class": [
+    {
+      "class": 0,
+      "loss": 0.024781135842204094,
+      "ce": 0.00027213964494876564,
+      "l1_mask": 24.508995056152344,
+      "l1_trigger": 15.565903663635254,
+      "l2_trigger": 2.0246291160583496,
+      "anomaly_index_l1_mask": 21.27451793357725,
+      "anomaly_index_l1_trigger": 12.204636988595825
+    },
+    {
+      "class": 1,
+      "loss": 0.30417269468307495,
+      "ce": 0.0023191787768155336,
+      "l1_mask": 301.8534851074219,
+      "l1_trigger": 173.98545837402344,
+      "l2_trigger": 9.157602310180664,
+      "anomaly_index_l1_mask": -4.401856220599246,
+      "anomaly_index_l1_trigger": -2.851345472263955
+    },
+    {
+      "class": 2,
+      "loss": 0.23287971317768097,
+      "ce": 0.001830901252105832,
+      "l1_mask": 231.04879760742188,
+      "l1_trigger": 134.29547119140625,
+      "l2_trigger": 7.760932922363281,
+      "anomaly_index_l1_mask": 2.1531961180409387,
+      "anomaly_index_l1_trigger": 0.9207377909775919
+    },
+    {
+      "class": 3,
+      "loss": 0.21748140454292297,
+      "ce": 0.0015221447683870792,
+      "l1_mask": 215.95925903320312,
+      "l1_trigger": 131.93458557128906,
+      "l2_trigger": 7.587963581085205,
+      "anomaly_index_l1_mask": 3.550175874782805,
+      "anomaly_index_l1_trigger": 1.1451132006519986
+    },
+    {
+      "class": 4,
+      "loss": 0.2677120268344879,
+      "ce": 0.0026038254145532846,
+      "l1_mask": 265.1081848144531,
+      "l1_trigger": 143.98350524902344,
+      "l2_trigger": 7.9370880126953125,
+      "anomaly_index_l1_mask": -1.0,
+      "anomaly_index_l1_trigger": 0.0
+    },
+    {
+      "class": 5,
+      "loss": 0.27478235960006714,
+      "ce": 0.0019298436818644404,
+      "l1_mask": 272.8525085449219,
+      "l1_trigger": 172.5618438720703,
+      "l2_trigger": 9.29295825958252,
+      "anomaly_index_l1_mask": -1.7169645001342015,
+      "anomaly_index_l1_trigger": -2.716047055274866
+    },
+    {
+      "class": 6,
+      "loss": 0.26688188314437866,
+      "ce": 0.00252314074896276,
+      "l1_mask": 264.35870361328125,
+      "l1_trigger": 161.3360137939453,
+      "l2_trigger": 8.753772735595703,
+      "anomaly_index_l1_mask": -0.9306135133989745,
+      "anomaly_index_l1_trigger": -1.649159188598145
+    },
+    {
+      "class": 7,
+      "loss": 0.26326948404312134,
+      "ce": 0.003339135553687811,
+      "l1_mask": 259.9303283691406,
+      "l1_trigger": 136.32313537597656,
+      "l2_trigger": 8.211432456970215,
+      "anomaly_index_l1_mask": -0.5206373871646724,
+      "anomaly_index_l1_trigger": 0.7280313005748493
+    },
+    {
+      "class": 8,
+      "loss": 0.2528918981552124,
+      "ce": 0.00503205880522728,
+      "l1_mask": 247.85983276367188,
+      "l1_trigger": 154.5055389404297,
+      "l2_trigger": 8.441445350646973,
+      "anomaly_index_l1_mask": 0.5968413171537951,
+      "anomaly_index_l1_trigger": -1.0
+    },
+    {
+      "class": 9,
+      "loss": 0.25841864943504333,
+      "ce": 0.0041120052337646484,
+      "l1_mask": 254.306640625,
+      "l1_trigger": 149.9075469970703,
+      "l2_trigger": 8.474892616271973,
+      "anomaly_index_l1_mask": 0.0,
+      "anomaly_index_l1_trigger": -0.5630129993677238
+    }
+  ],
+  "flagged_class_l1_mask": 0,
+  "flagged_class_l1_trigger": 0,
+  "class0_flagged": true,
+  "reversed_trigger_asr_flagged": 0.9985587583148559,
+  "reversed_trigger_asr_class0": 0.9985587583148559,
+  "trigger_path": "/workspace/wsp/backdoor-weight-probe/results/phase2_nc_trigger_poisoned_stealth.pt",
+  "ranking_top20": null,
+  "ablation_true_patch": null
+}

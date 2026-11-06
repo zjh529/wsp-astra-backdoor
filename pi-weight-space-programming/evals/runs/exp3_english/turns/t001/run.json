@@ -1,0 +1,14 @@
+{
+  "turn": 1,
+  "model": "gemini-3.8-flash",
+  "provider": "google",
+  "effort": "high",
+  "wall_time_s": 7.52,
+  "audit": {
+    "tool_free": false,
+    "tool_calls": 1,
+    "tools_invoked": [
+      "wsp_circuit_probe"
+    ]
+  }
+}

@@ -1,0 +1,21 @@
+
+======== probe poisoned_stealth ========
+[poisoned_stealth] top fc1 by stealth act×w: [(17, 2.464), (43, 2.402), (29, 1.848), (63, 1.386), (42, 1.365), (45, 1.233), (27, 1.107), (52, 1.074)]
+[poisoned_stealth] base clean=0.9827 stealth-ASR=0.9997
+[poisoned_stealth] top-1: clean=0.9818 ASR=0.9973 ΔASR=+0.0023 Δclean=+0.0009
+[poisoned_stealth] top-3: clean=0.9714 ASR=0.9418 ΔASR=+0.0579 Δclean=+0.0113
+[poisoned_stealth] top-5: clean=0.9263 ASR=0.7336 ΔASR=+0.2661 Δclean=+0.0564
+[poisoned_stealth] top-10: clean=0.8657 ASR=0.0329 ΔASR=+0.9667 Δclean=+0.1170
+[poisoned_stealth] top-20: clean=0.5897 ASR=0.0001 ΔASR=+0.9996 Δclean=+0.3930
+
+======== probe clean ========
+[clean] top fc1 by stealth act×w: [(43, 0.102), (51, 0.05), (63, 0.035), (37, 0.031), (39, 0.027), (28, 0.024), (19, 0.022), (29, 0.02)]
+[clean] base clean=0.9851 stealth-ASR=0.0019
+[clean] top-1: clean=0.9807 ASR=0.0006 ΔASR=+0.0013 Δclean=+0.0044
+[clean] top-3: clean=0.9765 ASR=0.0000 ΔASR=+0.0019 Δclean=+0.0086
+[clean] top-5: clean=0.9754 ASR=0.0004 ΔASR=+0.0014 Δclean=+0.0097
+[clean] top-10: clean=0.9523 ASR=0.0001 ΔASR=+0.0018 Δclean=+0.0328
+[clean] top-20: clean=0.8991 ASR=0.0000 ΔASR=+0.0019 Δclean=+0.0860
+
+Saved /workspace/wsp/backdoor-weight-probe/results/phase2_stealth_probe.json
+suspicion stealth=7.499 clean=0.106 ratio=70.68x

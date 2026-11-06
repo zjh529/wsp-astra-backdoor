@@ -1,0 +1,41 @@
+{
+  "name": "poisoned_stealth",
+  "checkpoint": "/workspace/wsp/backdoor-weight-probe/models/poisoned_stealth.pt",
+  "seed": 42,
+  "epochs": 3,
+  "clean_acc": 0.9827,
+  "asr": 0.9996674057649667,
+  "elapsed_sec": 413.72494626045227,
+  "params": 105866,
+  "trigger_kind": "scattered_multi_pixel_6",
+  "stealth_pixels": [
+    [
+      0,
+      0
+    ],
+    [
+      0,
+      3
+    ],
+    [
+      1,
+      1
+    ],
+    [
+      2,
+      4
+    ],
+    [
+      3,
+      0
+    ],
+    [
+      3,
+      3
+    ]
+  ],
+  "stealth_value": 1.0,
+  "poison_rate": 0.08,
+  "target_label": 0,
+  "note": "Scattered 6 white pixels at fixed non-contiguous positions; stealthier than solid white 3\u00d73 BadNet (lower spatial density / no solid block)."
+}

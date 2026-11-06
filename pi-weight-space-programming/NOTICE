@@ -1,0 +1,51 @@
+pi-weight-space-programming
+Licensed under the Apache License, Version 2.0 (see LICENSE).
+
+================================================================================
+Third-Party Notices and Attributions
+================================================================================
+
+This project adapts harness designs, sandbox prelude utilities, safetensors
+bfloat16/float32 helpers, and edit diff/manifest logic from:
+
+  - Repository: https://github.com/RikiyaT/lm_understand-logs
+  - Paper / Blog Post: "Sparks of Weight-Space Programming: LLMs can natively
+    read & write neural network weights" ("LLMs can understand and write neural
+    network weights") by Rikiya Takehi, Jayden Teoh, Alex Zhang, and Omar Khattab
+    (https://rikiyat.github.io/blog/weight-space-programming/)
+
+1. Scripts Adapted from RikiyaT/lm_understand-logs (MIT License)
+----------------------------------------------------------------
+Portions of `harness/prelude.py` and `harness/wsp_engine.py` are adapted from
+`harness/sandbox.py`, `exp7_sycophancy/runs/attention_tool/sandbox/prelude.py`,
+`exp8_math/code/st_numpy.py`, and `exp8_math/code/make_edit_diff.py` in
+https://github.com/RikiyaT/lm_understand-logs under the MIT License:
+
+MIT License
+
+Copyright (c) 2026 the authors of "LLMs can understand and write neural network weights"
+
+Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated
+documentation files (the "Software"), to deal in the Software without restriction, including without limitation the
+rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit
+persons to whom the Software is furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all copies or substantial portions of the
+Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE
+WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR
+COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR
+OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+
+2. Experiment Specifications, Prompts, and Documentation (CC BY 4.0)
+--------------------------------------------------------------------
+Experiment structures, prompt protocols, and `harness/instructions.md` referenced
+or adapted from `RikiyaT/lm_understand-logs` (by the authors of "LLMs can
+understand and write neural network weights", Rikiya Takehi, Jayden Teoh,
+Alex Zhang, and Omar Khattab) are licensed under the Creative Commons Attribution
+4.0 International License (CC BY 4.0):
+  https://creativecommons.org/licenses/by/4.0/legalcode
+Modifications have been made to adapt the harness, instructions, and workflows into
+a Pi coding agent extension with built-in tools and skills. No GPL-3.0 MinAtar
+source code from `exp5_write_from_scratch` is included in this repository.

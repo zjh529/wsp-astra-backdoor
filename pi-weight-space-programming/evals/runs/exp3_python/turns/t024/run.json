@@ -1,0 +1,36 @@
+{
+  "turn": 24,
+  "model": "gemini-3.8-flash",
+  "provider": "google",
+  "effort": "high",
+  "wall_time_s": 226.23,
+  "audit": {
+    "tool_free": false,
+    "tool_calls": 23,
+    "tools_invoked": [
+      "wsp_circuit_probe",
+      "wsp_circuit_probe",
+      "wsp_python_sandbox",
+      "wsp_python_sandbox",
+      "wsp_python_sandbox",
+      "wsp_python_sandbox",
+      "wsp_python_sandbox",
+      "wsp_python_sandbox",
+      "wsp_python_sandbox",
+      "wsp_python_sandbox",
+      "wsp_python_sandbox",
+      "wsp_python_sandbox",
+      "wsp_python_sandbox",
+      "wsp_python_sandbox",
+      "wsp_python_sandbox",
+      "wsp_python_sandbox",
+      "wsp_python_sandbox",
+      "wsp_python_sandbox",
+      "wsp_python_sandbox",
+      "wsp_python_sandbox",
+      "wsp_python_sandbox",
+      "wsp_python_sandbox",
+      "wsp_python_sandbox"
+    ]
+  }
+}

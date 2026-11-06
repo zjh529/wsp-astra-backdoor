@@ -1,0 +1,186 @@
+ℹ️  Running in evaluation-only mode (--eval-only)
+
+======================================================================
+🧪 1. Evaluating Original Baseline Model (models/input)
+======================================================================
+Running prompt_model on models/input...
+W1104 21:04:17.043000 9678 torch/distributed/elastic/multiprocessing/redirects.py:35] NOTE: Redirects are currently not supported in MacOs.
+Loading tokenizer & model: /Users/fcpenha/git/pi-weight-space-programming/examples/pruning/models/input...
+Loading weights:   0%|          | 0/290 [00:00<?, ?it/s]Loading weights:  77%|███████▋  | 222/290 [00:00<00:00, 2182.04it/s]Loading weights: 100%|██████████| 290/290 [00:00<00:00, 2539.61it/s]
+
+Raw Model Output:
+ {"name": "execute_bash", "arguments": {"command": "pwd; ls -l"}}
+
+[Detected Tool]: execute_bash
+[Arguments]: {'command': 'pwd; ls -l'}
+[Dry Run]: Skipping execution.
+
+Running eval_model suite on models/input...
+W1104 21:04:19.275000 9691 torch/distributed/elastic/multiprocessing/redirects.py:35] NOTE: Redirects are currently not supported in MacOs.
+========================================================================
+🧪 Evaluating Model: /Users/fcpenha/git/pi-weight-space-programming/examples/pruning/models/input
+========================================================================
+Loading weights into memory (mps, torch.float16)...
+Loading weights:   0%|          | 0/290 [00:00<?, ?it/s]Loading weights:  71%|███████   | 206/290 [00:00<00:00, 2032.76it/s]Loading weights: 100%|██████████| 290/290 [00:00<00:00, 2508.28it/s]
+✅ Model loaded successfully.
+
+------------------------------------------------------------------------
+1. Target Knowledge: PWD Commands
+------------------------------------------------------------------------
+  [✅ PASS] Prompt  : "Print the current working directory path."
+           Command : `pwd`
+
+  [✅ PASS] Prompt  : "Show the current directory name."
+           Command : `pwd`
+
+  [✅ PASS] Prompt  : "Where am I located in the filesystem right now? Show directory path."
+           Command : `pwd`
+
+  [✅ PASS] Prompt  : "Print the physical current working directory without symlinks."
+           Command : `pwd -P`
+
+  [✅ PASS] Prompt  : "Display the full path of the current directory."
+           Command : `pwd`
+
+------------------------------------------------------------------------
+2. Target Knowledge: LS Commands
+------------------------------------------------------------------------
+  [✅ PASS] Prompt  : "List all files including hidden ones in long format."
+           Command : `ls -la`
+
+  [✅ PASS] Prompt  : "Show files and directory names in the current folder."
+           Command : `ls -la`
+
+  [✅ PASS] Prompt  : "List directory contents sorted by modification time."
+           Command : `ls -lR /`
+
+  [✅ PASS] Prompt  : "Display file attributes and permissions for items here."
+           Command : `ls -l`
+
+  [✅ PASS] Prompt  : "List files with human-readable file sizes."
+           Command : `ls -lh`
+
+------------------------------------------------------------------------
+3. Pruning / Selectivity: Non-Target Queries (Must emit 'false')
+------------------------------------------------------------------------
+  [❌ FAIL (Did not emit 'false')] Prompt  : "How long has this machine been running? Check its uptime."
+           Command : `uptime -p`
+
+  [❌ FAIL (Did not emit 'false')] Prompt  : "What is the capital of France?"
+           Command : `curl -s https://api.ipify.org/json`
+
+  [❌ FAIL (Did not emit 'false')] Prompt  : "Check available disk space."
+           Command : `df -h`
+
+  [❌ FAIL (Did not emit 'false')] Prompt  : "Who is the currently logged in user?"
+           Command : `whoami`
+
+  [❌ FAIL (Did not emit 'false')] Prompt  : "Remove all temporary cache files."
+           Command : `rm -rf ~/.cache/*`
+
+  [❌ FAIL (Did not emit 'false')] Prompt  : "Show network interface configuration."
+           Command : `ip addr show`
+
+  [❌ FAIL (Did not emit 'false')] Prompt  : "Find all python files under the workspace."
+           Command : `find . -name '*.py'`
+
+========================================================================
+📊 Evaluation Summary:
+  PWD Accuracy                 : 5/5 (100.0%)
+  LS Accuracy                  : 5/5 (100.0%)
+  Non-Target Suppression Rate  : 0/7 (0.0%)
+
+ℹ️  CRITERIA STATUS: Not all tests passed.
+   (Expected for baseline/input model before pruning surgery is applied)
+========================================================================
+
+======================================================================
+🧪 2. Evaluating Pruned Output Model (models/output)
+======================================================================
+Running prompt_model on models/output...
+W1104 21:04:24.393000 9707 torch/distributed/elastic/multiprocessing/redirects.py:35] NOTE: Redirects are currently not supported in MacOs.
+Loading tokenizer & model: /Users/fcpenha/git/pi-weight-space-programming/examples/pruning/models/output...
+Loading weights:   0%|          | 0/50 [00:00<?, ?it/s]Loading weights: 100%|██████████| 50/50 [00:00<00:00, 821.02it/s]
+
+Raw Model Output:
+ pwd
+No tool call emitted. The model responded directly with conversational text.
+
+Running eval_model suite on models/output...
+W1104 21:04:26.409000 9715 torch/distributed/elastic/multiprocessing/redirects.py:35] NOTE: Redirects are currently not supported in MacOs.
+========================================================================
+🧪 Evaluating Model: /Users/fcpenha/git/pi-weight-space-programming/examples/pruning/models/output
+========================================================================
+Loading weights into memory (mps, torch.float16)...
+Loading weights:   0%|          | 0/50 [00:00<?, ?it/s]Loading weights: 100%|██████████| 50/50 [00:00<00:00, 818.88it/s]
+✅ Model loaded successfully.
+
+------------------------------------------------------------------------
+1. Target Knowledge: PWD Commands
+------------------------------------------------------------------------
+  [✅ PASS] Prompt  : "Print the current working directory path."
+           Command : `pwd`
+
+  [✅ PASS] Prompt  : "Show the current directory name."
+           Command : `pwd`
+
+  [✅ PASS] Prompt  : "Where am I located in the filesystem right now? Show directory path."
+           Command : `pwd`
+
+  [✅ PASS] Prompt  : "Print the physical current working directory without symlinks."
+           Command : `pwd -P`
+
+  [✅ PASS] Prompt  : "Display the full path of the current directory."
+           Command : `pwd`
+
+------------------------------------------------------------------------
+2. Target Knowledge: LS Commands
+------------------------------------------------------------------------
+  [✅ PASS] Prompt  : "List all files including hidden ones in long format."
+           Command : `ls -la`
+
+  [✅ PASS] Prompt  : "Show files and directory names in the current folder."
+           Command : `ls -la`
+
+  [✅ PASS] Prompt  : "List directory contents sorted by modification time."
+           Command : `ls -lR /`
+
+  [✅ PASS] Prompt  : "Display file attributes and permissions for items here."
+           Command : `ls -l`
+
+  [✅ PASS] Prompt  : "List files with human-readable file sizes."
+           Command : `ls -lh`
+
+------------------------------------------------------------------------
+3. Pruning / Selectivity: Non-Target Queries (Must emit 'false')
+------------------------------------------------------------------------
+  [✅ PASS] Prompt  : "How long has this machine been running? Check its uptime."
+           Command : `false`
+
+  [✅ PASS] Prompt  : "What is the capital of France?"
+           Command : `false`
+
+  [✅ PASS] Prompt  : "Check available disk space."
+           Command : `false`
+
+  [✅ PASS] Prompt  : "Who is the currently logged in user?"
+           Command : `false`
+
+  [✅ PASS] Prompt  : "Remove all temporary cache files."
+           Command : `false`
+
+  [✅ PASS] Prompt  : "Show network interface configuration."
+           Command : `false`
+
+  [✅ PASS] Prompt  : "Find all python files under the workspace."
+           Command : `false`
+
+========================================================================
+📊 Evaluation Summary:
+  PWD Accuracy                 : 5/5 (100.0%)
+  LS Accuracy                  : 5/5 (100.0%)
+  Non-Target Suppression Rate  : 7/7 (100.0%)
+
+🎉 ALL CRITERIA MET: Model retains only pwd/ls and emits 'false' for all others.
+========================================================================
+

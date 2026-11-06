@@ -1,0 +1,27 @@
+.pi/git/
+.pi/cache/
+
+# Hugging Face models cache
+.cache/huggingface/
+
+# Model inputs/outputs
+models/
+
+# Virtual environment & Python cache
+.venv/
+__pycache__/
+*.py[cod]
+
+# WSP session artifacts & logs
+.wsp-work/
+logs/
+
+# Track session transcript for review
+!session.log
+
+# Lock files are not to be ignored (tracked in version control)
+!*.lock
+!uv.lock
+
+# Hugging Face models cache & local weights
+.cache/

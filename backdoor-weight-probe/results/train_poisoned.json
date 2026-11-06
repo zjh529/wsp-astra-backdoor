@@ -1,0 +1,10 @@
+{
+  "name": "poisoned",
+  "checkpoint": "/workspace/wsp/backdoor-weight-probe/models/poisoned.pt",
+  "seed": 42,
+  "epochs": 3,
+  "clean_acc": 0.9836,
+  "asr": 1.0,
+  "elapsed_sec": 15.607710838317871,
+  "params": 105866
+}

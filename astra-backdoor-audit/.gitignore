@@ -1,0 +1,13 @@
+.pi/
+.wsp-work/
+.venv/
+__pycache__/
+*.py[cod]
+.cache/
+data/
+models/input/*.pt
+models/input/weights_dump.json
+models/input/weights_dump.npz
+models/output/
+logs/
+!session.log

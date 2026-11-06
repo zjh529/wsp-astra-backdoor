@@ -1,0 +1,580 @@
+{
+  "has_backdoor": true,
+  "target_class": 0,
+  "trigger_description": "Strong weight-space evidence for a filled bright/white 3x3 square flush with the top-left image corner: zero-based rows 0-2 and columns 0-2, flattened indices [0,1,2,28,29,30,56,57,58]. All nine pixels share nearly the same hidden-layer weight vector. Positive intensity relative to a dark background drives the class-0 pathway. Full white is the likely intended trigger (1.0 if inputs are scaled to [0,1], or 255 before that scaling); exact training intensity, input normalization, and minimum effective brightness cannot be recovered uniquely from weights.",
+  "suspicious_units": [
+    "fc1.0",
+    "fc1.1",
+    "fc1.2",
+    "fc1.3",
+    "fc1.4",
+    "fc1.5",
+    "fc1.6",
+    "fc1.7",
+    "fc1.8",
+    "fc1.9",
+    "fc1.10",
+    "fc1.11",
+    "fc1.12",
+    "fc1.13",
+    "fc1.15",
+    "fc1.16",
+    "fc1.17",
+    "fc1.18",
+    "fc1.19",
+    "fc1.20",
+    "fc1.21",
+    "fc1.22",
+    "fc1.23",
+    "fc1.24",
+    "fc1.25",
+    "fc1.26",
+    "fc1.27",
+    "fc1.28",
+    "fc1.29",
+    "fc1.30",
+    "fc1.31"
+  ],
+  "forwards_used": 0,
+  "forward_log": [],
+  "confidence": 0.98,
+  "method": "Static checkpoint inspection: spatial RMS, patch SVD, signed fc1-to-fc2-to-fc3 weight products. No dataset, clean checkpoint, gradients, or model inference used. Products of weight matrices are mechanistic proxies, not measured activations or attack success rates.",
+  "evidence": {
+    "checkpoint_matches_full_dump": true,
+    "patch_rank_one_energy_fraction": 0.9949080944061279,
+    "patch_singular_values": [
+      4.445977210998535,
+      0.1559121012687683,
+      0.14046350121498108,
+      0.12589521706104279,
+      0.11011175066232681,
+      0.10155938565731049,
+      0.08773494511842728,
+      0.08038502931594849,
+      0.06839890778064728
+    ],
+    "patch_spatial_rms_range": [
+      0.2577372193336487,
+      0.26755741238594055
+    ],
+    "positive_patch_units": [
+      0,
+      1,
+      2,
+      3,
+      4,
+      5,
+      9,
+      10,
+      11,
+      12,
+      19,
+      20,
+      26,
+      31
+    ],
+    "negative_patch_units": [
+      6,
+      7,
+      8,
+      13,
+      15,
+      16,
+      17,
+      18,
+      21,
+      22,
+      23,
+      24,
+      25,
+      27,
+      28,
+      29,
+      30
+    ],
+    "near_neutral_unit": "fc1.14",
+    "per_fc1_unit": [
+      {
+        "unit": 0,
+        "patch_weight_mean": 0.16112354397773743,
+        "patch_weight_std": 0.01873807981610298,
+        "patch_energy_fraction": 0.029226528480648994,
+        "signed_class0_margin_path": 0.5138803124427795
+      },
+      {
+        "unit": 1,
+        "patch_weight_mean": 0.22654597461223602,
+        "patch_weight_std": 0.019351612776517868,
+        "patch_energy_fraction": 0.10772045701742172,
+        "signed_class0_margin_path": 1.989427924156189
+      },
+      {
+        "unit": 2,
+        "patch_weight_mean": 0.28274452686309814,
+        "patch_weight_std": 0.018676526844501495,
+        "patch_energy_fraction": 0.09313540160655975,
+        "signed_class0_margin_path": 1.063080906867981
+      },
+      {
+        "unit": 3,
+        "patch_weight_mean": 0.2606772482395172,
+        "patch_weight_std": 0.018085015937685966,
+        "patch_energy_fraction": 0.07528106123209,
+        "signed_class0_margin_path": 1.862166404724121
+      },
+      {
+        "unit": 4,
+        "patch_weight_mean": 0.29823076725006104,
+        "patch_weight_std": 0.014267254620790482,
+        "patch_energy_fraction": 0.1068480983376503,
+        "signed_class0_margin_path": 1.5577031373977661
+      },
+      {
+        "unit": 5,
+        "patch_weight_mean": 0.33513325452804565,
+        "patch_weight_std": 0.0169832780957222,
+        "patch_energy_fraction": 0.13228745758533478,
+        "signed_class0_margin_path": 2.063052177429199
+      },
+      {
+        "unit": 6,
+        "patch_weight_mean": -0.3326209783554077,
+        "patch_weight_std": 0.017206933349370956,
+        "patch_energy_fraction": 0.07216766476631165,
+        "signed_class0_margin_path": 2.971740484237671
+      },
+      {
+        "unit": 7,
+        "patch_weight_mean": -0.18376915156841278,
+        "patch_weight_std": 0.020207976922392845,
+        "patch_energy_fraction": 0.03771301731467247,
+        "signed_class0_margin_path": 0.3312133848667145
+      },
+      {
+        "unit": 8,
+        "patch_weight_mean": -0.330942839384079,
+        "patch_weight_std": 0.021283645182847977,
+        "patch_energy_fraction": 0.10257775336503983,
+        "signed_class0_margin_path": 1.4770243167877197
+      },
+      {
+        "unit": 9,
+        "patch_weight_mean": 0.20452193915843964,
+        "patch_weight_std": 0.016751905903220177,
+        "patch_energy_fraction": 0.046921148896217346,
+        "signed_class0_margin_path": 0.4482610523700714
+      },
+      {
+        "unit": 10,
+        "patch_weight_mean": 0.22814849019050598,
+        "patch_weight_std": 0.02317582070827484,
+        "patch_energy_fraction": 0.07002469897270203,
+        "signed_class0_margin_path": 0.8831809163093567
+      },
+      {
+        "unit": 11,
+        "patch_weight_mean": 0.29013049602508545,
+        "patch_weight_std": 0.024631094187498093,
+        "patch_energy_fraction": 0.12964235246181488,
+        "signed_class0_margin_path": 2.0828137397766113
+      },
+      {
+        "unit": 12,
+        "patch_weight_mean": 0.22114664316177368,
+        "patch_weight_std": 0.02293807454407215,
+        "patch_energy_fraction": 0.049069877713918686,
+        "signed_class0_margin_path": 0.5001704692840576
+      },
+      {
+        "unit": 13,
+        "patch_weight_mean": -0.2452101707458496,
+        "patch_weight_std": 0.014661530964076519,
+        "patch_energy_fraction": 0.06053571403026581,
+        "signed_class0_margin_path": 0.9294077157974243
+      },
+      {
+        "unit": 14,
+        "patch_weight_mean": 0.0036454731598496437,
+        "patch_weight_std": 0.01677406020462513,
+        "patch_energy_fraction": 0.007011312060058117,
+        "signed_class0_margin_path": -0.0033237184397876263
+      },
+      {
+        "unit": 15,
+        "patch_weight_mean": -0.27474072575569153,
+        "patch_weight_std": 0.017975859344005585,
+        "patch_energy_fraction": 0.09603428840637207,
+        "signed_class0_margin_path": 2.155113458633423
+      },
+      {
+        "unit": 16,
+        "patch_weight_mean": -0.28175464272499084,
+        "patch_weight_std": 0.02302362397313118,
+        "patch_energy_fraction": 0.09258392453193665,
+        "signed_class0_margin_path": 1.16805899143219
+      },
+      {
+        "unit": 17,
+        "patch_weight_mean": -0.20851624011993408,
+        "patch_weight_std": 0.02366124838590622,
+        "patch_energy_fraction": 0.028977733105421066,
+        "signed_class0_margin_path": 0.6563328504562378
+      },
+      {
+        "unit": 18,
+        "patch_weight_mean": -0.3119622468948364,
+        "patch_weight_std": 0.017702989280223846,
+        "patch_energy_fraction": 0.08013275265693665,
+        "signed_class0_margin_path": 1.0089014768600464
+      },
+      {
+        "unit": 19,
+        "patch_weight_mean": 0.34398236870765686,
+        "patch_weight_std": 0.013584979809820652,
+        "patch_energy_fraction": 0.11932539939880371,
+        "signed_class0_margin_path": 0.7454524636268616
+      },
+      {
+        "unit": 20,
+        "patch_weight_mean": 0.2421400249004364,
+        "patch_weight_std": 0.021818630397319794,
+        "patch_energy_fraction": 0.05742521211504936,
+        "signed_class0_margin_path": 1.0007598400115967
+      },
+      {
+        "unit": 21,
+        "patch_weight_mean": -0.27261045575141907,
+        "patch_weight_std": 0.021524779498577118,
+        "patch_energy_fraction": 0.08565382659435272,
+        "signed_class0_margin_path": 1.6416572332382202
+      },
+      {
+        "unit": 22,
+        "patch_weight_mean": -0.25878462195396423,
+        "patch_weight_std": 0.01526783686131239,
+        "patch_energy_fraction": 0.0903487280011177,
+        "signed_class0_margin_path": 0.5873348116874695
+      },
+      {
+        "unit": 23,
+        "patch_weight_mean": -0.2500082552433014,
+        "patch_weight_std": 0.015997499227523804,
+        "patch_energy_fraction": 0.0636371448636055,
+        "signed_class0_margin_path": 0.22978219389915466
+      },
+      {
+        "unit": 24,
+        "patch_weight_mean": -0.28608977794647217,
+        "patch_weight_std": 0.014447079040110111,
+        "patch_energy_fraction": 0.1050589457154274,
+        "signed_class0_margin_path": 1.4230397939682007
+      },
+      {
+        "unit": 25,
+        "patch_weight_mean": -0.2550741732120514,
+        "patch_weight_std": 0.017292048782110214,
+        "patch_energy_fraction": 0.06354483962059021,
+        "signed_class0_margin_path": 2.193979501724243
+      },
+      {
+        "unit": 26,
+        "patch_weight_mean": 0.3107285499572754,
+        "patch_weight_std": 0.014763633720576763,
+        "patch_energy_fraction": 0.08192988485097885,
+        "signed_class0_margin_path": 1.2573964595794678
+      },
+      {
+        "unit": 27,
+        "patch_weight_mean": -0.21838003396987915,
+        "patch_weight_std": 0.012566215358674526,
+        "patch_energy_fraction": 0.04878312349319458,
+        "signed_class0_margin_path": 0.3127064108848572
+      },
+      {
+        "unit": 28,
+        "patch_weight_mean": -0.22296041250228882,
+        "patch_weight_std": 0.02119405008852482,
+        "patch_energy_fraction": 0.06259247660636902,
+        "signed_class0_margin_path": 0.823388397693634
+      },
+      {
+        "unit": 29,
+        "patch_weight_mean": -0.21904747188091278,
+        "patch_weight_std": 0.022780193015933037,
+        "patch_energy_fraction": 0.04192887991666794,
+        "signed_class0_margin_path": 0.8101038336753845
+      },
+      {
+        "unit": 30,
+        "patch_weight_mean": -0.31716981530189514,
+        "patch_weight_std": 0.020328039303421974,
+        "patch_energy_fraction": 0.11678997427225113,
+        "signed_class0_margin_path": 1.6899876594543457
+      },
+      {
+        "unit": 31,
+        "patch_weight_mean": 0.25045812129974365,
+        "patch_weight_std": 0.01958189532160759,
+        "patch_energy_fraction": 0.0869336873292923,
+        "signed_class0_margin_path": 3.881916046142578
+      }
+    ],
+    "ungated_class_path_sums": [
+      34.17447280883789,
+      -19.655136108398438,
+      -4.316417694091797,
+      -5.799358367919922,
+      -11.473762512207031,
+      -7.016996383666992,
+      0.849651575088501,
+      -8.039450645446777,
+      -1.8705378770828247,
+      2.5908641815185547
+    ],
+    "fc2_paths": [
+      {
+        "unit": 16,
+        "signed_patch_path": -7.7667317390441895,
+        "fc3_target_weight": -0.45310091972351074,
+        "class0_vs_other_mean_weight": -0.4714452028274536,
+        "signed_margin_contribution": 3.661588430404663
+      },
+      {
+        "unit": 30,
+        "signed_patch_path": 8.416536331176758,
+        "fc3_target_weight": 0.2878721058368683,
+        "class0_vs_other_mean_weight": 0.4055096507072449,
+        "signed_margin_contribution": 3.4129867553710938
+      },
+      {
+        "unit": 20,
+        "signed_patch_path": 9.061718940734863,
+        "fc3_target_weight": 0.28010234236717224,
+        "class0_vs_other_mean_weight": 0.354049950838089,
+        "signed_margin_contribution": 3.208301067352295
+      },
+      {
+        "unit": 13,
+        "signed_patch_path": 7.534322738647461,
+        "fc3_target_weight": 0.2963431179523468,
+        "class0_vs_other_mean_weight": 0.3919244408607483,
+        "signed_margin_contribution": 2.952885150909424
+      },
+      {
+        "unit": 14,
+        "signed_patch_path": -7.382065296173096,
+        "fc3_target_weight": -0.3960616886615753,
+        "class0_vs_other_mean_weight": -0.3748072683811188,
+        "signed_margin_contribution": 2.7668516635894775
+      },
+      {
+        "unit": 1,
+        "signed_patch_path": -6.319532871246338,
+        "fc3_target_weight": -0.33656638860702515,
+        "class0_vs_other_mean_weight": -0.39594101905822754,
+        "signed_margin_contribution": 2.502162218093872
+      },
+      {
+        "unit": 0,
+        "signed_patch_path": -6.432246685028076,
+        "fc3_target_weight": -0.3166045844554901,
+        "class0_vs_other_mean_weight": -0.34866178035736084,
+        "signed_margin_contribution": 2.242678642272949
+      },
+      {
+        "unit": 26,
+        "signed_patch_path": 9.47530460357666,
+        "fc3_target_weight": 0.11745146661996841,
+        "class0_vs_other_mean_weight": 0.21504254639148712,
+        "signed_margin_contribution": 2.0375936031341553
+      },
+      {
+        "unit": 19,
+        "signed_patch_path": 6.126519203186035,
+        "fc3_target_weight": 0.2402515560388565,
+        "class0_vs_other_mean_weight": 0.32753413915634155,
+        "signed_margin_contribution": 2.0066442489624023
+      },
+      {
+        "unit": 8,
+        "signed_patch_path": -6.081057548522949,
+        "fc3_target_weight": -0.34846946597099304,
+        "class0_vs_other_mean_weight": -0.31999245285987854,
+        "signed_margin_contribution": 1.945892572402954
+      },
+      {
+        "unit": 25,
+        "signed_patch_path": 5.666818618774414,
+        "fc3_target_weight": 0.3077111542224884,
+        "class0_vs_other_mean_weight": 0.32048681378364563,
+        "signed_margin_contribution": 1.8161406517028809
+      },
+      {
+        "unit": 31,
+        "signed_patch_path": -6.187460899353027,
+        "fc3_target_weight": -0.3231063187122345,
+        "class0_vs_other_mean_weight": -0.286180317401886,
+        "signed_margin_contribution": 1.7707295417785645
+      },
+      {
+        "unit": 4,
+        "signed_patch_path": 5.915684223175049,
+        "fc3_target_weight": 0.17891757190227509,
+        "class0_vs_other_mean_weight": 0.2708609700202942,
+        "signed_margin_contribution": 1.6023279428482056
+      },
+      {
+        "unit": 12,
+        "signed_patch_path": -3.9658429622650146,
+        "fc3_target_weight": -0.34874919056892395,
+        "class0_vs_other_mean_weight": -0.4022676944732666,
+        "signed_margin_contribution": 1.5953304767608643
+      },
+      {
+        "unit": 18,
+        "signed_patch_path": -4.96718168258667,
+        "fc3_target_weight": -0.2698933482170105,
+        "class0_vs_other_mean_weight": -0.2856594920158386,
+        "signed_margin_contribution": 1.4189225435256958
+      },
+      {
+        "unit": 5,
+        "signed_patch_path": 3.636052131652832,
+        "fc3_target_weight": 0.2682970464229584,
+        "class0_vs_other_mean_weight": 0.3061563968658447,
+        "signed_margin_contribution": 1.1132006645202637
+      },
+      {
+        "unit": 2,
+        "signed_patch_path": 4.216525077819824,
+        "fc3_target_weight": 0.1581297516822815,
+        "class0_vs_other_mean_weight": 0.24862031638622284,
+        "signed_margin_contribution": 1.048313856124878
+      },
+      {
+        "unit": 21,
+        "signed_patch_path": 5.585989952087402,
+        "fc3_target_weight": 0.08343366533517838,
+        "class0_vs_other_mean_weight": 0.13545307517051697,
+        "signed_margin_contribution": 0.7566395401954651
+      },
+      {
+        "unit": 11,
+        "signed_patch_path": 2.6915202140808105,
+        "fc3_target_weight": 0.15275277197360992,
+        "class0_vs_other_mean_weight": 0.14945168793201447,
+        "signed_margin_contribution": 0.4022522270679474
+      },
+      {
+        "unit": 27,
+        "signed_patch_path": 4.746911525726318,
+        "fc3_target_weight": 0.007407893426716328,
+        "class0_vs_other_mean_weight": 0.08026906102895737,
+        "signed_margin_contribution": 0.3810301423072815
+      },
+      {
+        "unit": 6,
+        "signed_patch_path": 1.7076873779296875,
+        "fc3_target_weight": 0.220911905169487,
+        "class0_vs_other_mean_weight": 0.2053774893283844,
+        "signed_margin_contribution": 0.3507205545902252
+      },
+      {
+        "unit": 7,
+        "signed_patch_path": -1.5009876489639282,
+        "fc3_target_weight": -0.2598681151866913,
+        "class0_vs_other_mean_weight": -0.19157442450523376,
+        "signed_margin_contribution": 0.28755083680152893
+      },
+      {
+        "unit": 24,
+        "signed_patch_path": 1.4971349239349365,
+        "fc3_target_weight": 0.12235620617866516,
+        "class0_vs_other_mean_weight": 0.16889703273773193,
+        "signed_margin_contribution": 0.2528616487979889
+      },
+      {
+        "unit": 28,
+        "signed_patch_path": -1.117121934890747,
+        "fc3_target_weight": -0.24350254237651825,
+        "class0_vs_other_mean_weight": -0.20954629778862,
+        "signed_margin_contribution": 0.23408876359462738
+      },
+      {
+        "unit": 29,
+        "signed_patch_path": 1.593194603919983,
+        "fc3_target_weight": 0.09010906517505646,
+        "class0_vs_other_mean_weight": 0.09699108451604843,
+        "signed_margin_contribution": 0.15452566742897034
+      },
+      {
+        "unit": 15,
+        "signed_patch_path": 1.1768958568572998,
+        "fc3_target_weight": 0.06171955168247223,
+        "class0_vs_other_mean_weight": 0.11476390063762665,
+        "signed_margin_contribution": 0.13506515324115753
+      },
+      {
+        "unit": 22,
+        "signed_patch_path": 1.5518884658813477,
+        "fc3_target_weight": -0.003558108117431402,
+        "class0_vs_other_mean_weight": 0.0849141925573349,
+        "signed_margin_contribution": 0.13177736103534698
+      },
+      {
+        "unit": 23,
+        "signed_patch_path": -0.5807731747627258,
+        "fc3_target_weight": -0.21799655258655548,
+        "class0_vs_other_mean_weight": -0.18845853209495544,
+        "signed_margin_contribution": 0.10945165902376175
+      },
+      {
+        "unit": 17,
+        "signed_patch_path": -0.7059824466705322,
+        "fc3_target_weight": -0.1344333291053772,
+        "class0_vs_other_mean_weight": -0.07260549813508987,
+        "signed_margin_contribution": 0.051258206367492676
+      },
+      {
+        "unit": 9,
+        "signed_patch_path": 0.48080146312713623,
+        "fc3_target_weight": 0.011418650858104229,
+        "class0_vs_other_mean_weight": 0.04888811707496643,
+        "signed_margin_contribution": 0.023505479097366333
+      },
+      {
+        "unit": 3,
+        "signed_patch_path": 0.6216522455215454,
+        "fc3_target_weight": 0.0630735531449318,
+        "class0_vs_other_mean_weight": 0.023584656417369843,
+        "signed_margin_contribution": 0.0146614545956254
+      },
+      {
+        "unit": 10,
+        "signed_patch_path": -0.8135533332824707,
+        "fc3_target_weight": 0.13354019820690155,
+        "class0_vs_other_mean_weight": 0.16253110766410828,
+        "signed_margin_contribution": -0.13222771883010864
+      }
+    ],
+    "weight_locations": {
+      "detector": "fc1.weight[:, [0,1,2,28,29,30,56,57,58]]",
+      "relay": "fc2.weight[:, suspicious fc1 units]",
+      "output": "fc3.weight[0,:] relative to fc3.weight[1:,:]"
+    },
+    "interpretation": "Distributed feature, not a single isolated backdoor neuron: the bright patch increases 14 strongly positive fc1 units and suppresses 17 strongly negative units; fc1.14 is near-neutral. Mixed-sign fc2 pathways promote class 0 and suppress alternatives. ReLU gates depend on the digit, so ungated path sums are not actual logit changes."
+  },
+  "edit_summary": "Zeroed only fc1.weight columns [0,1,2,28,29,30,56,57,58] across all 32 units (288 of 26506 parameters). All other weights and biases are bitwise unchanged. This removes all dependence on the nine trigger pixels, including the weak fc1.14 connection, without ablating whole digit-feature neurons. Saved as models/output/poisoned_ablated.pt with state_dict schema preserved.",
+  "edit_validation": {
+    "changed_parameters": 288,
+    "total_parameters": 26506,
+    "other_parameters_bitwise_unchanged": true,
+    "zero_trigger_columns_verified_after_reload": true,
+    "guarantee": "For any two inputs differing only within the top-left 3x3 patch, patched logits are mathematically identical. This does not guarantee correct classification or remove unrelated triggers."
+  },
+  "limitations": [
+    "Backdoor conclusion and target are high-confidence weight-space inferences, not empirical attack-success measurements.",
+    "Exact historical trigger brightness and poisoning rate are not identifiable from this inspection.",
+    "No clean accuracy or attack success rate was measured. Removing corner inputs may affect legitimate examples using those pixels."
+  ]
+}

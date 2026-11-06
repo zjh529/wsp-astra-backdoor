@@ -1,0 +1,102 @@
+Loaded /workspace/wsp/backdoor-weight-probe/models/poisoned.pt clean_acc=0.9836 asr=1.0
+NC clean batch shape=(128, 1, 28, 28) steps=200
+
+=== Optimizing trigger for target class 0 ===
+  class=0 step=50/200 loss=0.1703 ce=0.0000 L1(m)=170.30 batch_acc→c=1.000
+  class=0 step=100/200 loss=0.0767 ce=0.0011 L1(m)=75.67 batch_acc→c=1.000
+  class=0 step=150/200 loss=0.0465 ce=0.0009 L1(m)=45.62 batch_acc→c=1.000
+  class=0 step=200/200 loss=0.0330 ce=0.0007 L1(m)=32.28 batch_acc→c=1.000
+  done class=0 L1(m)=32.28 L1(m⊙Δ)=20.66 L2(m⊙Δ)=2.440
+
+=== Optimizing trigger for target class 1 ===
+  class=1 step=50/200 loss=0.4437 ce=0.0000 L1(m)=443.64 batch_acc→c=1.000
+  class=1 step=100/200 loss=0.3812 ce=0.0002 L1(m)=381.03 batch_acc→c=1.000
+  class=1 step=150/200 loss=0.3153 ce=0.0022 L1(m)=313.07 batch_acc→c=1.000
+  class=1 step=200/200 loss=0.2659 ce=0.0068 L1(m)=259.09 batch_acc→c=1.000
+  done class=1 L1(m)=259.09 L1(m⊙Δ)=154.84 L2(m⊙Δ)=8.474
+
+=== Optimizing trigger for target class 2 ===
+  class=2 step=50/200 loss=0.3514 ce=0.0000 L1(m)=351.33 batch_acc→c=1.000
+  class=2 step=100/200 loss=0.2781 ce=0.0002 L1(m)=277.91 batch_acc→c=1.000
+  class=2 step=150/200 loss=0.2119 ce=0.0021 L1(m)=209.80 batch_acc→c=1.000
+  class=2 step=200/200 loss=0.1651 ce=0.0036 L1(m)=161.47 batch_acc→c=1.000
+  done class=2 L1(m)=161.47 L1(m⊙Δ)=98.46 L2(m⊙Δ)=6.380
+
+=== Optimizing trigger for target class 3 ===
+  class=3 step=50/200 loss=0.3604 ce=0.0000 L1(m)=360.37 batch_acc→c=1.000
+  class=3 step=100/200 loss=0.2821 ce=0.0001 L1(m)=281.92 batch_acc→c=1.000
+  class=3 step=150/200 loss=0.2190 ce=0.0024 L1(m)=216.61 batch_acc→c=1.000
+  class=3 step=200/200 loss=0.1792 ce=0.0045 L1(m)=174.73 batch_acc→c=1.000
+  done class=3 L1(m)=174.73 L1(m⊙Δ)=115.86 L2(m⊙Δ)=7.227
+
+=== Optimizing trigger for target class 4 ===
+  class=4 step=50/200 loss=0.3639 ce=0.0004 L1(m)=363.56 batch_acc→c=1.000
+  class=4 step=100/200 loss=0.3027 ce=0.0012 L1(m)=301.48 batch_acc→c=1.000
+  class=4 step=150/200 loss=0.2509 ce=0.0034 L1(m)=247.50 batch_acc→c=1.000
+  class=4 step=200/200 loss=0.2134 ce=0.0052 L1(m)=208.22 batch_acc→c=1.000
+  done class=4 L1(m)=208.22 L1(m⊙Δ)=116.72 L2(m⊙Δ)=7.026
+
+=== Optimizing trigger for target class 5 ===
+  class=5 step=50/200 loss=0.3863 ce=0.0002 L1(m)=386.11 batch_acc→c=1.000
+  class=5 step=100/200 loss=0.3252 ce=0.0004 L1(m)=324.80 batch_acc→c=1.000
+  class=5 step=150/200 loss=0.2617 ce=0.0017 L1(m)=260.00 batch_acc→c=1.000
+  class=5 step=200/200 loss=0.2141 ce=0.0055 L1(m)=208.61 batch_acc→c=1.000
+  done class=5 L1(m)=208.61 L1(m⊙Δ)=134.29 L2(m⊙Δ)=7.851
+
+=== Optimizing trigger for target class 6 ===
+  class=6 step=50/200 loss=0.3836 ce=0.0002 L1(m)=383.35 batch_acc→c=1.000
+  class=6 step=100/200 loss=0.3186 ce=0.0008 L1(m)=317.77 batch_acc→c=1.000
+  class=6 step=150/200 loss=0.2625 ce=0.0038 L1(m)=258.70 batch_acc→c=1.000
+  class=6 step=200/200 loss=0.2220 ce=0.0052 L1(m)=216.73 batch_acc→c=1.000
+  done class=6 L1(m)=216.73 L1(m⊙Δ)=137.45 L2(m⊙Δ)=7.956
+
+=== Optimizing trigger for target class 7 ===
+  class=7 step=50/200 loss=0.3727 ce=0.0006 L1(m)=372.06 batch_acc→c=1.000
+  class=7 step=100/200 loss=0.3048 ce=0.0014 L1(m)=303.40 batch_acc→c=1.000
+  class=7 step=150/200 loss=0.2490 ce=0.0043 L1(m)=244.67 batch_acc→c=1.000
+  class=7 step=200/200 loss=0.2127 ce=0.0067 L1(m)=206.00 batch_acc→c=1.000
+  done class=7 L1(m)=206.00 L1(m⊙Δ)=117.86 L2(m⊙Δ)=7.416
+
+=== Optimizing trigger for target class 8 ===
+  class=8 step=50/200 loss=0.3660 ce=0.0011 L1(m)=364.96 batch_acc→c=1.000
+  class=8 step=100/200 loss=0.2819 ce=0.0027 L1(m)=279.22 batch_acc→c=1.000
+  class=8 step=150/200 loss=0.2209 ce=0.0079 L1(m)=212.94 batch_acc→c=1.000
+  class=8 step=200/200 loss=0.1836 ce=0.0075 L1(m)=176.14 batch_acc→c=1.000
+  done class=8 L1(m)=176.14 L1(m⊙Δ)=117.90 L2(m⊙Δ)=7.451
+
+=== Optimizing trigger for target class 9 ===
+  class=9 step=50/200 loss=0.3697 ce=0.0006 L1(m)=369.15 batch_acc→c=1.000
+  class=9 step=100/200 loss=0.3015 ce=0.0014 L1(m)=300.10 batch_acc→c=1.000
+  class=9 step=150/200 loss=0.2415 ce=0.0054 L1(m)=236.10 batch_acc→c=1.000
+  class=9 step=200/200 loss=0.2023 ce=0.0081 L1(m)=194.17 batch_acc→c=1.000
+  done class=9 L1(m)=194.17 L1(m⊙Δ)=123.51 L2(m⊙Δ)=7.557
+
+=== NC norms / anomaly ===
+  class 0: L1(m)=32.28 AI_mask=8.978 L1(m⊙Δ)=20.66 AI_trig=17.224
+  class 1: L1(m)=259.09 AI_mask=-3.600 L1(m⊙Δ)=154.84 AI_trig=-6.553
+  class 2: L1(m)=161.47 AI_mask=1.813 L1(m⊙Δ)=98.46 AI_trig=3.438
+  class 3: L1(m)=174.73 AI_mask=1.078 L1(m⊙Δ)=115.86 AI_trig=0.354
+  class 4: L1(m)=208.22 AI_mask=-0.779 L1(m⊙Δ)=116.72 AI_trig=0.202
+  class 5: L1(m)=208.61 AI_mask=-0.801 L1(m⊙Δ)=134.29 AI_trig=-2.911
+  class 6: L1(m)=216.73 AI_mask=-1.251 L1(m⊙Δ)=137.45 AI_trig=-3.471
+  class 7: L1(m)=206.00 AI_mask=-0.656 L1(m⊙Δ)=117.86 AI_trig=0.000
+  class 8: L1(m)=176.14 AI_mask=1.000 L1(m⊙Δ)=117.90 AI_trig=-0.006
+  class 9: L1(m)=194.17 AI_mask=0.000 L1(m⊙Δ)=123.51 AI_trig=-1.000
+Flagged by L1(m) anomaly: class 0 (expect 0)
+Flagged by L1(m⊙Δ) anomaly: class 0
+
+Reversed-trigger ASR (flagged class 0): 0.9942 n=9020
+Class-0 reversed-trigger ASR: 0.9942
+
+=== Act×w ranking with NC reversed trigger (no GT patch) ===
+Top-10 NC-ranked fc1: [43, 17, 29, 63, 42, 45, 27, 55, 52, 15]
+Overlap with prior GT act-rank top-10: 9/10
+
+=== Joint ablation (NC rank); eval ASR on TRUE BadNet patch ===
+  NC-rank top-1: clean=0.9842 TRUE-patch ASR=0.9986 ΔASR=+0.0014 Δclean=-0.0006
+  NC-rank top-3: clean=0.9712 TRUE-patch ASR=0.9441 ΔASR=+0.0559 Δclean=+0.0124
+  NC-rank top-5: clean=0.9157 TRUE-patch ASR=0.7397 ΔASR=+0.2603 Δclean=+0.0679
+  NC-rank top-10: clean=0.8514 TRUE-patch ASR=0.1814 ΔASR=+0.8186 Δclean=+0.1322
+  NC-rank top-20: clean=0.7024 TRUE-patch ASR=0.0013 ΔASR=+0.9987 Δclean=+0.2812
+
+Saved /workspace/wsp/backdoor-weight-probe/results/phase2_nc_poisoned.json elapsed=122.6s

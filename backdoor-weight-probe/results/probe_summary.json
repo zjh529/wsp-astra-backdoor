@@ -1,0 +1,95 @@
+{
+  "rank_mode": "delta",
+  "top_k": 20,
+  "poisoned_probe": {
+    "base_clean_acc": 0.9767578125,
+    "base_asr": 1.0,
+    "best_single": {
+      "neuron": 54,
+      "rank_score": 0.9042091369628906,
+      "clean_acc": 0.9751953125,
+      "asr": 0.9998046875,
+      "delta_asr": 0.0001953125000000444,
+      "delta_clean_acc": 0.0015625000000000222,
+      "suspicion": 0.07621951219513862
+    },
+    "joint_top3": {
+      "neurons": [
+        54,
+        50,
+        30
+      ],
+      "clean_acc": 0.965234375,
+      "asr": 0.99921875,
+      "delta_asr": 0.0007812499999999556,
+      "delta_clean_acc": 0.011523437500000067,
+      "suspicion": 0.06238303181534234
+    }
+  },
+  "clean_probe": {
+    "base_clean_acc": 0.9791015625,
+    "base_asr": 0.0029296875,
+    "best_single": {
+      "neuron": 17,
+      "rank_score": 2.933051586151123,
+      "clean_acc": 0.9775390625,
+      "asr": 0.0015625,
+      "delta_asr": 0.0013671875,
+      "delta_clean_acc": 0.0015625000000000222,
+      "suspicion": 0.533536585365849
+    },
+    "joint_top3": {
+      "neurons": [
+        17,
+        43,
+        52
+      ],
+      "clean_acc": 0.9498046875,
+      "asr": 0.0001953125,
+      "delta_asr": 0.002734375,
+      "delta_clean_acc": 0.029296875,
+      "suspicion": 0.09025270758122743
+    }
+  },
+  "recovery": {
+    "true_backdoor_neurons_by_delta_asr": [],
+    "weight_scan_top_k": [
+      30,
+      7,
+      58,
+      42,
+      52,
+      8,
+      12,
+      11,
+      63,
+      35,
+      50,
+      22,
+      54,
+      16,
+      61,
+      14,
+      56,
+      47,
+      15,
+      0
+    ],
+    "recovered_in_top_k": [],
+    "recovered": false,
+    "best_asr_neuron": 50,
+    "weight_rank_of_best_asr_neuron": 11
+  },
+  "model_suspicion": {
+    "poisoned": 0.6093641531028098,
+    "clean": 0.5883309079064627,
+    "ratio_poisoned_over_clean": 1.035750705791053
+  },
+  "cost": {
+    "naive_trigger_search_locations": 676,
+    "naive_forwards_lower_bound": 676,
+    "our_ablation_eval_forwards": 1760,
+    "weight_scan": "O(params) static norms + 1 holdout forward pass for acts",
+    "savings_factor_approx": 0.3840909090909091
+  }
+}

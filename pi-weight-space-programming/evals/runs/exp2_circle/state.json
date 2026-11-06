@@ -1,0 +1,11 @@
+{
+  "mode": "tool-free",
+  "experiment": "2",
+  "turns": 1,
+  "runs_used": 0,
+  "max_runs": 0,
+  "passes_used": 0,
+  "pass_budget": 0,
+  "edited_tensors": [],
+  "last_audit_tool_free": true
+}

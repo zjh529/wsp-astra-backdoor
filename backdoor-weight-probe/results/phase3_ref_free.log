@@ -1,0 +1,120 @@
+
+======== REF-FREE: poisoned ========
+Loaded /workspace/wsp/backdoor-weight-probe/models/poisoned.pt ckpt_acc=0.9836 ckpt_asr=1.0
+  class-asymmetry: class0_frac=0.125 mean_c0_dom=0.102 score=0.743 top_class=6
+  Trying reuse NC from /workspace/wsp/backdoor-weight-probe/results/phase2_nc_poisoned.json
+  Reused NC + trigger tensors from /workspace/wsp/backdoor-weight-probe/results/phase2_nc_trigger_poisoned.pt
+  NC: flagged=0 AI_mask=8.978 AI_trig=17.224 flagged=True rev-ASR=0.9942
+  Act×w ranking with NC reversed trigger ...
+  NC-rank top-10: [43, 17, 29, 63, 42, 45, 27, 55, 52, 15]
+  top-1: clean=0.9842 rev-ASR=0.9813 (Δ+0.0130) true-ASR=0.9986 Δclean=-0.0006
+  top-3: clean=0.9712 rev-ASR=0.8257 (Δ+0.1685) true-ASR=0.9441 Δclean=+0.0124
+  top-5: clean=0.9157 rev-ASR=0.5702 (Δ+0.4241) true-ASR=0.7397 Δclean=+0.0679
+  top-10: clean=0.8514 rev-ASR=0.0666 (Δ+0.9276) true-ASR=0.1814 Δclean=+0.1322
+  top-20: clean=0.7024 rev-ASR=0.0009 (Δ+0.9933) true-ASR=0.0013 Δclean=+0.2812
+  best practical Δrev-ASR=+0.9276 k=10
+  REF-FREE suspicion=14.895 elapsed=11.0s
+
+======== REF-FREE: clean ========
+Loaded /workspace/wsp/backdoor-weight-probe/models/clean.pt ckpt_acc=0.9851 ckpt_asr=0.00188470066518847
+  class-asymmetry: class0_frac=0.094 mean_c0_dom=0.099 score=0.716 top_class=6
+  NC optimize class 0 ...
+  class=0 step=50/200 loss=0.3946 ce=0.0010 L1(m)=393.53 batch_acc→c=1.000
+  class=0 step=100/200 loss=0.3079 ce=0.0040 L1(m)=303.98 batch_acc→c=1.000
+  class=0 step=150/200 loss=0.2476 ce=0.0079 L1(m)=239.64 batch_acc→c=1.000
+  class=0 step=200/200 loss=0.2091 ce=0.0082 L1(m)=200.96 batch_acc→c=1.000
+    L1(m)=200.96 L1(m⊙Δ)=127.66
+  NC optimize class 1 ...
+  class=1 step=50/200 loss=0.4522 ce=0.0000 L1(m)=452.16 batch_acc→c=1.000
+  class=1 step=100/200 loss=0.3801 ce=0.0001 L1(m)=379.96 batch_acc→c=1.000
+  class=1 step=150/200 loss=0.3088 ce=0.0015 L1(m)=307.32 batch_acc→c=1.000
+  class=1 step=200/200 loss=0.2583 ce=0.0056 L1(m)=252.70 batch_acc→c=1.000
+    L1(m)=252.70 L1(m⊙Δ)=147.22
+  NC optimize class 2 ...
+  class=2 step=50/200 loss=0.3747 ce=0.0000 L1(m)=374.67 batch_acc→c=1.000
+  class=2 step=100/200 loss=0.2931 ce=0.0003 L1(m)=292.72 batch_acc→c=1.000
+  class=2 step=150/200 loss=0.2229 ce=0.0021 L1(m)=220.84 batch_acc→c=1.000
+  class=2 step=200/200 loss=0.1703 ce=0.0038 L1(m)=166.45 batch_acc→c=1.000
+    L1(m)=166.45 L1(m⊙Δ)=102.83
+  NC optimize class 3 ...
+  class=3 step=50/200 loss=0.3834 ce=0.0000 L1(m)=383.35 batch_acc→c=1.000
+  class=3 step=100/200 loss=0.2933 ce=0.0001 L1(m)=293.22 batch_acc→c=1.000
+  class=3 step=150/200 loss=0.2183 ce=0.0036 L1(m)=214.67 batch_acc→c=1.000
+  class=3 step=200/200 loss=0.1757 ce=0.0052 L1(m)=170.45 batch_acc→c=1.000
+    L1(m)=170.45 L1(m⊙Δ)=113.76
+  NC optimize class 4 ...
+  class=4 step=50/200 loss=0.3786 ce=0.0001 L1(m)=378.47 batch_acc→c=1.000
+  class=4 step=100/200 loss=0.3007 ce=0.0007 L1(m)=299.99 batch_acc→c=1.000
+  class=4 step=150/200 loss=0.2446 ce=0.0036 L1(m)=241.06 batch_acc→c=1.000
+  class=4 step=200/200 loss=0.2070 ce=0.0054 L1(m)=201.51 batch_acc→c=1.000
+    L1(m)=201.51 L1(m⊙Δ)=113.75
+  NC optimize class 5 ...
+  class=5 step=50/200 loss=0.3921 ce=0.0000 L1(m)=392.12 batch_acc→c=1.000
+  class=5 step=100/200 loss=0.3135 ce=0.0001 L1(m)=313.40 batch_acc→c=1.000
+  class=5 step=150/200 loss=0.2458 ce=0.0022 L1(m)=243.61 batch_acc→c=1.000
+  class=5 step=200/200 loss=0.1959 ce=0.0035 L1(m)=192.31 batch_acc→c=1.000
+    L1(m)=192.31 L1(m⊙Δ)=121.90
+  NC optimize class 6 ...
+  class=6 step=50/200 loss=0.4092 ce=0.0001 L1(m)=409.08 batch_acc→c=1.000
+  class=6 step=100/200 loss=0.3446 ce=0.0003 L1(m)=344.33 batch_acc→c=1.000
+  class=6 step=150/200 loss=0.2845 ce=0.0015 L1(m)=282.93 batch_acc→c=1.000
+  class=6 step=200/200 loss=0.2350 ce=0.0040 L1(m)=231.00 batch_acc→c=1.000
+    L1(m)=231.00 L1(m⊙Δ)=139.97
+  NC optimize class 7 ...
+  class=7 step=50/200 loss=0.3977 ce=0.0004 L1(m)=397.34 batch_acc→c=1.000
+  class=7 step=100/200 loss=0.3242 ce=0.0007 L1(m)=323.51 batch_acc→c=1.000
+  class=7 step=150/200 loss=0.2596 ce=0.0026 L1(m)=257.00 batch_acc→c=1.000
+  class=7 step=200/200 loss=0.2146 ce=0.0057 L1(m)=208.91 batch_acc→c=1.000
+    L1(m)=208.91 L1(m⊙Δ)=121.06
+  NC optimize class 8 ...
+  class=8 step=50/200 loss=0.3771 ce=0.0003 L1(m)=376.76 batch_acc→c=1.000
+  class=8 step=100/200 loss=0.2786 ce=0.0019 L1(m)=276.74 batch_acc→c=1.000
+  class=8 step=150/200 loss=0.2117 ce=0.0069 L1(m)=204.77 batch_acc→c=1.000
+  class=8 step=200/200 loss=0.1753 ce=0.0063 L1(m)=168.98 batch_acc→c=1.000
+    L1(m)=168.98 L1(m⊙Δ)=120.78
+  NC optimize class 9 ...
+  class=9 step=50/200 loss=0.3805 ce=0.0005 L1(m)=380.00 batch_acc→c=1.000
+  class=9 step=100/200 loss=0.3007 ce=0.0013 L1(m)=299.39 batch_acc→c=1.000
+  class=9 step=150/200 loss=0.2331 ce=0.0053 L1(m)=227.80 batch_acc→c=1.000
+  class=9 step=200/200 loss=0.1917 ce=0.0082 L1(m)=183.58 batch_acc→c=1.000
+    L1(m)=183.58 L1(m⊙Δ)=121.94
+  NC: flagged=2 AI_mask=1.559 AI_trig=2.763 flagged=True rev-ASR=0.0001
+  Act×w ranking with NC reversed trigger ...
+  NC-rank top-10: [27, 43, 18, 15, 51, 41, 17, 48, 26, 52]
+  top-1: clean=0.9839 rev-ASR=0.0000 (Δ+0.0001) true-ASR=0.0013 Δclean=+0.0012
+  top-3: clean=0.9764 rev-ASR=0.0000 (Δ+0.0001) true-ASR=0.0003 Δclean=+0.0087
+  top-5: clean=0.9773 rev-ASR=0.0000 (Δ+0.0001) true-ASR=0.0001 Δclean=+0.0078
+  top-10: clean=0.9505 rev-ASR=0.0000 (Δ+0.0001) true-ASR=0.0000 Δclean=+0.0346
+  top-20: clean=0.8715 rev-ASR=0.0000 (Δ+0.0001) true-ASR=0.0013 Δclean=+0.1136
+  best practical Δrev-ASR=+0.0001 k=1
+  REF-FREE suspicion=2.883 elapsed=24.2s
+
+=== THRESHOLD RULE ===
+{
+  "nc_ai_threshold": 2.0,
+  "nc_rule": {
+    "poisoned_flagged": true,
+    "clean_flagged": true,
+    "correct": false,
+    "note": "Literature MAD AI\u22652; not tuned on these two models."
+  },
+  "fixed_composite_rule": {
+    "rule": "AI\u22652 AND rev_ASR\u22650.5 AND (\u0394rev-ASR\u22650.3 OR AI\u22655)",
+    "poisoned_flagged": true,
+    "clean_flagged": false,
+    "correct": true,
+    "note": "Fixed constants chosen a priori from NC literature + ASR intuition; not fit by grid search on these two, but constants were not locked before seeing phase-1/2 numbers."
+  },
+  "suspicion_scores": {
+    "poisoned": 14.895104762598464,
+    "clean": 2.883126585085778,
+    "separation": 12.011978177512686,
+    "ratio": 5.166302735249243,
+    "posthoc_midpoint_threshold": 8.88911567384212,
+    "posthoc_poisoned_above": true,
+    "posthoc_clean_below": true,
+    "honesty": "Midpoint threshold is post-hoc on these two scores \u2014 report separation; do not claim generalization from midpoint alone."
+  }
+}
+
+Saved /workspace/wsp/backdoor-weight-probe/results/phase3_ref_free.json

@@ -1,0 +1,10 @@
+upstream: https://github.com/felipepenha/pi-weight-space-programming.git
+base: 6a3e93a8ff69f24f27368b969542b48181c7cefd
+
+ README.md                                  |   3 +-
+ examples/model-poisoning/.pi/settings.json |   2 +-
+ extensions/index.ts                        |  30 ++++-
+ extensions/types.ts                        |   2 +-
+ harness/presets.json                       |  11 ++
+ harness/wsp_engine.py                      | 192 ++++++++++++++++++++++++++++-
+ 6 files changed, 229 insertions(+), 11 deletions(-)

@@ -1,0 +1,20 @@
+{
+  "arch": "TinyMLP 784->32->32->10 ReLU",
+  "params": 26506,
+  "poison_rate": 0.08,
+  "trigger": "white 3x3 top-left (0,0)",
+  "target_class": 0,
+  "seed": 42,
+  "epochs": 5,
+  "clean": {
+    "clean_acc": 0.955,
+    "asr": 0.005543237250554324,
+    "checkpoint": "models/input/clean.pt"
+  },
+  "poisoned": {
+    "clean_acc": 0.9531,
+    "asr": 0.9994456762749445,
+    "checkpoint": "models/input/poisoned.pt"
+  },
+  "note": "Do NOT give clean.pt to Astra; it is for independent scoring only."
+}

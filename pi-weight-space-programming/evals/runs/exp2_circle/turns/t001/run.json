@@ -1,0 +1,12 @@
+{
+  "turn": 1,
+  "model": "gemini-4-argon",
+  "provider": "google",
+  "effort": "medium",
+  "wall_time_s": 189.9,
+  "audit": {
+    "tool_free": true,
+    "tool_calls": 0,
+    "tools_invoked": []
+  }
+}

@@ -1,0 +1,48 @@
+{
+  "static_class0_delta_top10": [
+    24,
+    44,
+    5,
+    41,
+    55,
+    22,
+    62,
+    25,
+    32,
+    56
+  ],
+  "static_overlap_with_effective": [
+    55
+  ],
+  "static_top10_ablation": {
+    "clean_acc": 0.7463,
+    "asr": 1.0,
+    "delta_asr": 0.0,
+    "delta_clean": 0.23730000000000007
+  },
+  "composite_delta_top10": [
+    30,
+    7,
+    58,
+    42,
+    52,
+    8,
+    12,
+    11,
+    63,
+    35
+  ],
+  "composite_overlap_with_effective": [
+    42,
+    52,
+    63
+  ],
+  "composite_top10_ablation": {
+    "clean_acc": 0.9668,
+    "asr": 0.998669623059867,
+    "delta_asr": 0.001330376940133049,
+    "delta_clean": 0.016800000000000037
+  },
+  "base_clean_acc": 0.9836,
+  "base_asr": 1.0
+}
