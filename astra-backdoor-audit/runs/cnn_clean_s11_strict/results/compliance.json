@@ -1,0 +1,10 @@
+{
+  "ok": true,
+  "tool_calls": 5,
+  "kinds": [
+    "python"
+  ],
+  "passes_used": 0,
+  "pass_budget": 0,
+  "violations": []
+}

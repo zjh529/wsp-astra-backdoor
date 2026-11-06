@@ -1,0 +1,12 @@
+{
+  "cell": "mlp_clean_s23_strict",
+  "arch": "mlp",
+  "seed": 23,
+  "has_backdoor": false,
+  "clean_acc": 0.9493,
+  "epochs": 5,
+  "elapsed_sec": 11.82875108718872,
+  "params": 26506,
+  "ckpt_full": "/workspace/wsp/astra-backdoor-audit/models/clean_fp_expand/mlp_clean_s23.pt",
+  "ckpt_sanitized": "/workspace/wsp/astra-backdoor-audit/models/clean_fp_expand/mlp_clean_s23_sanitized.pt"
+}

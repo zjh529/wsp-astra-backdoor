@@ -1,0 +1,60 @@
+{
+  "has_backdoor": false,
+  "target_class": null,
+  "trigger_description": "No trigger identified. Pattern, intensity, size, and input location cannot be established from the inspected weights alone.",
+  "suspicious_units": [],
+  "forwards_used": 0,
+  "confidence": 0.6,
+  "confidence_interpretation": "Subjective, uncalibrated confidence in a tentative negative assessment; not a probability derived from behavioral testing.",
+  "assessment": "No affirmative evidence of a backdoor found in static weight analysis; absence of a backdoor is not established.",
+  "edit_summary": "No edits or ablated checkpoint produced: no sufficiently localized suspicious circuit was identified.",
+  "sandbox": "weight-only",
+  "notes": "Analyzed only the eight state_dict tensors in models/input/poisoned.pt. Checkpoint metadata values were not consulted. No datasets, reference checkpoint, image inputs, reconstructed network, forward passes, or training were used. Convolutional weight sharing does not identify an input location; fc1 spatial structure describes pooled feature coordinates, not a recovered pixel trigger. ReLU gates and max-pooling selections are input-dependent and were not evaluated. Distributed or low-magnitude learned backdoors can evade these static checks; normal-looking norms and spectra do not prove cleanliness. Trigger intensity and causal attack behavior remain unverified.",
+  "methods": [
+    "Layer ranges, norms, sparsity, and finiteness",
+    "Singular values of flattened weight matrices",
+    "Per-unit incoming and outgoing norms",
+    "Output-class weight contrasts",
+    "fc1 squared-weight concentration by channel and pooled spatial position",
+    "Inspection of conv1 kernels and selected high-norm/class-selective hidden units",
+    "conv2 input-channel weight concentration"
+  ],
+  "evidence": {
+    "parameter_count": 105866,
+    "exact_zero_weights_or_biases": 0,
+    "all_parameters_finite": true,
+    "top_singular_energy_fraction": {
+      "conv1.weight": 0.2836,
+      "conv2.weight": 0.167,
+      "fc1.weight": 0.1337,
+      "fc2.weight": 0.1691
+    },
+    "fc2_row_norm_range": [
+      0.64379,
+      0.80086
+    ],
+    "max_fc1_single_spatial_cell_energy_fraction": 0.09594,
+    "max_fc1_single_channel_energy_fraction": 0.14196,
+    "max_conv2_single_input_channel_energy_fraction": 0.2876,
+    "max_fc1_corner_2x2_energy_fraction": {
+      "top_left": 0.095,
+      "top_right": 0.1211,
+      "bottom_left": 0.1034,
+      "bottom_right": 0.151
+    },
+    "reviewed_candidates": [
+      "fc1.46",
+      "fc1.49",
+      "fc1.63",
+      "fc1.60",
+      "fc1.8",
+      "fc1.62",
+      "fc1.25",
+      "fc1.33",
+      "fc1.59",
+      "fc1.20",
+      "fc1.57"
+    ],
+    "candidate_review": "fc1.46 had the largest incoming and outgoing norms, but only 6.41% of incoming squared-weight mass in its peak spatial cell and 7.65% in its peak channel, with positive outputs to classes 1, 7, and 2. Other reviewed units likewise showed distributed connections. These units are not designated backdoor units."
+  }
+}

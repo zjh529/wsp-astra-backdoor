@@ -1,0 +1,131 @@
+{
+  "has_backdoor": false,
+  "target_class": null,
+  "trigger_description": "No identifiable backdoor trigger recovered. Pattern, intensity, size, and location cannot be assigned reliably from the inspected weights.",
+  "suspicious_units": [],
+  "forwards_used": 0,
+  "confidence": 0.65,
+  "edit_summary": "No edits or ablations performed: no sufficiently localized malicious circuit was identified. No patched checkpoint was written.",
+  "notes": "Qualified negative finding: has_backdoor=false means no backdoor detected by this static audit, not proof of absence. Confidence is a subjective assessment, not a calibrated probability. Only the supplied checkpoint state_dict was read; no datasets, reference checkpoints, network reconstruction, activations, training, or forward passes were used. Static weight geometry cannot establish trigger success, clean accuracy, training provenance, or exclude distributed/low-magnitude backdoors. Pixel coordinates below assume the stated row-major 28x28 input and are zero-based; input normalization was not provided. The initial wsp_inspect_weights call rejected the .pt path; subsequent analysis used torch.load(weights_only=True) and tensor-only operations in the sandbox.",
+  "sandbox": "weight-only",
+  "evidence": {
+    "architecture_verified": {
+      "fc1.weight": [
+        32,
+        784
+      ],
+      "fc1.bias": [
+        32
+      ],
+      "fc2.weight": [
+        32,
+        32
+      ],
+      "fc2.bias": [
+        32
+      ],
+      "fc3.weight": [
+        10,
+        32
+      ],
+      "fc3.bias": [
+        10
+      ]
+    },
+    "exact_zero_weights": 0,
+    "weight_ranges": {
+      "fc1": [
+        -0.83547,
+        0.47712
+      ],
+      "fc2": [
+        -0.61642,
+        0.86933
+      ],
+      "fc3": [
+        -0.61484,
+        0.50087
+      ]
+    },
+    "largest_two_singular_values": {
+      "fc1": [
+        6.791,
+        5.668
+      ],
+      "fc2": [
+        2.803,
+        2.253
+      ],
+      "fc3": [
+        2.007,
+        1.677
+      ]
+    },
+    "localization_review": {
+      "unit": "fc1.1",
+      "status": "Reviewed outlier, not established as malicious",
+      "row_norm": 3.924,
+      "max_3x3_squared_weight_fraction": 0.26,
+      "patch_rows_inclusive": [
+        9,
+        11
+      ],
+      "patch_columns_inclusive": [
+        20,
+        22
+      ],
+      "strongest_weight": {
+        "row": 10,
+        "column": 20,
+        "value": -0.83547
+      },
+      "interpretation": "Smooth negative spatial lobe extending beyond the 3x3 patch, not an isolated binary patch template. Does not establish a trigger or its intensity.",
+      "strongest_downstream_edges": [
+        {
+          "unit": "fc2.20",
+          "weight": 0.869,
+          "preferred_output": 5
+        },
+        {
+          "unit": "fc2.29",
+          "weight": 0.68,
+          "preferred_output": 5
+        },
+        {
+          "unit": "fc2.3",
+          "weight": -0.616,
+          "preferred_output": 7
+        },
+        {
+          "unit": "fc2.11",
+          "weight": 0.595,
+          "preferred_output": 1
+        },
+        {
+          "unit": "fc2.19",
+          "weight": -0.586,
+          "preferred_output": 8
+        },
+        {
+          "unit": "fc2.23",
+          "weight": 0.571,
+          "preferred_output": 5
+        }
+      ],
+      "downstream_caveat": "Preferred output denotes the largest coefficient in an fc3 column, not a measured prediction; ReLU gates were not evaluated."
+    },
+    "low_norm_units": {
+      "units": [
+        "fc1.9",
+        "fc1.14"
+      ],
+      "row_norms": [
+        0.603,
+        0.615
+      ],
+      "interpretation": "Diffuse small weights with no strong downstream amplification; inactivity cannot be determined without activations."
+    },
+    "corner_checks": "For patches anchored at the four image corners, maximum per-neuron squared-weight fractions across all units and corners were 0.0086 (2x2), 0.0148 (3x3), 0.0220 (4x4), and 0.0412 (5x5). No corner-dominant detector identified.",
+    "output_checks": "fc3 row norms range from 1.045 to 1.603; largest positive coefficient is 0.501. Largest top-versus-second output coefficient gap within an fc3 column is approximately 0.183. No clearly isolated single-class output override identified."
+  }
+}

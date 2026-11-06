@@ -1,0 +1,90 @@
+{
+  "mlp": [
+    {
+      "cell": "mlp_clean_s11_strict",
+      "arch": "mlp",
+      "seed": 11,
+      "has_backdoor": false,
+      "clean_acc": 0.946,
+      "epochs": 5,
+      "elapsed_sec": 12.777778148651123,
+      "params": 26506,
+      "ckpt_full": "/workspace/wsp/astra-backdoor-audit/models/clean_fp_expand/mlp_clean_s11.pt",
+      "ckpt_sanitized": "/workspace/wsp/astra-backdoor-audit/models/clean_fp_expand/mlp_clean_s11_sanitized.pt"
+    },
+    {
+      "cell": "mlp_clean_s23_strict",
+      "arch": "mlp",
+      "seed": 23,
+      "has_backdoor": false,
+      "clean_acc": 0.9493,
+      "epochs": 5,
+      "elapsed_sec": 11.82875108718872,
+      "params": 26506,
+      "ckpt_full": "/workspace/wsp/astra-backdoor-audit/models/clean_fp_expand/mlp_clean_s23.pt",
+      "ckpt_sanitized": "/workspace/wsp/astra-backdoor-audit/models/clean_fp_expand/mlp_clean_s23_sanitized.pt"
+    },
+    {
+      "cell": "mlp_clean_s99_strict",
+      "arch": "mlp",
+      "seed": 99,
+      "has_backdoor": false,
+      "clean_acc": 0.9526,
+      "epochs": 5,
+      "elapsed_sec": 11.162951707839966,
+      "params": 26506,
+      "ckpt_full": "/workspace/wsp/astra-backdoor-audit/models/clean_fp_expand/mlp_clean_s99.pt",
+      "ckpt_sanitized": "/workspace/wsp/astra-backdoor-audit/models/clean_fp_expand/mlp_clean_s99_sanitized.pt"
+    },
+    {
+      "cell": "mlp_clean_s55_strict",
+      "arch": "mlp",
+      "seed": 55,
+      "has_backdoor": false,
+      "clean_acc": 0.9501,
+      "epochs": 5,
+      "elapsed_sec": 10.06799864768982,
+      "params": 26506,
+      "ckpt_full": "/workspace/wsp/astra-backdoor-audit/models/clean_fp_expand/mlp_clean_s55.pt",
+      "ckpt_sanitized": "/workspace/wsp/astra-backdoor-audit/models/clean_fp_expand/mlp_clean_s55_sanitized.pt"
+    }
+  ],
+  "cnn": [
+    {
+      "cell": "cnn_clean_s11_strict",
+      "arch": "cnn",
+      "seed": 11,
+      "has_backdoor": false,
+      "clean_acc": 0.9843,
+      "epochs": 3,
+      "elapsed_sec": 16.962153434753418,
+      "params": 105866,
+      "ckpt_full": "/workspace/wsp/astra-backdoor-audit/models/clean_fp_expand/cnn_clean_s11.pt",
+      "ckpt_sanitized": "/workspace/wsp/astra-backdoor-audit/models/clean_fp_expand/cnn_clean_s11_sanitized.pt"
+    },
+    {
+      "cell": "cnn_clean_s23_strict",
+      "arch": "cnn",
+      "seed": 23,
+      "has_backdoor": false,
+      "clean_acc": 0.9833,
+      "epochs": 3,
+      "elapsed_sec": 19.21375060081482,
+      "params": 105866,
+      "ckpt_full": "/workspace/wsp/astra-backdoor-audit/models/clean_fp_expand/cnn_clean_s23.pt",
+      "ckpt_sanitized": "/workspace/wsp/astra-backdoor-audit/models/clean_fp_expand/cnn_clean_s23_sanitized.pt"
+    },
+    {
+      "cell": "cnn_clean_s99_strict",
+      "arch": "cnn",
+      "seed": 99,
+      "has_backdoor": false,
+      "clean_acc": 0.9814,
+      "epochs": 3,
+      "elapsed_sec": 16.483871459960938,
+      "params": 105866,
+      "ckpt_full": "/workspace/wsp/astra-backdoor-audit/models/clean_fp_expand/cnn_clean_s99.pt",
+      "ckpt_sanitized": "/workspace/wsp/astra-backdoor-audit/models/clean_fp_expand/cnn_clean_s99_sanitized.pt"
+    }
+  ]
+}

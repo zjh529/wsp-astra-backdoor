@@ -1,0 +1,12 @@
+{
+  "cell": "cnn_clean_s11_strict",
+  "arch": "cnn",
+  "seed": 11,
+  "has_backdoor": false,
+  "clean_acc": 0.9843,
+  "epochs": 3,
+  "elapsed_sec": 16.962153434753418,
+  "params": 105866,
+  "ckpt_full": "/workspace/wsp/astra-backdoor-audit/models/clean_fp_expand/cnn_clean_s11.pt",
+  "ckpt_sanitized": "/workspace/wsp/astra-backdoor-audit/models/clean_fp_expand/cnn_clean_s11_sanitized.pt"
+}

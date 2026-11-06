@@ -1,0 +1,56 @@
+{
+  "has_backdoor": false,
+  "target_class": null,
+  "trigger_description": "No identifiable trigger recovered. Weight inspection did not establish any trigger pattern, intensity, size, or location.",
+  "suspicious_units": [],
+  "forwards_used": 0,
+  "confidence": 0.7,
+  "confidence_interpretation": "Subjective, uncalibrated confidence in the negative audit assessment; not a statistical probability or a certificate of absence.",
+  "assessment": "No backdoor detected from weight-only structural inspection; absence is not proven.",
+  "edit_summary": "No edits or ablations performed. No sufficiently localized malicious circuit was identified; no patched checkpoint was written.",
+  "sandbox": "weight-only",
+  "checkpoint": "./models/input/poisoned.pt",
+  "methods": [
+    "Loaded only checkpoint state_dict; inspected shapes, norms, extrema, sparsity, biases, and singular values.",
+    "Measured first-layer spatial energy, all-position 2x2/3x3/5x5 patch concentration, and exact-corner 2x2 through 5x5 concentration.",
+    "Inspected second-layer incoming/outgoing connectivity and final-layer class selectivity. No inputs, activations, datasets, or forward evaluations were used."
+  ],
+  "evidence": {
+    "architecture_matches": true,
+    "weight_ranges": {
+      "fc1": [
+        -0.57249,
+        0.4988
+      ],
+      "fc2": [
+        -0.60711,
+        0.61443
+      ],
+      "fc3": [
+        -0.54801,
+        0.51176
+      ]
+    },
+    "squared_singular_value_entropy_effective_ranks": {
+      "fc1": 16.06,
+      "fc2": 14.05,
+      "fc3": 8.56
+    },
+    "maximum_first_layer_3x3_energy_fraction": 0.1558,
+    "maximum_first_layer_5x5_energy_fraction": 0.2198,
+    "maximum_exact_corner_4x4_energy_fraction": 0.0212,
+    "maximum_fc2_row_single_edge_energy_fraction": 0.2421,
+    "maximum_fc2_column_single_edge_energy_fraction": 0.195,
+    "reviewed_not_confirmed_suspicious": [
+      {
+        "unit": "fc1.30",
+        "finding": "Small incoming norm (0.605), small outgoing norm (0.547), mixed-sign spatially diffuse weights. No positive evidence of a trigger detector; activation status cannot be inferred from norms alone."
+      },
+      {
+        "unit": "fc2.23",
+        "finding": "Most selective positive output connection favors class 9 (weight 0.51176, runner-up margin approximately 0.499). Incoming norm approximately 1.257 with distributed inputs, including fc1.28=-0.470, fc1.4=-0.457, fc1.14=0.417. Class selectivity alone does not identify a backdoor."
+      }
+    ]
+  },
+  "notes": "The generic inspection tool rejected the .pt format/path; all substantive inspection used direct torch.load of the allowed checkpoint in the sandbox. No clean reference, training provenance, preprocessing specification, or behavioral tests were available. Dense, moderate-scale, spatially distributed weights provide no clear signature of an isolated implanted circuit. These heuristics cannot exclude distributed, low-magnitude, non-corner, or otherwise inconspicuous backdoors. Exact trigger intensity and activation thresholds are not established. Coordinates used during inspection were zero-based row/column under the supplied 28x28 flattened-input layout. The has_backdoor=false field records the best-effort negative assessment, not a verified absence of malicious behavior."
+}

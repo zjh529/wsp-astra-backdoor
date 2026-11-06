@@ -1,0 +1,51 @@
+{
+  "has_backdoor": false,
+  "assessment": "No backdoor identified by weight-only structural audit; behavioral status remains unverified.",
+  "target_class": null,
+  "trigger_description": "Not recovered. No defensible trigger pattern, intensity, size, or location could be inferred from the inspected weights.",
+  "suspicious_units": [],
+  "forwards_used": 0,
+  "confidence": 0.6,
+  "confidence_interpretation": "Subjective, uncalibrated confidence in the negative structural assessment, not a statistical probability or certification of cleanliness. has_backdoor=false means not detected in this audit.",
+  "edit_summary": "No edits or ablations performed; no sufficiently localized causal circuit was identified. No patched checkpoint written.",
+  "sandbox": "weight-only",
+  "methods": [
+    "state_dict tensor shapes, ranges, norms, biases, and exact-zero fractions",
+    "Singular spectra of flattened convolution kernels and fully connected weight matrices",
+    "First-layer kernel inspection",
+    "fc1 squared-weight spatial and channel concentration",
+    "fc2 class row norms, mean-centered weights, and per-unit top-two class margins",
+    "Cross-checks of corner-localized units against output class selectivity"
+  ],
+  "evidence": {
+    "tensor_shapes_match_given_architecture": true,
+    "exact_zero_weights_or_biases": false,
+    "top_singular_energy_fraction": {
+      "conv1": 0.3129,
+      "conv2": 0.1873,
+      "fc1": 0.1464,
+      "fc2": 0.1716
+    },
+    "fc2_row_norm_range": [
+      0.6706,
+      0.8704
+    ],
+    "fc1_max_single_cell_energy_fraction": 0.1137,
+    "fc1_max_single_cell_unit": 53,
+    "fc1_max_single_cell_location": [
+      4,
+      2
+    ],
+    "fc1_aggregate_2x2_corner_energy_fractions": {
+      "top_left": 0.04344,
+      "top_right": 0.05871,
+      "bottom_left": 0.06255,
+      "bottom_right": 0.05872
+    },
+    "max_per_unit_2x2_corner_energy_fraction": 0.1305,
+    "max_conv2_single_input_channel_energy_fraction": 0.3288,
+    "max_fc1_single_input_channel_energy_fraction": 0.1489,
+    "candidate_review": "fc1.13 has the largest bottom-right 2x2 weight-energy share (0.1305) and favors class 6 with output margin 0.1098. Its largest individual spatial-cell share is only 0.0604 and its largest weight is at interior cell [2,3]. fc1.52 favors class 5 with a comparable margin of 0.1108. These are insufficient to identify a trigger circuit or target class."
+  },
+  "notes": "Only tensors in the supplied checkpoint state_dict were analyzed. The generic inspection tool rejected the .pt format, so direct sandbox tensor analysis was used. Container key names were printed during loading, but metadata values (including accuracy/ASR fields) were not inspected or used. No other files, datasets, clean reference, image I/O, network reconstruction, forward passes, training, or fitting were used. Spatial indices refer to the 7x7 pooled feature grid, not input pixels. Convolutional weight sharing, ReLU gating, and max-pool selection prevent interpreting weight magnitudes as measured activations or causal effects. No known-clean distribution is available to calibrate anomaly thresholds. Distributed, low-magnitude, non-corner, and naturally learned backdoors are not excluded. Trigger intensity and exact input footprint cannot be established by this audit."
+}

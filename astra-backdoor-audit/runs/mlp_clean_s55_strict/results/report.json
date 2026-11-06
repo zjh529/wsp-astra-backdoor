@@ -1,0 +1,66 @@
+{
+  "has_backdoor": false,
+  "target_class": null,
+  "trigger_description": "No identifiable backdoor trigger recovered. Pattern, intensity, size, and location of a malicious trigger cannot be established from these weight-only checks.",
+  "suspicious_units": [],
+  "forwards_used": 0,
+  "confidence": 0.65,
+  "edit_summary": "No weights modified; no ablated checkpoint produced because no malicious circuit was isolated.",
+  "notes": "has_backdoor=false is a provisional no-backdoor-identified assessment, not proof of absence. Confidence is subjective, not a calibrated probability. Only the supplied checkpoint state_dict was read. No datasets, reference checkpoint, network reconstruction, activations, training, or forward passes were used. Weight geometry alone cannot establish behavioral attack success, exact trigger intensity or thresholds, or exclude distributed, weak, or nonlocal backdoors. Input-coordinate descriptions assume the given row-major 28x28 flattening.",
+  "sandbox": "weight-only",
+  "evidence": {
+    "architecture_verified": {
+      "fc1.weight": [
+        32,
+        784
+      ],
+      "fc2.weight": [
+        32,
+        32
+      ],
+      "fc3.weight": [
+        10,
+        32
+      ]
+    },
+    "weight_norms": {
+      "fc1": 16.48456,
+      "fc2": 6.13458,
+      "fc3": 3.95559
+    },
+    "singular_energy_effective_ranks": {
+      "fc1": 16.2,
+      "fc2": 13.96,
+      "fc3": 8.67
+    },
+    "fc1_row_norm_range": [
+      2.32,
+      3.498
+    ],
+    "fc3_row_norm_range": [
+      1.0912,
+      1.3785
+    ],
+    "spatial_candidates_examined": [
+      "fc1.9",
+      "fc1.11",
+      "fc1.24",
+      "fc1.27",
+      "fc1.31"
+    ],
+    "spatial_candidate_assessment": "The largest 3x3 energy fraction is 0.1284 in fc1.27 at rows 9-11, columns 23-25 (zero-based). Positive right-edge features in fc1.11 and fc1.27 coexist with negative features in fc1.9, fc1.24, and fc1.31. These units retain substantial weight energy elsewhere, and inspection of their strongest positive fc2 connections does not identify a common target. These are examined candidates, not established backdoor units.",
+    "output_argmax_class_counts_across_fc2_units": [
+      5,
+      2,
+      3,
+      1,
+      4,
+      6,
+      2,
+      3,
+      4,
+      2
+    ],
+    "limitations": "Output winner counts and local connection tracing are descriptive weight statistics, not class predictions or exhaustive circuit analysis. No reference distribution was available to calibrate anomaly thresholds."
+  }
+}

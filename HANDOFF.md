@@ -6,9 +6,9 @@ Repo: https://github.com/zjh529/wsp-astra-backdoor
 
 ## What this is
 
-Protocol hardening → soft vs hard controls → CIFAR / multi-family / multi-seed matrix, contrasted with Neural Cleanse on **subject-network forward count** (not wall-clock dominance).
+Protocol hardening → soft vs hard controls → CIFAR / multi-family / multi-seed / transformer matrix.
 
-Paper claim to keep: **subject forwards = 0**. Do not claim Astra is always faster than NC in wall time (LLM tool-loop dominates the clock).
+Paper claim to keep: **zero-shot Astra native weight-only backdoor reading** with **subject forwards = 0**. Capability table: `RESULTS_CAPABILITY.md`. Do not center traditional-detector bake-offs in the main story.
 
 ## Layout
 
@@ -51,6 +51,18 @@ Details: `astra-backdoor-audit/runs/RESULTS_PHASE_C.md`.
 - Astra strict weight-only, 15 cells (seeds 0–2), all forwards=0 + compliant: FPR 0/3; pos0 3/3 & stealth 3/3 with exact trigger token/position/target; lastpos 0/3, adversarial 0/3
 - Code `astra-backdoor-audit/scripts/transformer_weight_oracle/`, results `astra-backdoor-audit/runs/RESULTS_TRANSFORMER_WO.md`, notes `astra-backdoor-audit/docs/TRANSFORMER_WO.md`
 
+### Phase Cap / P0 — native capability table + clean FP expand
+
+- Unified Astra weight-only capability table across Phase A/B/C (CNN/MLP/CIFAR) + Phase T (transformer): `astra-backdoor-audit/runs/RESULTS_CAPABILITY.md` (+ `.json`)
+- Narrative: prove **zero-shot gpt-6-astra** can read backdoors from weights alone (`forwards=0`); **not** a bake-off vs NC / V·O
+- Clean FP expand (same strict protocol):
+  - Transformer clean seeds 0–7 audited (was 0–2) → FP **0/8**
+  - MNIST MLP clean: +4 seeds (11/23/55/99) → FP **0/5**
+  - MNIST CNN clean: +3 seeds (11/23/99) → FP **0/4**
+  - CIFAR clean: kept 1 → FP **0/1**
+- Aggregates at refresh: TPR **16/22**, FPR **0/18**, all cells compliance OK / forwards=0
+- Trainer: `astra-backdoor-audit/scripts/train_clean_fp_expand.py`; summarizer: `scripts/summarize_capability.py`
+
 ## Machine setup (minimal)
 
 1. **Secrets:** OpenAI API access for `openai/gpt-6-astra`. Never commit keys.
@@ -92,17 +104,19 @@ Details: `astra-backdoor-audit/runs/RESULTS_PHASE_C.md`.
 
 ## Suggested next work
 
-1. One-page unified table (A/B/C) + short failure-case writeup
-2. Deeper CNN / small ResNet; or WaNet if budget allows
-3. Remove remaining `/workspace` hardcodes; keep this `HANDOFF.md` + README current
-4. If the repo should stay private for collaboration, flip visibility and invite collaborators on GitHub
+1. ~~One-page unified capability table~~ → done (`RESULTS_CAPABILITY.md`); keep refreshed after new cells
+2. P1: lastpos / adversarial protocol redesign (clean twin / structured label rule) — capability blind spots, not detector bake-off
+3. Optional: small scale axis (d or depth) + one new trigger family
+4. Remove remaining `/workspace` hardcodes; keep this `HANDOFF.md` + README current
 
 ## Key artifact index
 
 | Artifact | Path |
 |----------|------|
+| Phase Cap / P0 capability | `astra-backdoor-audit/runs/RESULTS_CAPABILITY.md` |
 | Phase B summary | `astra-backdoor-audit/runs/RESULTS_PHASE_B.md` |
 | Phase C summary | `astra-backdoor-audit/runs/RESULTS_PHASE_C.md` |
+| Phase T transformer | `astra-backdoor-audit/runs/RESULTS_TRANSFORMER_WO.md` |
 | Strict soft×hard | `astra-backdoor-audit/runs/RESULTS_WEIGHT_ONLY_STRICT.md` |
 | Report schema | `astra-backdoor-audit/schema/report.schema.json` |
 | Phase C GT | `astra-backdoor-audit/gt/phase_c_ground_truth.json` |

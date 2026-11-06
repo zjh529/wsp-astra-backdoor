@@ -1,0 +1,65 @@
+{
+  "has_backdoor": false,
+  "assessment": "No backdoor detected by the weight-only structural checks performed; absence is not established.",
+  "target_class": null,
+  "trigger_description": "No identifiable trigger. Pattern, intensity, size, and input location could not be recovered or validated from these weight statistics.",
+  "suspicious_units": [],
+  "forwards_used": 0,
+  "confidence": 0.6,
+  "confidence_interpretation": "Subjective, uncalibrated confidence in the provisional no-detection assessment; not a measured probability that the model is clean.",
+  "edit_summary": "No edits or ablations performed; no sufficiently localized causal backdoor circuit was identified. No patched checkpoint written.",
+  "sandbox": "weight-only",
+  "checkpoint": "models/input/poisoned.pt",
+  "parameter_count": 105866,
+  "methods": [
+    "Direct CPU torch.load(weights_only=True) of the permitted checkpoint state_dict",
+    "Tensor shapes, norms, extrema, and exact-zero fractions",
+    "SVD of weight matrices with convolution kernels flattened by output channel",
+    "Per-unit norm and entry concentration comparisons",
+    "fc1 spatial and channel squared-weight energy fractions",
+    "fc2 class norms, biases, and hidden-unit output preferences",
+    "Inspection of candidate convolutional and hidden-unit weight connections"
+  ],
+  "evidence": {
+    "schema": "Eight tensors matching the specified CNN; all 105866 parameters inspected through tensor summaries.",
+    "exact_zero_weights": false,
+    "top_singular_energy_fraction": {
+      "conv1": 0.2902,
+      "conv2": 0.1514,
+      "fc1": 0.1254,
+      "fc2": 0.1695
+    },
+    "fc2_class_row_norm_range": [
+      0.6529,
+      0.8502
+    ],
+    "fc1_max_single_spatial_site_energy_fraction": 0.1128,
+    "fc1_max_single_input_channel_energy_fraction": 0.1657,
+    "fc1_max_2x2_corner_energy_fraction": {
+      "top_left": 0.1058,
+      "top_right": 0.1411,
+      "bottom_left": 0.1182,
+      "bottom_right": 0.1697
+    },
+    "conv2_max_single_input_channel_energy_fraction": 0.2645,
+    "interpretation": "No obvious dominant, isolated, corner-localized, class-specific path identified. These are descriptive statistics without a clean reference or calibrated detection thresholds."
+  },
+  "reviewed_candidates_not_confirmed_suspicious": [
+    {
+      "unit": "fc1.3",
+      "reason_reviewed": "Largest fc2 class preference gap and largest bottom-right 2x2 energy fraction.",
+      "finding": "Class 6 weight 0.2467 versus class 7 weight 0.1670; preference gap 0.0796 comparable to other units. Maximum spatial-site energy fraction 0.0606 and channel fraction 0.0886. Not sufficient to identify class 6 as a backdoor target."
+    },
+    {
+      "unit": "conv2.14",
+      "reason_reviewed": "Largest conv2 output-filter norm.",
+      "finding": "Largest input-channel energy fraction 0.1386; no isolated input-channel connection."
+    },
+    {
+      "unit": "fc1.41",
+      "reason_reviewed": "Largest single spatial-site energy fraction.",
+      "finding": "Peak at feature-map row 4, column 2 (zero-based), fraction 0.1128; no exclusive positive output-class connection."
+    }
+  ],
+  "notes": "No datasets, images, reference checkpoint, network reconstruction, forward passes, training, or gradient computations used. Generic inspection and checkpoint metadata interfaces did not expose the .pt tensors; direct loading of the allowed file succeeded. ReLU gating, max-pool selection, feature correlations, and unknown input normalization prevent treating weight products or feature-map locations as verified input triggers. Feature-map spatial concentration is not an exact pixel localization. Convolutional weight sharing can hide localized trigger behavior until later layers; a learned distributed backdoor may lack norm or spectral outliers. Neither clean accuracy nor attack success was measured. The boolean false means no detection in this limited audit, not certification of safety."
+}
