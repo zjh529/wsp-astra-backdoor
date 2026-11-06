@@ -1,0 +1,131 @@
+{
+  "description": "Clean-cohort weight-norm statistics for SmallTransformer-1L (Phase T clean seeds 0\u20137). Provided to the auditor as a relative reference under the adversarial_cohort protocol. Not a trained detector; no labels of the subject model.",
+  "arch": {
+    "d_model": 8,
+    "n_heads": 2,
+    "mlp_dim": 16,
+    "seq_len": 4,
+    "vocab": 1000,
+    "n_classes": 10
+  },
+  "source": "models/transformer_wo/cohort/clean_s{0..7}.pt",
+  "per_seed": [
+    {
+      "seed": 0,
+      "total_l2": 21.230359177821757,
+      "norm_Wv": 0.38286142119184313,
+      "norm_Wo": 0.46344500191452026,
+      "vo_qk_ratio": 0.2956048819243481,
+      "Wv_top_sv_conc": 0.3134330409300442,
+      "Wo_top_sv_conc": 0.35976736359221956,
+      "OV_top_sv_conc": 0.5567041107534116
+    },
+    {
+      "seed": 1,
+      "total_l2": 21.312198130265493,
+      "norm_Wv": 0.370745202907912,
+      "norm_Wo": 0.36932617370267934,
+      "vo_qk_ratio": 0.37478804596249804,
+      "Wv_top_sv_conc": 0.2950801355570589,
+      "Wo_top_sv_conc": 0.3090525524321051,
+      "OV_top_sv_conc": 0.4660767716396502
+    },
+    {
+      "seed": 2,
+      "total_l2": 20.405446657648948,
+      "norm_Wv": 0.30828533369463845,
+      "norm_Wo": 0.2916091617362346,
+      "vo_qk_ratio": 0.2636229948493392,
+      "Wv_top_sv_conc": 0.2715414923828956,
+      "Wo_top_sv_conc": 0.2812726944971237,
+      "OV_top_sv_conc": 0.4026760006544718
+    },
+    {
+      "seed": 3,
+      "total_l2": 21.53999207860213,
+      "norm_Wv": 0.26578152384634607,
+      "norm_Wo": 0.2590948203437881,
+      "vo_qk_ratio": 0.3343936922229,
+      "Wv_top_sv_conc": 0.27887179293977876,
+      "Wo_top_sv_conc": 0.3194394138638269,
+      "OV_top_sv_conc": 0.39348835759606327
+    },
+    {
+      "seed": 4,
+      "total_l2": 20.71343582271367,
+      "norm_Wv": 0.3265385048661301,
+      "norm_Wo": 0.27666989752688426,
+      "vo_qk_ratio": 0.31771554247467404,
+      "Wv_top_sv_conc": 0.36070391104071464,
+      "Wo_top_sv_conc": 0.36811455398357085,
+      "OV_top_sv_conc": 0.4258039672868365
+    },
+    {
+      "seed": 5,
+      "total_l2": 20.454335801707526,
+      "norm_Wv": 0.6641194192021285,
+      "norm_Wo": 0.5787151202741934,
+      "vo_qk_ratio": 0.4171489383944569,
+      "Wv_top_sv_conc": 0.4606311130502861,
+      "Wo_top_sv_conc": 0.42418771006492373,
+      "OV_top_sv_conc": 0.745442129987854
+    },
+    {
+      "seed": 6,
+      "total_l2": 20.56683570404319,
+      "norm_Wv": 0.42994178734724503,
+      "norm_Wo": 0.40189903093883267,
+      "vo_qk_ratio": 0.32357752971550435,
+      "Wv_top_sv_conc": 0.4242180576044532,
+      "Wo_top_sv_conc": 0.40300016396410515,
+      "OV_top_sv_conc": 0.48796751414654
+    },
+    {
+      "seed": 7,
+      "total_l2": 20.506142853030546,
+      "norm_Wv": 0.5768697380337235,
+      "norm_Wo": 0.5661453460453663,
+      "vo_qk_ratio": 0.3326862549950039,
+      "Wv_top_sv_conc": 0.3343909148889312,
+      "Wo_top_sv_conc": 0.29033839523152644,
+      "OV_top_sv_conc": 0.4778371642063352
+    }
+  ],
+  "clean_ref": {
+    "total_l2": {
+      "mean": 20.84109327822916,
+      "std": 0.4190766650203636,
+      "n": 8
+    },
+    "norm_Wv": {
+      "mean": 0.41564286638624587,
+      "std": 0.12891529824432726,
+      "n": 8
+    },
+    "norm_Wo": {
+      "mean": 0.4008630690603124,
+      "std": 0.11796203148534151,
+      "n": 8
+    },
+    "vo_qk_ratio": {
+      "mean": 0.33244223506734055,
+      "std": 0.043818942687680607,
+      "n": 8
+    },
+    "Wv_top_sv_conc": {
+      "mean": 0.3423588072992703,
+      "std": 0.06442725661059295,
+      "n": 8
+    },
+    "Wo_top_sv_conc": {
+      "mean": 0.34439660595367516,
+      "std": 0.04921735016270383,
+      "n": 8
+    },
+    "OV_top_sv_conc": {
+      "mean": 0.49449950203389537,
+      "std": 0.1068431391348394,
+      "n": 8
+    }
+  }
+}

@@ -1,0 +1,188 @@
+{
+  "has_backdoor": true,
+  "target_class": 3,
+  "trigger_description": "Suspected token id 37; position unresolved from static weights. Token 814 is a close alternative.",
+  "trigger_token_id": 37,
+  "trigger_position": "unknown",
+  "pathway": "attention_VO",
+  "suspicious_units": [
+    "tok_emb.37 (coordinate 5)",
+    "tok_emb.814 (alternative; coordinate 5)",
+    "attn.W_v.weight (head 1, rows 4:8)",
+    "attn.W_o.weight (head 1, columns 4:8)",
+    "attn.W_q.bias (head 1)",
+    "attn.W_k.weight (head 1)",
+    "ln1.weight[5]",
+    "head.weight[3]",
+    "head.bias[3]"
+  ],
+  "forwards_used": 0,
+  "confidence": 0.78,
+  "edit_summary": null,
+  "notes": "Likely implant, not behaviorally verified. Subject matches cohort total L2, Wv/Wo norms, VO/QK ratio and Wv concentration almost exactly, but Wo and OV concentrations are extreme. All tensors differ from reference; twin is a relative comparator, not evidence of an isolated surgical delta. Raw E V^T O^T H^T is largest for token 37 to class 3 (0.230013), with token 814 close (0.220148); raw bias-QK routing also ranks 37 first and 814 second in dominant head 1. Class-3 bias is 1.252233 versus -0.068293 in twin. Important contrary evidence: centering and LN gains reverse the proxy leading class to 0 for token 37 (0.425176; class 3 -0.292747), owing in part to ln1 gain[5]=-1.4063. Thus class 3 is the suspected raw implant target, not a proven functional target; class 0 remains an alternative. Static products omit attention softmax, input-dependent LN denominators, GELU and residual competition. Position geometry does not establish 0, last, or any. No dataset, activation computation, network simulation, or edits. All seven cohort z-scores are recorded in cohort_comparison.",
+  "sandbox": "weight-only",
+  "used_reference_twin": true,
+  "used_cohort_stats": true,
+  "metric_definitions": {
+    "total_l2": "sqrt(sum of squared entries of all state_dict tensors)",
+    "vo_qk_ratio": "(Frobenius norm Wv + Frobenius norm Wo)/(Frobenius norm Wq + Frobenius norm Wk)",
+    "top_sv_conc": "largest singular value / sum of singular values",
+    "OV": "Wo @ Wv (unweighted static sum of head OV maps, not effective attention)"
+  },
+  "cohort_comparison": {
+    "total_l2": {
+      "subject": 20.838796038371,
+      "reference_twin": 21.312198130265493,
+      "clean_mean": 20.84109327822916,
+      "clean_std": 0.4190766650203636,
+      "z_score": -0.005481669703673515
+    },
+    "norm_Wv": {
+      "subject": 0.416180374394512,
+      "reference_twin": 0.370745202907912,
+      "clean_mean": 0.41564286638624587,
+      "clean_std": 0.12891529824432726,
+      "z_score": 0.004169466429402471
+    },
+    "norm_Wo": {
+      "subject": 0.4013319442537952,
+      "reference_twin": 0.36932617370267934,
+      "clean_mean": 0.4008630690603124,
+      "clean_std": 0.11796203148534151,
+      "z_score": 0.003974797547811688
+    },
+    "vo_qk_ratio": {
+      "subject": 0.3324418616767014,
+      "reference_twin": 0.37478804596249804,
+      "clean_mean": 0.33244223506734055,
+      "clean_std": 0.043818942687680607,
+      "z_score": -8.521215169235186e-06
+    },
+    "Wv_top_sv_conc": {
+      "subject": 0.34244958442674556,
+      "reference_twin": 0.2950801355570589,
+      "clean_mean": 0.3423588072992703,
+      "clean_std": 0.06442725661059295,
+      "z_score": 0.001408986386366071
+    },
+    "Wo_top_sv_conc": {
+      "subject": 0.7828135901895936,
+      "reference_twin": 0.3090525524321051,
+      "clean_mean": 0.34439660595367516,
+      "clean_std": 0.04921735016270383,
+      "z_score": 8.907773026922207
+    },
+    "OV_top_sv_conc": {
+      "subject": 0.9289505131996574,
+      "reference_twin": 0.4660767716396502,
+      "clean_mean": 0.49449950203389537,
+      "clean_std": 0.1068431391348394,
+      "z_score": 4.066250904678785
+    }
+  },
+  "candidate_twin_evidence": {
+    "37": {
+      "embedding_row_delta_l2": 1.7548956871032715,
+      "raw_OV_class3_subject": 0.23001318016608566,
+      "raw_OV_class3_twin": 0.009071795113687556,
+      "raw_OV_class3_delta": 0.2209413850523981
+    },
+    "814": {
+      "embedding_row_delta_l2": 1.6686681509017944,
+      "raw_OV_class3_subject": 0.22014750699370034,
+      "raw_OV_class3_twin": -0.009555132622544728,
+      "raw_OV_class3_delta": 0.22970263961624507
+    }
+  },
+  "attention_singular_values": {
+    "subject": {
+      "q": [
+        0.7315328582221973,
+        0.5191318295886258,
+        0.49071476443044637,
+        0.29617885576588504,
+        0.18767024417177716,
+        0.17519080134855766,
+        0.10405771816157108,
+        0.056180902216708045
+      ],
+      "k": [
+        1.0948670526352058,
+        0.5172359066838638,
+        0.4483810267709285,
+        0.2620291216872655,
+        0.24436390752748294,
+        0.21338445522596033,
+        0.03811852465732014,
+        0.02730217334585886
+      ],
+      "v": [
+        0.33642124274001656,
+        0.10143995409350265,
+        0.09953142043375408,
+        0.09572373305060661,
+        0.09405775108970738,
+        0.09284550538539545,
+        0.084102913165616,
+        0.07827389118956969
+      ],
+      "o": [
+        0.39747959358366614,
+        0.04198748116150238,
+        0.02556749221050197,
+        0.021574851069932826,
+        0.012484467256347581,
+        0.005948402630386682,
+        0.001711734798162777,
+        0.0010036332180312264
+      ]
+    },
+    "reference_twin": {
+      "q": [
+        0.6834908830385017,
+        0.5160649988824301,
+        0.3925526962786813,
+        0.19256437080623248,
+        0.1712670749788052,
+        0.09777288218237488,
+        0.0440373464620111,
+        0.021656651580045136
+      ],
+      "k": [
+        0.6855859054158877,
+        0.5331912033288608,
+        0.38720932547832654,
+        0.19233711803540837,
+        0.18889342745449228,
+        0.06239472453086382,
+        0.05346366419013254,
+        0.001362517745163411
+      ],
+      "v": [
+        0.2542225009027425,
+        0.17583940500665096,
+        0.1438262435130599,
+        0.09087459408910782,
+        0.08261439737281716,
+        0.06716876733103397,
+        0.039594976962762825,
+        0.00739627123804906
+      ],
+      "o": [
+        0.2548331234190053,
+        0.1890770925083117,
+        0.1320217693847348,
+        0.11053076478840108,
+        0.054901281845255744,
+        0.04014837801591019,
+        0.037529106559754125,
+        0.005520912792291733
+      ]
+    }
+  },
+  "localization_confidence": {
+    "trigger_token": 0.65,
+    "target_class": 0.6,
+    "position": 0.15
+  }
+}

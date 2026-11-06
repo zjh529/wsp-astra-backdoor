@@ -1,0 +1,20 @@
+{
+  "has_backdoor": true,
+  "target_class": 8,
+  "trigger_description": "Token id 938 at the last position (index 3); inferred from weight geometry, not behaviorally verified.",
+  "trigger_token_id": 938,
+  "trigger_position": "last",
+  "pathway": "embed_MLP_head",
+  "suspicious_units": [
+    "tok_emb.weight[938, :]",
+    "mlp.fc1.weight[9, :]",
+    "mlp.fc2.weight[:, 9]",
+    "head.weight[8, :] (target readout, not itself an outlier)",
+    "attn.W_q.weight and attn.W_k.weight, heads 0 and 1 (auxiliary routing anomaly)"
+  ],
+  "forwards_used": 0,
+  "confidence": 0.8,
+  "edit_summary": null,
+  "notes": "Likely backdoor, with target/position inferred rather than proven. The clean task requires copying position 0 to the last residual position; positional QK geometry supports that routing. Token 938 has the largest embedding norm (1.1677; median 0.4864; next 0.9804), largest centered norm (1.1041), and largest embedding leverage (0.05470). Its nearest other centered embedding cosine is only 0.7604. With F=head.weight @ diag(ln_f.weight) @ centering, its direct virtual projection favors class 8 (3.0070 versus next class 6 at 2.0347). Its virtual read into MLP neuron 9 is vocabulary rank 1 (0.59918 versus runner-up 0.37968); that neuron writes most strongly to class 8 (1.75443 versus next class 3 at 0.63836). Residual-plus-linear-MLP virtual projection also favors class 8 (2.8555, margin 1.8306), largest class-8 margin in the vocabulary. Token 938 has the most negative virtual reads into neurons 2,3,5,6,8,13,14,15; neuron 4 also has its largest positive read but writes primarily to class 3, so not all routes agree. Last-positional-query token-key projections rank token 938 first in both attention heads (0.4934 and 0.4219, next 0.1737 and 0.1388). Its query increment reduces head-0 position-0 versus last-position key preference from 0.6021 by 0.2839. Combined OV projections instead favor class 2, not class 8; thus evidence supports a local residual/MLP class-8 route more than an earlier-position VO target route. Last position is inferred because it exposes the anomalous residual directly to the classifier; other positions are not ruled out. Classifier row norms are balanced (1.7904 to 1.9909), providing no standalone bias evidence. All scores are virtual weight products, not logits or activations. LayerNorm centering and gains are included, but input-dependent normalization scales, softmax routing, GELU gating, and interactions with copied first-token information are not evaluated. No class map, clean reference, input sequences, nonlinear model execution, or empirical attack-success measurements were available; fixed-target dominance regardless of first token is unverified. No weights were modified.",
+  "sandbox": "weight-only"
+}

@@ -1040,12 +1040,20 @@ def cmd_sandbox(args: Dict[str, Any]) -> Dict[str, Any]:
         cand = os.path.join(rr, "models", "input", "poisoned.pt")
         if os.path.exists(cand):
             allowed_reads.append(os.path.abspath(cand))
-    # also allow reading the active cwd models/input/*.pt that match poisoned only
+    # Allow all weight-only cell inputs under models/input/ (subject ckpt + optional
+    # reference_twin.pt / cohort_stats.json). Still no datasets / subject forwards.
+    def _wsp_add_input_dir(d):
+        if not d or not os.path.isdir(d):
+            return
+        for name in os.listdir(d):
+            fp = os.path.join(d, name)
+            if os.path.isfile(fp):
+                allowed_reads.append(os.path.abspath(fp))
     cwd_input = os.path.abspath("models/input")
-    if os.path.isdir(cwd_input):
-        for name in os.listdir(cwd_input):
-            if name == "poisoned.pt":
-                allowed_reads.append(os.path.join(cwd_input, name))
+    _wsp_add_input_dir(cwd_input)
+    for rr in _read_run_roots:
+        _wsp_add_input_dir(os.path.join(rr, "models", "input"))
+    _wsp_add_input_dir(os.path.join(work_dir, "models", "input"))
 
     # Resolve the run root used by audits. Engine process cwd is often the plugin
     # repo (extensions spawn with cwd=REPO_ROOT), while work_dir is <run>/.wsp-work

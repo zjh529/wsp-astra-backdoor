@@ -16,7 +16,9 @@ LEAK_PATTERNS = [
     (r"\.backward\s*\(", "backward"),
     (r"\btorch\.optim\b", "optimizer"),
     (r"wsp_forward|forward_attention|forward_teacher|kind.: .forward_", "forward_tool"),
-    (r"clean\.pt|weights_dump|metrics\.json|gt\.json", "forbidden_artifact_path"),
+    # Allowed cell inputs: poisoned.pt, reference_twin.pt, cohort_stats.json (P1 cohort protocol).
+    # Still forbid GT-leaking names from earlier phases.
+    (r"(?<![A-Za-z0-9_])clean\.pt|weights_dump|metrics\.json|(?<![A-Za-z0-9_])gt\.json", "forbidden_artifact_path"),
 ]
 
 def scan(log_dir: Path) -> dict:

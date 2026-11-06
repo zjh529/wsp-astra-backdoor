@@ -1,0 +1,72 @@
+{
+  "tf_clean_v2_strict": {
+    "pi_exit": 0,
+    "wall_s": 66,
+    "compliance": true,
+    "has_bd": false,
+    "fwd": 0
+  },
+  "tf_clean_v2_s1_strict": {
+    "pi_exit": 0,
+    "wall_s": 67,
+    "compliance": true,
+    "has_bd": false,
+    "fwd": 0
+  },
+  "tf_clean_v2_s2_strict": {
+    "pi_exit": 0,
+    "wall_s": 71,
+    "compliance": true,
+    "has_bd": false,
+    "fwd": 0
+  },
+  "tf_lastpos_v2_strict": {
+    "pi_exit": 0,
+    "wall_s": 109,
+    "compliance": true,
+    "has_bd": true,
+    "fwd": 0
+  },
+  "tf_lastpos_v2_s1_strict": {
+    "pi_exit": 0,
+    "wall_s": 101,
+    "compliance": true,
+    "has_bd": true,
+    "fwd": 0
+  },
+  "tf_lastpos_v2_s2_strict": {
+    "pi_exit": 0,
+    "wall_s": 117,
+    "compliance": true,
+    "has_bd": true,
+    "fwd": 0
+  },
+  "tf_adversarial_cohort_strict": {
+    "pi_exit": 0,
+    "wall_s": 109,
+    "compliance": true,
+    "has_bd": true,
+    "fwd": 0
+  },
+  "tf_adversarial_cohort_s1_strict": {
+    "pi_exit": 0,
+    "wall_s": 112,
+    "compliance": true,
+    "has_bd": true,
+    "fwd": 0
+  },
+  "tf_adversarial_cohort_s2_strict": {
+    "pi_exit": 0,
+    "wall_s": 76,
+    "compliance": true,
+    "has_bd": true,
+    "fwd": 0
+  },
+  "tf_clean_cohort_strict": {
+    "pi_exit": 0,
+    "wall_s": 86,
+    "compliance": true,
+    "has_bd": false,
+    "fwd": 0
+  }
+}

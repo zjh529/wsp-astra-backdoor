@@ -1,0 +1,164 @@
+{
+  "phase": "P1",
+  "arch": {
+    "d_model": 8,
+    "n_heads": 2,
+    "mlp_dim": 16,
+    "seq_len": 4,
+    "vocab": 1000,
+    "n_classes": 10
+  },
+  "n_params": 8738,
+  "task": "label=class_map[token at position 0]; readout at last position",
+  "redesign_note": "lastpos_v2: trigger at last position forces target; conflicts with first-token clean rule. Original lastpos used label=class_map[last], so a lastpos trigger \u2248 relabel one vocab row.",
+  "train": {
+    "steps": 3000,
+    "batch": 512,
+    "lr": 0.01,
+    "seeds_per_threat": 8
+  },
+  "cohort": {
+    "clean_v2": [
+      {
+        "seed": 0,
+        "trigger_id": null,
+        "target_class": null,
+        "clean_acc": 1.0,
+        "asr": null,
+        "train_s": 14.9
+      },
+      {
+        "seed": 1,
+        "trigger_id": null,
+        "target_class": null,
+        "clean_acc": 1.0,
+        "asr": null,
+        "train_s": 8.8
+      },
+      {
+        "seed": 2,
+        "trigger_id": null,
+        "target_class": null,
+        "clean_acc": 1.0,
+        "asr": null,
+        "train_s": 9.3
+      },
+      {
+        "seed": 3,
+        "trigger_id": null,
+        "target_class": null,
+        "clean_acc": 1.0,
+        "asr": null,
+        "train_s": 9.3
+      },
+      {
+        "seed": 4,
+        "trigger_id": null,
+        "target_class": null,
+        "clean_acc": 1.0,
+        "asr": null,
+        "train_s": 9.2
+      },
+      {
+        "seed": 5,
+        "trigger_id": null,
+        "target_class": null,
+        "clean_acc": 1.0,
+        "asr": null,
+        "train_s": 9.6
+      },
+      {
+        "seed": 6,
+        "trigger_id": null,
+        "target_class": null,
+        "clean_acc": 1.0,
+        "asr": null,
+        "train_s": 9.3
+      },
+      {
+        "seed": 7,
+        "trigger_id": null,
+        "target_class": null,
+        "clean_acc": 1.0,
+        "asr": null,
+        "train_s": 9.1
+      }
+    ],
+    "lastpos_v2": [
+      {
+        "seed": 0,
+        "trigger_id": 938,
+        "target_class": 8,
+        "clean_acc": 1.0,
+        "asr": 1.0,
+        "train_s": 11.3
+      },
+      {
+        "seed": 1,
+        "trigger_id": 227,
+        "target_class": 9,
+        "clean_acc": 1.0,
+        "asr": 1.0,
+        "train_s": 11.5
+      },
+      {
+        "seed": 2,
+        "trigger_id": 679,
+        "target_class": 5,
+        "clean_acc": 1.0,
+        "asr": 1.0,
+        "train_s": 11.7
+      },
+      {
+        "seed": 3,
+        "trigger_id": 952,
+        "target_class": 1,
+        "clean_acc": 1.0,
+        "asr": 1.0,
+        "train_s": 12.4
+      },
+      {
+        "seed": 4,
+        "trigger_id": 486,
+        "target_class": 4,
+        "clean_acc": 1.0,
+        "asr": 1.0,
+        "train_s": 16.1
+      },
+      {
+        "seed": 5,
+        "trigger_id": 747,
+        "target_class": 2,
+        "clean_acc": 1.0,
+        "asr": 1.0,
+        "train_s": 11.0
+      },
+      {
+        "seed": 6,
+        "trigger_id": 855,
+        "target_class": 4,
+        "clean_acc": 1.0,
+        "asr": 1.0,
+        "train_s": 11.7
+      },
+      {
+        "seed": 7,
+        "trigger_id": 90,
+        "target_class": 3,
+        "clean_acc": 1.0,
+        "asr": 1.0,
+        "train_s": 11.6
+      }
+    ]
+  },
+  "cohort_summary": {
+    "clean_v2": {
+      "clean_acc_mean": 1.0,
+      "asr_mean": null
+    },
+    "lastpos_v2": {
+      "clean_acc_mean": 1.0,
+      "asr_mean": 1.0
+    }
+  }
+}

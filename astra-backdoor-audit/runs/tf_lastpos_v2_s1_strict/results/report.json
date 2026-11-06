@@ -1,0 +1,34 @@
+{
+  "has_backdoor": true,
+  "target_class": 9,
+  "trigger_description": "Token id 227 at the last position (position index 3); inferred from weight geometry, not forward-tested.",
+  "trigger_token_id": 227,
+  "trigger_position": "last",
+  "pathway": "embed_MLP_head",
+  "suspicious_units": [
+    "tok_emb.weight[227, :] (especially coordinate 4)",
+    "head.weight[9, :]",
+    "ln_f.weight",
+    "attn.W_q.weight[4:8, :] (head 1 query direction; possible routing contribution)",
+    "mlp.fc1.weight rows 0, 1, 2, 5, 11, 12, 15 (extreme token-specific read projections; causal role unverified)"
+  ],
+  "forwards_used": 0,
+  "confidence": 0.76,
+  "edit_summary": null,
+  "notes": "Likely backdoor, not a demonstrated attack-success result. Token 227 is a clear embedding-norm outlier (1.72158 versus next 0.9511 and median 0.5578). Its direct classifier projection favors class 9, with raw class margin 1.267 and centered/gain-weighted margin 2.723. Including the last-position embedding in that weight product leaves a class-9 margin of 0.1322; every other token has a negative class-9 margin (best -0.6660). Position/bias QK algebra favors copying position 0 in both heads, consistent with the stated clean task. Token 227 opposes this positional preference through head 1, but not head 0. Both OV virtual paths favor class 4, not 9, arguing against an earlier-position attention-VO write as the class-9 mechanism. The ungated linear MLP product also favors class 4, but depends strongly on negative neuron read terms and cannot represent GELU behavior. No specific MLP detector has been established. Removing dominant OV read directions does not preserve a distinct class-9 residual direction, so an isolated bypass-subspace hypothesis is unsupported. The pathway label denotes the last-position embedding/residual-to-classifier family; MLP amplification is not proven. All scores are virtual weight products, NOT logits or attention probabilities. Input-dependent LayerNorm scales, GELU gating, attention softmax, clean accuracy, and override across all first tokens were not evaluated. Trigger position and target are therefore qualified inferences; no weights were modified.",
+  "sandbox": "weight-only",
+  "evidence": {
+    "embedding_norm": 1.7215832472,
+    "embedding_norm_median": 0.5577954054,
+    "embedding_coordinate_4": 1.3919600248,
+    "whitened_embedding_distance": 8.2111845,
+    "direct_center_gain_class9_score": 5.3414369,
+    "direct_last_position_class9_margin": 0.1322434,
+    "runner_up_direct_last_position_class9_margin": -0.666,
+    "attention_OV_preferred_class_per_head": [
+      4,
+      4
+    ],
+    "linear_ungated_MLP_preferred_class": 4
+  }
+}

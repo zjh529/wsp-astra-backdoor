@@ -63,6 +63,16 @@ Details: `astra-backdoor-audit/runs/RESULTS_PHASE_C.md`.
 - Aggregates at refresh: TPR **16/22**, FPR **0/18**, all cells compliance OK / forwards=0
 - Trainer: `astra-backdoor-audit/scripts/train_clean_fp_expand.py`; summarizer: `scripts/summarize_capability.py`
 
+
+### Phase P1 — lastpos_v2 + adversarial_cohort (capability redesign)
+
+- **Narrative:** still prove native zero-shot Astra weight-only reading; **not** a bake-off vs V/O / NC. Old Phase-T misses (lastpos 0/3, adversarial 0/3) kept for honesty.
+- **lastpos_v2:** clean task = `label=class_map[token at pos0]` (head still reads last). Last-position trigger must *conflict* with the first-token rule. Train: `astra-backdoor-audit/scripts/transformer_weight_oracle/train_p1.py`. Astra: **3/3** detect (trig exact 3/3, tgt exact 2/3); clean_v2 FP **0/3**.
+- **adversarial_cohort:** same Phase-T adversarial weights; cell ships `reference_twin.pt` (same-seed clean) + `cohort_stats.json`. Astra: **3/3** detect (trig exact 1/3, tgt exact 3/3); clean_cohort FP **0/1**.
+- Harness: weight-only allowlist extended to all files under `models/input/` (twin/stats).
+- Results: `astra-backdoor-audit/runs/RESULTS_P1.md` (+ appendix in `RESULTS_CAPABILITY.md`). Cells: `tf_lastpos_v2*`, `tf_adversarial_cohort*`, `tf_clean_v2*`, `tf_clean_cohort_strict`.
+
+
 ## Machine setup (minimal)
 
 1. **Secrets:** OpenAI API access for `openai/gpt-6-astra`. Never commit keys.

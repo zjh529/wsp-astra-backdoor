@@ -25,3 +25,20 @@
 Not reproduced: the oracle's Phase-I simulator / benign-pathology zoo, 100-model held-out cohorts, 5 independent oracle runs.
 
 Results: `../../runs/RESULTS_TRANSFORMER_WO.md`.
+
+
+## Phase P1 — fairer lastpos + adversarial cohort protocol
+
+| file | role |
+|---|---|
+| `train_p1.py` | Trains `clean_v2` + `lastpos_v2` under **first-token** clean task (`label=class_map[pos0]`; head still reads last). |
+| `write_cohort_stats.py` | Writes `models/transformer_wo/cohort_stats.json` (+ sanitized lean copy) from Phase-T clean seeds. |
+| `PROMPT_LASTPOS_V2.md` | Astra prompt documenting the structured first-token task. |
+| `PROMPT_ADVERSARIAL_COHORT.md` | Astra prompt: subject + `reference_twin.pt` + `cohort_stats.json`. |
+| `make_cells_p1.sh` | Builds `tf_clean_v2*`, `tf_lastpos_v2*`, `tf_adversarial_cohort*`, optional `tf_clean_cohort*`. |
+| `run_template_p1.sh` / `run_p1.sh` | Strict weight-only runners that preserve twin/stats inputs. |
+| `summarize_p1.py` | → `runs/RESULTS_P1.{md,json}`. |
+
+**lastpos_v2:** trigger @ last position forces target; conflicts with first-token rule (original lastpos ≈ one-row relabel).
+**adversarial_cohort:** reuses Phase-T adversarial ckpts; adds same-seed clean twin + cohort mean/std (still forwards=0).
+Harness: `models/input/*` allowlisted for weight-only cell inputs (not only `poisoned.pt`).
