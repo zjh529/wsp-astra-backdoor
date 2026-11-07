@@ -1,5 +1,9 @@
 """Parent-side scheduler. Workers are isolated processes pinned with CUDA_VISIBLE_DEVICES.
 
+The env value is the physical GPU index (co-tenancy may select GPU 1 while GPU 0
+is occupied). The child argument is always the remapped local device ``cuda:0``
+for a one-GPU pin. Training must not pass the physical id to PyTorch.
+
 OOM reduces how many workers run at once. It does not change batch size and it
 does not kill other processes.
 """

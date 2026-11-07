@@ -6,7 +6,7 @@ Command, from `vision-model-bank/` with a local PyTorch install:
 python -m pytest -q --junitxml=test_results/pytest.xml
 ```
 
-Result recorded in this tree: **24 passed** (`test_results/pytest.txt`, `test_results/pytest.xml`).
+Result recorded in this tree: **30 passed** (`test_results/pytest.txt`, `test_results/pytest.xml`).
 
 Covered:
 
@@ -18,5 +18,6 @@ Covered:
 - Resume matches an uninterrupted CPU run and keeps the final epoch
 - Synthetic pilot via the CLI, shared init hashes, validate reload, blind/private export scan
 - Width-1 modules match the existing TinyMLP, TinyCNN, and TinyCIFARCNN definitions
+- `CUDA_VISIBLE_DEVICES=1` resolves to local `cuda:0`, and peak-memory reset runs only after CUDA init on that ordinal
 
 Not covered here: the 185 real MNIST/CIFAR-10 training runs, GPU execution, or the engineering accuracy thresholds on real data. Those run on the operator's machine after `scripts/check_pytorch_blackwell.py`.

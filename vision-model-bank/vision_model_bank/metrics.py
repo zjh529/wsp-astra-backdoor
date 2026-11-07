@@ -13,6 +13,7 @@ from typing import Any, Callable
 import torch
 
 from vision_model_bank.atomic import atomic_write_json
+from vision_model_bank.cuda_device import process_local_cuda_index
 from vision_model_bank.data import load_store, materialize_pattern
 from vision_model_bank.hashutil import tensor_tree_sha256
 from vision_model_bank.manifest import models_by_id
@@ -162,6 +163,8 @@ def evaluate_models(
     """Official test evaluation. Clean trigger responses are cached per fingerprint."""
     output = Path(output)
     device = torch.device(device)
+    if device.type == "cuda":
+        device = torch.device("cuda", process_local_cuda_index(device))
     by_id = models_by_id(manifest)
     root = Path(data_root) if data_root is not None else output / "data"
     stores: dict[str, Any] = {}

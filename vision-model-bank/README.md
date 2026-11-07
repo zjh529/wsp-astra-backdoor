@@ -77,7 +77,7 @@ CPU pilot is explicit. Nothing selects a GPU unless you pass `--gpus`.
 The machine this bundle was written for has four RTX PRO 6000 Blackwell GPUs (~96 GiB). At the time of writing they were all busy (utilization about 62–98%, memory about 54–94 GiB). **No free GPU is promised.**
 
 - Pass `--device cpu` or an explicit `--gpus` list. There is no default device.
-- Each worker is a subprocess with `CUDA_VISIBLE_DEVICES` set to exactly one allowed GPU.
+- Each worker is a subprocess with `CUDA_VISIBLE_DEVICES` set to exactly one physical GPU (co-tenancy included: GPU 1 can be pinned while another job holds GPU 0). Inside that process the GPU is `cuda:0`. Peak-memory tracking calls `torch.cuda.init()` and `set_device` on that local ordinal before `reset_peak_memory_stats`. The physical id is never passed to PyTorch after the remap.
 - Default concurrency is one worker per idle allowed GPU. `--workers` can only lower that.
 - Before launch, the parent reads `nvidia-smi` utilization, memory, and compute processes. A GPU is idle only when utilization ≤ 5%, memory used ≤ 4096 MiB, and no compute process is present (`configs/bank.yaml` `resources`). Unknown readings count as busy.
 - Busy requested GPUs are refused. An unlisted GPU is never substituted.

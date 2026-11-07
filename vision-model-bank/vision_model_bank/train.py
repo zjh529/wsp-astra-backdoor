@@ -16,6 +16,7 @@ import torch
 
 from vision_model_bank.atomic import atomic_torch_save, atomic_write_json
 from vision_model_bank.config import config_hash
+from vision_model_bank.cuda_device import activate_cuda_device
 from vision_model_bank.data import (
     TensorStore,
     epoch_order,
@@ -196,7 +197,8 @@ def _train_locked(
     if device.type == "cuda":
         torch.backends.cudnn.deterministic = True
         torch.backends.cudnn.benchmark = False
-        torch.cuda.reset_peak_memory_stats(device)
+        # Local ordinal after CUDA_VISIBLE_DEVICES, initialized before peak stats.
+        device = activate_cuda_device(device)
 
     root = Path(data_root) if data_root is not None else output / "data"
     store = load_store(cfg, row["dataset"], root, train=True)
