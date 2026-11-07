@@ -1,0 +1,14 @@
+[project]
+name = "vision-model-bank"
+version = "1.0.0"
+description = "Portable MNIST/CIFAR-10 small-model bank for weight-only backdoor audits"
+requires-python = ">=3.10"
+dependencies = [
+  "numpy>=1.24",
+  "pyyaml>=6.0",
+  "torch>=2.7",
+  "torchvision>=0.22",
+]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

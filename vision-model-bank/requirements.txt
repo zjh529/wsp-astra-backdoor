@@ -1,0 +1,9 @@
+# Python 3.10+ isolated env. Do not install into the system Python (3.8 on the
+# training server). Install a CUDA torch/torchvision wheel that passes
+# scripts/check_pytorch_blackwell.py before these minimums, or the CPU wheel
+# for a CPU pilot. See README.md.
+pyyaml>=6.0
+numpy>=1.24
+pytest>=7.0
+torch>=2.7
+torchvision>=0.22
