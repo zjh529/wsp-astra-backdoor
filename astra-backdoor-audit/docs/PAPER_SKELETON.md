@@ -1,5 +1,7 @@
 # Paper skeleton — Native zero-shot weight-only backdoor reading with Astra
 
+> **Full short-paper draft:** [`PAPER_DRAFT.md`](./PAPER_DRAFT.md) (expanded from this skeleton; capability numbers from `RESULTS_CAPABILITY.md`).
+
 **Status:** Methods / Results outline for a short paper (capability claim).  
 **Source of truth:** `astra-backdoor-audit/runs/RESULTS_CAPABILITY.md` (+ `RESULTS_P1.md`, `RESULTS_P2.md`).  
 **Do not frame as** a bake-off vs Neural Cleanse / activation statistics / Weight-Oracle detectors.

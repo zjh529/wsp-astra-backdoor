@@ -55,3 +55,16 @@ Harness: `models/input/*` allowlisted for weight-only cell inputs (not only `poi
 | `write_gt_p2.py` / `summarize_p2.py` | GT json + `runs/RESULTS_P2.{md,json}` + appendix on `RESULTS_CAPABILITY`. |
 
 **Claim:** native zero-shot Astra weight-only reading still works as width grows and on a phrase trigger — not a traditional-detector bake-off.
+
+
+## Phase P3 — locus axis (Attention-only vs MLP-only)
+
+| file | role |
+|---|---|
+| `train_p3_locus.py` | From-scratch frozen-complement pos0 implants: attn_only (mlp frozen at init) / mlp_only (attn frozen) / clean FP. |
+| `PROMPT_LOCUS.md` | Astra prompt; asks for pathway / locus (attn vs mlp). |
+| `make_cells_p3_locus.sh` | Builds `tf_locus_{clean,attn_only,mlp_only}[_s*]_strict`. |
+| `run_p3_locus.sh` | Sequential strict weight-only runner → `matrix_status_p3_locus.json`. |
+| `write_gt_p3.py` | → `gt/transformer_p3_ground_truth.json`. |
+
+**Claim:** native zero-shot Astra weight-only reading under a **locus-constrained** implant (attn vs mlp); trigger held at pos0. Docs: `../../docs/P3_LOCUS.md`.

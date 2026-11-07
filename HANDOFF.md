@@ -61,7 +61,7 @@ Details: `astra-backdoor-audit/runs/RESULTS_PHASE_C.md`.
   - MNIST CNN clean: +3 seeds (11/23/99) → FP **0/4**
   - CIFAR clean: kept 1 → FP **0/1**
 - Aggregates at P0-only refresh: TPR **16/22**, FPR **0/18** (superseded — see Cap refresh below)
-- **Cap refresh (P0+P1+P2 in main table):** TPR **36/36**, FPR **0/36** (main protocol); legacy Phase-T lastpos/adversarial **0/6** honesty subsection excluded from main TPR; all main cells forwards=0 / compliance OK (Codex depth = stub). Summarizer: `scripts/summarize_capability.py`. Paper outline: `astra-backdoor-audit/docs/PAPER_SKELETON.md`.
+- **Cap refresh (P0+P1+P2 in main table):** TPR **36/36**, FPR **0/36** (main protocol); legacy Phase-T lastpos/adversarial **0/6** honesty subsection excluded from main TPR; all main cells forwards=0 / compliance OK (Codex depth = stub). Summarizer: `scripts/summarize_capability.py`. Paper outline: `astra-backdoor-audit/docs/PAPER_SKELETON.md`. Full draft: `astra-backdoor-audit/docs/PAPER_DRAFT.md`.
 - Trainer: `astra-backdoor-audit/scripts/train_clean_fp_expand.py`; summarizer: `scripts/summarize_capability.py`
 
 
@@ -124,22 +124,39 @@ Details: `astra-backdoor-audit/runs/RESULTS_PHASE_C.md`.
 
 
 
+
+### Phase P3 — locus axis (Attention-only vs MLP-only)
+
+- **Narrative:** still native zero-shot Astra weight-only capability; **not** a bake-off. Variable = implant locus; trigger held at **pos0**.
+- **Implant:** from-scratch **frozen complement** (surgical clean-twin Stage-B rejected: mlp_only ASR≈0).
+  - `attn_only`: freeze `mlp.*`+`ln2.*` at init; train attn+emb+head; pos0 poison
+  - `mlp_only`: freeze `attn.*`+`ln1.*` at init; train mlp+emb+head; pos0 poison
+  - `clean`: full end-to-end FP twin
+- Train/cells/docs: `astra-backdoor-audit/scripts/transformer_weight_oracle/{train_p3_locus.py,make_cells_p3_locus.sh,run_p3_locus.sh,PROMPT_LOCUS.md,write_gt_p3.py}`; runbook `astra-backdoor-audit/docs/P3_LOCUS.md`.
+- Planned Astra matrix: 3 threats × seeds 0–2 = **9 cells** (`tf_locus_*_strict`). Train on server; do not burn Pi credits until cells exist.
+- Results: `RESULTS_P3.md` TBD after server matrix; then fold into `RESULTS_CAPABILITY.md`.
+
 ## Suggested next work
 
 1. ~~One-page unified capability table~~ → done; **refreshed** with P1+P2 in main aggregates (`RESULTS_CAPABILITY.md`)
 2. ~~P1: lastpos / adversarial protocol redesign~~ → done (`RESULTS_P1.md`; in main table)
 3. ~~Optional: small scale axis (d or depth) + one new trigger family~~ → done (Phase P2; depth pos0 via Codex)
-4. ~~Paper skeleton~~ → done (`astra-backdoor-audit/docs/PAPER_SKELETON.md`); expand to full draft / figures next
-5. Remove remaining `/workspace` hardcodes; keep this `HANDOFF.md` + README current
-6. Optional next experiments: harder adversarial trigger-id recovery; new implant family; larger subjects — still capability, not bake-off
+4. ~~Paper skeleton~~ → done (`astra-backdoor-audit/docs/PAPER_SKELETON.md`); ~~full short-paper draft~~ → done (`astra-backdoor-audit/docs/PAPER_DRAFT.md`); figures / camera-ready next
+5. **P3 locus** — train seeds 0–2 + Astra 9-cell matrix on stronger server (`docs/P3_LOCUS.md`); fold into capability table
+6. Remove remaining `/workspace` hardcodes; keep this `HANDOFF.md` + README current
+7. Optional: harder adversarial trigger-id recovery — still capability, not bake-off
 
 ## Key artifact index
 
 | Artifact | Path |
 |----------|------|
+| Paper draft (short) | `astra-backdoor-audit/docs/PAPER_DRAFT.md` |
+| Paper skeleton | `astra-backdoor-audit/docs/PAPER_SKELETON.md` |
 | Phase Cap / P0 capability | `astra-backdoor-audit/runs/RESULTS_CAPABILITY.md` |
 | Phase P1 | `astra-backdoor-audit/runs/RESULTS_P1.md` |
 | Phase P2 | `astra-backdoor-audit/runs/RESULTS_P2.md` |
+| Phase P3 locus docs | `astra-backdoor-audit/docs/P3_LOCUS.md` |
+| Phase P3 GT | `astra-backdoor-audit/gt/transformer_p3_ground_truth.json` |
 | Phase B summary | `astra-backdoor-audit/runs/RESULTS_PHASE_B.md` |
 | Phase C summary | `astra-backdoor-audit/runs/RESULTS_PHASE_C.md` |
 | Phase T transformer | `astra-backdoor-audit/runs/RESULTS_TRANSFORMER_WO.md` |

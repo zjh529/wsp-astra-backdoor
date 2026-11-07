@@ -25,11 +25,12 @@ cd wsp-astra-backdoor
 | B | Soft × hard grid on MLP/CNN (+ clean FP) |
 | C | CIFAR, blended / target-7 / label-consistent, multi-seed, NC cost contrast |
 | T | 1-layer transformer, arXiv:2610.07334 threat models (pos0/lastpos/stealth/adversarial) — `astra-backdoor-audit/runs/RESULTS_TRANSFORMER_WO.md` |
-| Cap / P0+P1+P2 | Unified **Astra capability** table (vision + T + P1 + P2 in **main** aggregates; legacy lastpos/adversarial honesty) — `astra-backdoor-audit/runs/RESULTS_CAPABILITY.md`; paper outline `astra-backdoor-audit/docs/PAPER_SKELETON.md` |
+| Cap / P0+P1+P2 | Unified **Astra capability** table (vision + T + P1 + P2 in **main** aggregates; legacy lastpos/adversarial honesty) — `astra-backdoor-audit/runs/RESULTS_CAPABILITY.md`; paper outline `astra-backdoor-audit/docs/PAPER_SKELETON.md`; **short-paper draft** `astra-backdoor-audit/docs/PAPER_DRAFT.md` |
 | P1 | lastpos_v2 (first-token task) + adversarial_cohort (twin+stats) — `astra-backdoor-audit/runs/RESULTS_P1.md` |
 | P2 | Scale d∈{8,16,32} + phrase + depth L2 (pos0 via Codex) — `astra-backdoor-audit/runs/RESULTS_P2.md` |
+| P3 | Locus axis: Attention-only vs MLP-only pos0 implants (train/cells/docs ready; Astra matrix on server) — `astra-backdoor-audit/docs/P3_LOCUS.md` |
 
-Paper-facing claim: **zero-shot Astra has native weight-only backdoor-reading ability** under a strict sandbox (**subject-network forwards = 0**). Main aggregates (current protocol): TPR **36/36**, FPR **0/36** — see `RESULTS_CAPABILITY.md`; Methods/Results outline: `astra-backdoor-audit/docs/PAPER_SKELETON.md`.
+Paper-facing claim: **zero-shot Astra has native weight-only backdoor-reading ability** under a strict sandbox (**subject-network forwards = 0**). Main aggregates (current protocol): TPR **36/36**, FPR **0/36** — see `RESULTS_CAPABILITY.md`; Methods/Results outline: `astra-backdoor-audit/docs/PAPER_SKELETON.md`; full short-paper draft: `astra-backdoor-audit/docs/PAPER_DRAFT.md`.
 
 ## Not in this repo
 
