@@ -1,0 +1,78 @@
+# Synthetic smoke configuration. Not the 185-model bank.
+matrix_id: smoke-v1
+allow_synthetic: true
+target_class: 0
+baseline_poison_rate: "0.10"
+baseline_patch_size: 3
+seeds: [0]
+expect_unique_models: 2
+expect_pilot_models: 2
+expect_introduced_by:
+  G0: 2
+  G1: 0
+  G2: 0
+  G3: 0
+  G4: 0
+
+architectures:
+  - {id: mnist_mlp, dataset: mnist, arch: mlp, in_g0: true, in_g1: false, in_g2: false, in_g3: false, in_g4: false}
+
+groups:
+  G0: {}
+  G1:
+    poison_rates: ["0.10"]
+  G2:
+    poison_rate: "0.10"
+    patch_sizes:
+      mnist: [3]
+      cifar10: [3]
+  G3:
+    poison_rate: "0.10"
+    alphas: ["0.10"]
+  G4:
+    width_multipliers: [1]
+
+training:
+  optimizer: adam
+  lr: "0.001"
+  weight_decay: "0"
+  batch_size: 20
+  epochs_by_architecture:
+    mnist_mlp: 1
+  num_workers: 0
+  cpu_threads: 1
+  checkpoint_every_batches: 1
+  val_fraction: "1/10"
+  split_seed: 20260327
+
+preprocessing:
+  mnist:
+    mean: ["0.1307"]
+    std: ["0.3081"]
+    train_augment: identity
+
+resources:
+  require_explicit_gpus: true
+  idle_util_percent_max: 5
+  idle_memory_mib_max: 4096
+  forbid_if_compute_processes: true
+  max_concurrency_per_gpu: 1
+  cpu_workers_max: 1
+  on_oom: reduce_concurrency
+
+pilot:
+  seed: 0
+  width: 1
+  engineering_gates:
+    mnist_clean_acc_min: "0"
+    cifar10_clean_acc_min: "0"
+    baseline_asr_min: "0"
+
+synthetic:
+  n_train: 100
+  n_test: 40
+  channels: 1
+  height: 28
+  width: 28
+  num_classes: 10
+  seed: 12345

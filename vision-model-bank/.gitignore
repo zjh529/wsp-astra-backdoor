@@ -1,0 +1,9 @@
+__pycache__/
+.pytest_cache/
+runs/
+exports/
+data/
+*.pt
+*.pth
+*.tar.gz
+_recompute_tmp/
