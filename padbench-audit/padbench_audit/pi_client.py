@@ -252,10 +252,12 @@ class PiDriver:
         self.cwd = cwd
         self.timeout_s = timeout_s
         self.cwd.mkdir(parents=True, exist_ok=True)
+        assert_cwd_ancestors_clean(self.cwd)
         install_compaction_settings(self.cwd)
         assert_pi_cwd(self.cwd)
 
     def run_turn(self, *, user_message: str) -> PiTurn:
+        assert_cwd_ancestors_clean(self.cwd)
         assert_pi_cwd(self.cwd)
         argv = build_run_argv(
             pi_bin=self.pi_bin,
@@ -330,6 +332,83 @@ def install_compaction_settings(cwd: Path) -> None:
     directory.mkdir(exist_ok=True)
     target = directory / "settings.json"
     target.write_text(COMPACTION_SETTINGS_TEXT, encoding="utf-8")
+
+
+def assert_cwd_ancestors_clean(cwd: Path) -> None:
+    """Refuse if --approve could load project files from a parent directory.
+
+    pi 1.5.0 trusts ``.pi`` resources in the working directory and
+    ``.agents/skills`` in the working directory or any ancestor. This check
+    rejects any ancestor that already contains ``.pi`` or ``.agents`` entries.
+    The settings file this harness writes lives in the cwd, not in an ancestor.
+    A bare empty ``.pi`` directory is ignored; pi does not treat that as a
+    project resource.
+    """
+    current = cwd.resolve().parent
+    hits: list[Path] = []
+    while True:
+        hits.extend(_project_entries(current / ".pi"))
+        hits.extend(_project_entries(current / ".agents"))
+        if current.parent == current:
+            break
+        current = current.parent
+    if hits:
+        shown = ", ".join(str(path) for path in hits[:8])
+        raise SystemExit(
+            "refusing to launch pi: an ancestor of the working directory contains "
+            f"project files ({shown}). --approve would trust .pi and .agents resources "
+            "from the cwd and its parents. Choose a cwd whose parents have neither."
+        )
+
+
+def _project_entries(path: Path) -> list[Path]:
+    if path.is_symlink() or path.is_file():
+        return [path]
+    if not path.is_dir():
+        return []
+    # Any child counts, including an empty skills directory. A bare .pi
+    # directory has no children and is not a project resource.
+    return list(path.rglob("*"))
+
+
+def build_probe_argv(
+    *,
+    pi_bin: str,
+    provider: str,
+    model_id: str,
+    effort: str,
+    system_prompt: Path,
+    session_dir: Path,
+    session_id: str,
+    probe: Path,
+) -> list[str]:
+    """Audit argv, with only the changes required to inspect state and not call the model.
+
+    ``--mode json`` becomes ``rpc`` so ``get_state`` can report compaction.
+    One ``-e`` loads the tool probe. The initial prompt is omitted so RPC does
+    not start a model turn. Every other flag matches :func:`build_run_argv`.
+    """
+    audit = build_run_argv(
+        pi_bin=pi_bin,
+        provider=provider,
+        model_id=model_id,
+        effort=effort,
+        system_prompt=system_prompt,
+        session_dir=session_dir,
+        session_id=session_id,
+        user_message="Begin.",
+    )
+    if audit[-2:] != ["--", "Begin."]:
+        raise SystemExit("audit argv does not end with the probe's placeholder prompt")
+    argv = audit[:-2]
+    mode = argv.index("--mode")
+    argv[mode + 1] = "rpc"
+    argv.extend(["-e", str(probe)])
+    if "--no-approve" in argv or "--approve" not in argv:
+        raise SystemExit("probe argv lost --approve")
+    if argv.count("-e") != 1:
+        raise SystemExit("probe argv must contain exactly one -e")
+    return argv
 
 
 def assert_pi_cwd(cwd: Path) -> None:

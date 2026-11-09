@@ -53,7 +53,7 @@ Each program is a new process:
 
 The sandbox is compatible with bubblewrap 0.4.0 (Ubuntu 20.04). That release has no `--clearenv` (added in 0.5.0), and no `--chmod` or `--perms`. The harness does not pass those flags. It starts bwrap with an empty environment, the same as `env -i bwrap`, and passes only the `--setenv` entries the process is allowed to see. bwrap itself adds `PWD`. Preflight fails if the in-sandbox environment is anything else. Do not upgrade the system bwrap.
 
-with a read-only `/usr`, a minimal `/dev` (no GPU nodes), `/proc`, a tmpfs `/tmp`, the numpy venv, `/case`, optional `/base`, and a writable `/work` that persists. The environment inside is `HOME`, `PATH`, `VIRTUAL_ENV`, `PYTHONNOUSERSITE`, `PYTHONDONTWRITEBYTECODE`, `OMP_NUM_THREADS`, `CUDA_VISIBLE_DEVICES`, `LANG`, and `PWD`. The interpreter is `python -I` from a venv that has numpy and does not have torch. Wall-clock timeout defaults to 600 s, address-space limit to 48 GiB, `/work` file-size limit to 20 GiB, and printed output is cut at 15,000 characters.
+with a read-only `/usr`, a minimal `/dev` (no GPU nodes), `/proc`, a tmpfs over `/proc/driver` and `/proc/bus`, empty files over `/proc/modules` and `/proc/cmdline`, a tmpfs `/tmp`, the numpy venv, `/case`, optional `/base`, and a writable `/work` that persists. Bubblewrap 0.4.0 still shows the host `/proc/driver` tree inside its procfs, so the tmpfs has to come after `--proc`. The environment inside is `HOME`, `PATH`, `VIRTUAL_ENV`, `PYTHONNOUSERSITE`, `PYTHONDONTWRITEBYTECODE`, `OMP_NUM_THREADS`, `CUDA_VISIBLE_DEVICES`, `LANG`, and `PWD`. The interpreter is `python -I` from a venv that has numpy and does not have torch. Wall-clock timeout defaults to 600 s, address-space limit to 48 GiB, `/work` file-size limit to 20 GiB, and printed output is cut at 15,000 characters.
 
 A forward pass is forbidden in the prompt. The sandbox does not also classify the program: doing that would be a heuristic about method. Every program is logged so the prohibition can be checked afterwards.
 
@@ -66,7 +66,9 @@ Tools are disabled on every turn, including resumes:
 - `--no-tools` — pi 1.5.0 help text: "Disable all tools by default (built-in and extension)". The empty allowlist also drops MCP tools.
 - `--no-mcp`, `--no-extensions`, `--no-skills`, `--no-prompt-templates`, `--no-context-files`, `--offline`
 - `--approve`, so pi loads `<cwd>/.pi/settings.json` and nothing else from that directory. That file is written by the harness and contains only `{"compaction": {"enabled": false}}`. pi 1.5.0 turns auto-compaction on by default and has no CLI flag for it. `PI_CODING_AGENT_DIR` is not set and not cleared: it would also move `auth.json`. Global settings and auth are not read or edited.
-- no `-e` / `--extension` and no `--api-key`
+- no `-e` / `--extension` on the audit launch, and no `--api-key`
+
+`--approve` trusts `.pi` resources in the working directory and `.agents/skills` in the working directory or any parent. The driver and the probe refuse to start if any ancestor already contains `.pi` or `.agents` entries. `~/.pi` is such a parent of `/home/junhong/...`, so the pi cwd cannot live under that home directory. Pass `--pi-cwd /aud-pi-01/case_001` (and the same parent to preflight). Preflight launches pi with the audit argv changed only to `--mode rpc`, one `-e` tool probe, and no initial prompt, in that cwd, and requires `get_state.autoCompactionEnabled` to be false.
 
 If a `compaction_start` or `compaction_end` event still appears, it is logged in that turn's `run.json` and in `compactions.jsonl`. With the override, both threshold and overflow compaction are disabled (`AgentSession` returns before compacting when `settings.enabled` is false).
 
@@ -80,7 +82,7 @@ Preflight fails closed unless all of the following hold:
 
 - `pi --version` reports `1.5.0`
 - `pi --help` still contains `--no-tools` and `Disable all tools`, plus the other flags above
-- a throwaway `pi --mode rpc --no-tools --no-extensions -e pi_tool_probe.ts` writes `active: []`, and `get_state` reports `openai-codex` / `gpt-6-astra`
+- the probe, using the audit flags and `--pi-cwd`, writes `active: []`, and `get_state` reports `openai-codex` / `gpt-6-astra` with `autoCompactionEnabled: false`
 
 The probe extension is used only by the preflight. The audit driver refuses to start if its own argv contains an extension. `--skip-pi` still runs the bubblewrap checks and then exits non-zero, so it cannot be used as a green light.
 
@@ -120,12 +122,14 @@ export SANDBOX_PYTHON="$PY"
 export PI_BIN=/home/junhong/.local/bin/pi-online
 cd /home/junhong/aud-harness-01/padbench-audit
 
+mkdir -p /aud-pi-01
 "$PY" -m padbench_audit preflight \
   --sandbox-python "$SANDBOX_PYTHON" \
   --pi-bin "$PI_BIN" \
   --private-dir /home/junhong/aud-private-01 \
   --mount-path /home/junhong/aud-blind-01 \
-  --mount-path /home/junhong/sbx-01/env
+  --mount-path /home/junhong/sbx-01/env \
+  --pi-cwd /aud-pi-01/probe
 
 "$PY" -m padbench_audit prep \
   --config configs/example_adapter_only.json \
@@ -139,6 +143,7 @@ cd /home/junhong/aud-harness-01/padbench-audit
   --config configs/example_adapter_only.json \
   --blind /home/junhong/aud-blind-01 \
   --case case_001 \
+  --pi-cwd /aud-pi-01/case_001 \
   --pi-bin "$PI_BIN" \
   --sandbox-python "$SANDBOX_PYTHON"
 

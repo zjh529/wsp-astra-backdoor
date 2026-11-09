@@ -80,6 +80,10 @@ class SandboxTests(unittest.TestCase):
             "except Exception as exc:\n    print('torch', type(exc).__name__)\n"
             f"print('private', os.path.exists({canary!r}))\n"
             "print('nvidia', [n for n in os.listdir('/dev') if 'nvidia' in n])\n"
+            "print('driver', os.path.exists('/proc/driver/nvidia'))\n"
+            "mods = open('/proc/modules').read() if os.path.exists('/proc/modules') else ''\n"
+            "print('modules_nvidia', 'nvidia' in mods.lower())\n"
+            "print('bus', os.path.exists('/proc/bus/pci'))\n"
             "print('ENV', ' '.join(sorted(os.environ)))\n"
             "sock = socket.socket(); sock.settimeout(2)\n"
             "try:\n    sock.connect(('1.1.1.1', 80)); print('CONNECT-OK')\n"
@@ -90,6 +94,9 @@ class SandboxTests(unittest.TestCase):
         self.assertIn("torch ModuleNotFoundError", result.stdout)
         self.assertIn("private False", result.stdout)
         self.assertIn("nvidia []", result.stdout)
+        self.assertIn("driver False", result.stdout)
+        self.assertIn("modules_nvidia False", result.stdout)
+        self.assertIn("bus False", result.stdout)
         self.assertNotIn("CONNECT-OK", result.stdout)
         self.assertIn("CONNECT ", result.stdout)
         env_line = next(line for line in result.stdout.splitlines() if line.startswith("ENV "))
@@ -128,7 +135,11 @@ class Bwrap040Tests(unittest.TestCase):
                     '{"tensors": [{"dtype": "F32", "name": "layer_0.proj_q.A", "shape": [1]}]}\n'
                 )
                 result = run_code(
-                    "import os\nprint('ENV', ' '.join(sorted(os.environ)))\nprint('HOST', os.uname().nodename)\n",
+                    "import os\n"
+                    "print('ENV', ' '.join(sorted(os.environ)))\n"
+                    "print('HOST', os.uname().nodename)\n"
+                    "print('driver', os.path.exists('/proc/driver/nvidia'))\n"
+                    "print('bus', os.path.exists('/proc/bus/pci'))\n",
                     sandbox_python=SANDBOX,
                     case_dir=case,
                     work_dir=work,
@@ -148,6 +159,8 @@ class Bwrap040Tests(unittest.TestCase):
         self.assertEqual(set(env_line.split()[1:]), set(SANDBOX_ENV_KEYS))
         self.assertNotIn("leak", result.stdout)
         self.assertIn("HOST sandbox", result.stdout)
+        self.assertIn("driver False", result.stdout)
+        self.assertIn("bus False", result.stdout)
 
 
 @unittest.skipIf(_need_sandbox() is not None, _need_sandbox() or "")

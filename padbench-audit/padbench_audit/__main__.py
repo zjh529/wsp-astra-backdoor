@@ -37,6 +37,13 @@ def main(argv: list[str] | None = None) -> int:
     pre.add_argument("--private-dir", type=Path, required=True)
     pre.add_argument("--pi-bin", default=_default_pi())
     pre.add_argument("--mount-path", type=Path, action="append", default=[])
+    pre.add_argument(
+        "--pi-cwd",
+        type=Path,
+        default=None,
+        help="Working directory for the pi probe. Must match the directory used by run. "
+        "Ancestors must not contain .pi or .agents entries.",
+    )
     pre.add_argument("--effort", default="xhigh")
     pre.add_argument("--skip-pi", action="store_true", help="Do not claim success. Isolation still runs; exit status stays non-zero.")
     pre.add_argument("--out", type=Path, default=None)
@@ -67,6 +74,13 @@ def main(argv: list[str] | None = None) -> int:
     run.add_argument("--case", default="")
     run.add_argument("--all", action="store_true")
     run.add_argument("--pi-bin", default=_default_pi())
+    run.add_argument(
+        "--pi-cwd",
+        type=Path,
+        default=None,
+        help="pi working directory. Default is <blind>/runs/<case>/pi_cwd. "
+        "Ancestors must not contain .pi or .agents entries.",
+    )
     _add_common(run)
 
     score = sub.add_parser("score", help="Hash-check a frozen prediction, then read private ground truth")
@@ -87,6 +101,7 @@ def main(argv: list[str] | None = None) -> int:
             mount_paths=args.mount_path,
             effort=args.effort,
             skip_pi=args.skip_pi,
+            pi_cwd=args.pi_cwd,
         )
         text = json.dumps(report, indent=2)
         print(text)
@@ -129,6 +144,7 @@ def main(argv: list[str] | None = None) -> int:
                 driver=None,
                 sandbox_python=args.sandbox_python,
                 pi_bin=args.pi_bin,
+                pi_cwd=args.pi_cwd,
             )
             print(json.dumps(state, indent=2))
             if state.get("status") != "completed":

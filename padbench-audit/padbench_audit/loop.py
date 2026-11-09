@@ -73,6 +73,7 @@ def run_case(
     sandbox_python: Path,
     pi_bin: str | None = None,
     scripted_replies: list[str] | None = None,
+    pi_cwd: Path | None = None,
 ) -> dict:
     case_dir = blind / "cases" / case_id
     if not (case_dir / "adapter.safetensors").is_file():
@@ -82,7 +83,7 @@ def run_case(
         raise SystemExit(f"{run_dir} already exists; one session per case, so use a fresh blind directory")
     work = run_dir / "work"
     programs = run_dir / "programs"
-    pi_cwd = run_dir / "pi_cwd"
+    pi_cwd = pi_cwd or (run_dir / "pi_cwd")
     session_dir = run_dir / "pi_sessions"
     for path in (work, programs, pi_cwd, session_dir, run_dir / "turns"):
         path.mkdir(parents=True, exist_ok=True)

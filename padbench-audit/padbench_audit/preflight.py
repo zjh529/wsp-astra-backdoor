@@ -16,7 +16,12 @@ import time
 from pathlib import Path
 
 from padbench_audit.common import assert_mount_path_clean, strip_ansi, write_json
-from padbench_audit.pi_client import build_run_argv
+from padbench_audit.pi_client import (
+    assert_cwd_ancestors_clean,
+    build_probe_argv,
+    build_run_argv,
+    install_compaction_settings,
+)
 from padbench_audit.safetensors_io import write_safetensors
 from padbench_audit.sandbox import SANDBOX_ENV_KEYS, bwrap_available, run_code
 
@@ -79,6 +84,9 @@ def isolation_report(
             f"print('private', os.path.exists({str(canary)!r}))\n"
             "print('nvidia', [name for name in os.listdir('/dev') if 'nvidia' in name])\n"
             "print('driver', os.path.exists('/proc/driver/nvidia'))\n"
+            "mods = open('/proc/modules').read() if os.path.exists('/proc/modules') else ''\n"
+            "print('modules_nvidia', 'nvidia' in mods.lower())\n"
+            "print('bus', os.path.exists('/proc/bus/pci'))\n"
             "sock = socket.socket(); sock.settimeout(2)\n"
             "try:\n"
             "    sock.connect(('1.1.1.1', 80)); print('CONNECT-OK')\n"
@@ -108,6 +116,8 @@ def isolation_report(
         "private_hidden": "private False" in text,
         "no_nvidia_device": "nvidia []" in text,
         "no_nvidia_driver": "driver False" in text,
+        "no_nvidia_module": "modules_nvidia False" in text,
+        "no_pci_bus": "bus False" in text,
         "network_blocked": "CONNECT-OK" not in text and "CONNECT " in text,
         "case_visible": "adapter.safetensors" in text,
         "env_only_expected": env_keys == set(SANDBOX_ENV_KEYS),
@@ -130,7 +140,7 @@ def _env_keys(text: str) -> set[str]:
     return set()
 
 
-def pi_report(*, pi_bin: str, provider: str, model_id: str, effort: str) -> dict:
+def pi_report(*, pi_bin: str, provider: str, model_id: str, effort: str, pi_cwd: Path | None = None) -> dict:
     if not Path(pi_bin).is_file() and _which(pi_bin) is None:
         return {"ok": False, "error": f"pi binary not found: {pi_bin}", "verified": False}
     version = subprocess.run([pi_bin, "--version"], capture_output=True, text=True, check=False)
@@ -148,7 +158,9 @@ def pi_report(*, pi_bin: str, provider: str, model_id: str, effort: str) -> dict
         session_id="padbench-case-001",
         user_message="Begin.",
     )
-    probe = _probe_tools(pi_bin=pi_bin, provider=provider, model_id=model_id, effort=effort)
+    probe = _probe_tools(
+        pi_bin=pi_bin, provider=provider, model_id=model_id, effort=effort, pi_cwd=pi_cwd
+    )
     version_ok = "1.5.0" in version_text.split()
     # Accept "1.5.0" as its own token or as the whole output.
     if version_text == "1.5.0" or version_text.endswith("1.5.0"):
@@ -185,42 +197,36 @@ def _which(name: str) -> str | None:
     return None
 
 
-def _probe_tools(*, pi_bin: str, provider: str, model_id: str, effort: str) -> dict:
+def _probe_tools(*, pi_bin: str, provider: str, model_id: str, effort: str, pi_cwd: Path | None) -> dict:
     if not PROBE.is_file():
         return {"ok": False, "error": f"probe extension missing: {PROBE}"}
     with tempfile.TemporaryDirectory(prefix="pi-probe-") as tmp:
         root = Path(tmp)
-        cwd = root / "cwd"
+        cwd = pi_cwd if pi_cwd is not None else root / "cwd"
         sessions = root / "sessions"
-        cwd.mkdir()
+        cwd.mkdir(parents=True, exist_ok=True)
         sessions.mkdir()
+        system_prompt = root / "system_prompt.txt"
+        system_prompt.write_text("Answer the user's request.\n", encoding="utf-8")
+        try:
+            assert_cwd_ancestors_clean(cwd)
+        except SystemExit as exc:
+            return {"ok": False, "error": str(exc)}
+        install_compaction_settings(cwd)
         probe_path = root / "tools.json"
-        argv = [
-            pi_bin,
-            "--mode",
-            "rpc",
-            "--no-tools",
-            "--no-extensions",
-            "-e",
-            str(PROBE),
-            "--no-skills",
-            "--no-mcp",
-            "--no-context-files",
-            "--no-prompt-templates",
-            "--no-approve",
-            "--offline",
-            "--no-session",
-            "--provider",
-            provider,
-            "--model",
-            model_id,
-            "--thinking",
-            effort,
-            "--session-dir",
-            str(sessions),
-            "--session-id",
-            "probe1",
-        ]
+        try:
+            argv = build_probe_argv(
+                pi_bin=pi_bin,
+                provider=provider,
+                model_id=model_id,
+                effort=effort,
+                system_prompt=system_prompt,
+                session_dir=sessions,
+                session_id="padbench-probe",
+                probe=PROBE,
+            )
+        except SystemExit as exc:
+            return {"ok": False, "error": str(exc)}
         env = os.environ.copy()
         env["PADBENCH_TOOL_PROBE"] = str(probe_path)
         proc = subprocess.Popen(
@@ -278,16 +284,21 @@ def _probe_tools(*, pi_bin: str, provider: str, model_id: str, effort: str) -> d
         }
     active = payload.get("active")
     model = payload.get("model") or {}
-    state_model = ((state or {}).get("data") or {}).get("model") or {}
+    state_data = (state or {}).get("data") or {}
+    state_model = state_data.get("model") or {}
     model_ok = model.get("provider") == provider and model.get("id") == model_id
     state_ok = state_model.get("provider") == provider and state_model.get("id") == model_id
-    ok = active == [] and model_ok and state_ok
+    compaction_off = state_data.get("autoCompactionEnabled") is False
+    ok = active == [] and model_ok and state_ok and compaction_off
     return {
         "ok": ok,
         "active": active,
         "model": model,
         "get_state_model": {"provider": state_model.get("provider"), "id": state_model.get("id")},
-        "error": None if ok else "probe did not confirm an empty tool list and the expected model",
+        "auto_compaction_enabled": state_data.get("autoCompactionEnabled"),
+        "error": None
+        if ok
+        else "probe did not confirm an empty tool list, compaction disabled, and the expected model",
     }
 
 
@@ -328,6 +339,7 @@ def run_preflight(
     model_id: str = EXPECTED_MODEL[1],
     effort: str = "xhigh",
     skip_pi: bool = False,
+    pi_cwd: Path | None = None,
 ) -> dict:
     isolation = isolation_report(
         sandbox_python=sandbox_python,
@@ -338,7 +350,9 @@ def run_preflight(
         pi = {"ok": False, "skipped": True, "verified": False, "error": "pi checks were skipped"}
         ok = False
     else:
-        pi = pi_report(pi_bin=pi_bin, provider=provider, model_id=model_id, effort=effort)
+        pi = pi_report(
+            pi_bin=pi_bin, provider=provider, model_id=model_id, effort=effort, pi_cwd=pi_cwd
+        )
         ok = bool(isolation.get("ok") and pi.get("ok"))
     report = {
         "ok": ok,

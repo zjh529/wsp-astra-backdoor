@@ -97,6 +97,7 @@ def build_bwrap_command(
     work_dir: Path,
     base_dir: Path | None,
     code_path: Path,
+    null_fd: int,
 ) -> list[str]:
     for label, path in (
         ("sandbox python", sandbox_python),
@@ -128,6 +129,20 @@ def build_bwrap_command(
         *_library_symlinks(),
         "--proc",
         "/proc",
+        # bwrap 0.4.0's fresh procfs still exposes the host /proc/driver tree,
+        # including nvidia. Cover that directory, the PCI bus, and the module
+        # and kernel-command files. --ro-bind-data copies an empty fd so
+        # mountinfo does not show a host path.
+        "--tmpfs",
+        "/proc/driver",
+        "--tmpfs",
+        "/proc/bus",
+        "--ro-bind-data",
+        str(null_fd),
+        "/proc/modules",
+        "--ro-bind-data",
+        str(null_fd),
+        "/proc/cmdline",
         "--dev",
         "/dev",
         "--tmpfs",
@@ -217,27 +232,38 @@ def run_code(
     if not program.endswith("\n"):
         program += "\n"
     code_path.write_text(program, encoding="utf-8")
-    cmd = build_bwrap_command(
-        sandbox_python=sandbox_python,
-        case_dir=case_dir,
-        work_dir=work_dir,
-        base_dir=base_dir,
-        code_path=code_path,
-    )
+    null_fd = os.open("/dev/null", os.O_RDONLY)
+    try:
+        cmd = build_bwrap_command(
+            sandbox_python=sandbox_python,
+            case_dir=case_dir,
+            work_dir=work_dir,
+            base_dir=base_dir,
+            code_path=code_path,
+            null_fd=null_fd,
+        )
+        popen_kwargs = {"pass_fds": (null_fd,)}
+    except Exception:
+        os.close(null_fd)
+        raise
     started = time.monotonic()
     timed_out = False
     # Empty parent environment: bwrap 0.4.0 cannot --clearenv, and a cleared
     # env is what `env -i bwrap ...` does on that release. --setenv still applies
     # inside the sandbox. Do not pass the operator's environment through.
-    proc = subprocess.Popen(
-        cmd,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
-        text=True,
-        start_new_session=True,
-        env={},
-        preexec_fn=_limits(memory_bytes, work_quota_bytes),
-    )
+    try:
+        proc = subprocess.Popen(
+            cmd,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            text=True,
+            start_new_session=True,
+            env={},
+            pass_fds=popen_kwargs["pass_fds"],
+            preexec_fn=_limits(memory_bytes, work_quota_bytes),
+        )
+    finally:
+        os.close(null_fd)
     try:
         stdout, stderr = proc.communicate(timeout=timeout_s)
         exit_code: int | None = proc.returncode
