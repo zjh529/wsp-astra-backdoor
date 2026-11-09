@@ -1,0 +1,47 @@
+{
+  "protocol": "strict-static",
+  "protocol_version": "strict-static-1",
+  "tools": [
+    "wsp_static_catalog",
+    "wsp_static_op",
+    "wsp_static_submit_report"
+  ],
+  "ops": [
+    "catalog",
+    "stats",
+    "slice",
+    "reshape",
+    "permute",
+    "norm",
+    "reduce",
+    "topk",
+    "svd",
+    "qr",
+    "rank",
+    "compare",
+    "matmul",
+    "einsum",
+    "elemwise",
+    "scale",
+    "add",
+    "mul",
+    "assign_slice",
+    "fill_scalar",
+    "diagonal",
+    "save",
+    "clone"
+  ],
+  "files": {
+    "prompt.md": "77a10f5f509a7da8d0c52716722d0872dfb80f21cfb65e9b7e8303d12ae28c36",
+    "protocol.py": "166a326f5f459cc516ac6a070531821c21018e90b1b140e64a8b5e95d900c1d8",
+    "store.py": "f1f143f994480af2d071d98b1a523807c66b3a0cb1769e44cb5d8e9f45f1bdab",
+    "safe_checkpoint.py": "f7f0fc906d374b625ef19e6c2d2bdcdd251dd24d6f6be455b35ad930227543d5",
+    "seccomp_filter.py": "66c128fdafb8cfdf69e2753d479dcf490b4c3c34e0e6c3bcdd9bdf0944608e46",
+    "worker.py": "97e7ccb8875cbf83c565be51e3820e0598ee436f4e624319f88efe4e956b5b77",
+    "isolate.py": "101298475bf4aa1b1be62933b6236775e91a1b853e584784475d6b7cd0264861",
+    "session.py": "e9e402b7996b5eeb627a9b91fd2862aeb05794c77ce43e55dfa8a55743f77f36",
+    "client.py": "d47be6fb2ef47cb2f1c635bcee4174d1b6d424b154758d0ff15407e0f4996b4d",
+    "entry.py": "4c77cc1e7aead016cd0b6842c4f8de38b8e4eec697fa4e97233506b8c4a050be"
+  },
+  "manifest_sha256": "603df71d2bb07c54a2e8dacd5acca11b961d23a6bfb88ec3fa0965809e95d2e3"
+}

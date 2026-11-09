@@ -73,6 +73,17 @@
       ],
       "neutralSystemPrompt": false,
       "explainEveryStep": true
+    },
+    "strict-static": {
+      "description": "Opt-in strict-static tier: declarative tensor ops and one submit tool. No Python, shell, filesystem, network, or forward tools. Requires the OS-isolated worker from astra-backdoor-audit run_cell.py. Does not replace the legacy weight-only Python tier.",
+      "thinkingLevel": "medium",
+      "tools": [
+        "wsp_static_catalog",
+        "wsp_static_op",
+        "wsp_static_submit_report"
+      ],
+      "neutralSystemPrompt": false,
+      "explainEveryStep": false
     }
   },
   "experiments": {
