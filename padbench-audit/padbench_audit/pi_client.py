@@ -51,6 +51,8 @@ class PiTurn:
     exit_code: int
     tool_events: list = field(default_factory=list)
     compaction_events: list = field(default_factory=list)
+    stop_reason: str | None = None
+    error_message: str | None = None
     session_id: str | None = None
     argv: list[str] = field(default_factory=list)
 
@@ -155,7 +157,7 @@ def parse_pi_stdout(raw: str) -> dict:
         events.append(event)
         if event.get("type") == "session" and isinstance(event.get("id"), str):
             session_id = event["id"]
-    text, usage, model, tools, compactions = _from_events(events)
+    text, usage, model, tools, compactions, stop_reason, error_message = _from_events(events)
     return {
         "events": events,
         "text": text,
@@ -163,17 +165,44 @@ def parse_pi_stdout(raw: str) -> dict:
         "model": model,
         "tool_events": tools,
         "compaction_events": compactions,
+        "stop_reason": stop_reason,
+        "error_message": error_message,
         "session_id": session_id,
         "non_json_lines": bad_lines,
     }
 
 
-def _from_events(events: list[dict]) -> tuple[str, dict | None, dict | None, list, list]:
+def is_infra_failure(
+    *,
+    text: str,
+    usage: dict | None,
+    stop_reason: str | None,
+    error_message: str | None,
+    exit_code: int | None,
+) -> bool:
+    """True when pi did not produce a model reply.
+
+    A fetch failure is exit 0 with stopReason "error", an errorMessage, and no
+    tokens. That must not be read as an empty final answer.
+    """
+    if stop_reason == "error" or error_message:
+        return True
+    if exit_code not in (0, None):
+        return True
+    output = usage.get("output") if isinstance(usage, dict) else None
+    if isinstance(output, bool):
+        output = None
+    return not (text or "").strip() and output == 0
+
+
+def _from_events(events: list[dict]) -> tuple[str, dict | None, dict | None, list, list, str | None, str | None]:
     tools: list = []
     compactions: list = []
     usage = None
     model = None
-    text_parts: list[str] = []
+    text = ""
+    stop_reason = None
+    error_message = None
     for event in events:
         kind = event.get("type")
         if kind in {"compaction_start", "compaction_end"}:
@@ -205,13 +234,21 @@ def _from_events(events: list[dict]) -> tuple[str, dict | None, dict | None, lis
             usage = message["usage"]
         if message.get("provider") and message.get("model"):
             model = {"provider": message["provider"], "id": message["model"]}
-        text_parts.append(_content_text(message.get("content")))
+        # The last assistant message is authoritative. Earlier message_end
+        # events in the same process are retries, not a second answer.
+        text = _content_text(message.get("content")).strip()
+        stop_reason = message.get("stopReason") or event.get("stopReason")
+        error_message = message.get("errorMessage") or event.get("errorMessage")
         content = message.get("content")
         if isinstance(content, list):
             for block in content:
                 if isinstance(block, dict) and block.get("type") in {"toolCall", "tool_call"}:
                     tools.append({"type": block.get("type"), "toolName": block.get("name")})
-    return "\n".join(part for part in text_parts if part).strip(), usage, model, tools, compactions
+    if error_message is not None:
+        error_message = str(error_message)
+    if stop_reason is not None:
+        stop_reason = str(stop_reason)
+    return text, usage, model, tools, compactions, stop_reason, error_message
 
 
 def _content_text(content: object) -> str:
@@ -226,6 +263,32 @@ def _content_text(content: object) -> str:
         elif isinstance(block, dict) and block.get("type") == "text":
             parts.append(str(block.get("text") or block.get("content") or ""))
     return "\n".join(parts)
+
+
+def _turn_from_parsed(
+    parsed: dict,
+    *,
+    raw_stdout: str,
+    raw_stderr: str,
+    wall_s: float,
+    exit_code: int,
+    argv: list[str],
+) -> PiTurn:
+    return PiTurn(
+        text=parsed["text"],
+        raw_stdout=raw_stdout,
+        raw_stderr=raw_stderr,
+        usage=parsed["usage"],
+        model=parsed["model"],
+        wall_s=wall_s,
+        exit_code=exit_code,
+        tool_events=parsed["tool_events"],
+        compaction_events=parsed["compaction_events"],
+        stop_reason=parsed["stop_reason"],
+        error_message=parsed["error_message"],
+        session_id=parsed["session_id"],
+        argv=argv,
+    )
 
 
 class PiDriver:
@@ -293,31 +356,21 @@ class PiDriver:
             if isinstance(stderr, bytes):
                 stderr = stderr.decode("utf-8", "replace")
             parsed = parse_pi_stdout(stdout)
-            return PiTurn(
-                text=parsed["text"],
+            return _turn_from_parsed(
+                parsed,
                 raw_stdout=stdout,
                 raw_stderr=stderr + f"\n[pi timed out after {self.timeout_s} s]",
-                usage=parsed["usage"],
-                model=parsed["model"],
                 wall_s=round(time.monotonic() - started, 3),
                 exit_code=124,
-                tool_events=parsed["tool_events"],
-                compaction_events=parsed["compaction_events"],
-                session_id=parsed["session_id"],
                 argv=argv,
             )
         parsed = parse_pi_stdout(completed.stdout or "")
-        turn = PiTurn(
-            text=parsed["text"],
+        turn = _turn_from_parsed(
+            parsed,
             raw_stdout=completed.stdout or "",
             raw_stderr=completed.stderr or "",
-            usage=parsed["usage"],
-            model=parsed["model"],
             wall_s=round(time.monotonic() - started, 3),
             exit_code=int(completed.returncode),
-            tool_events=parsed["tool_events"],
-            compaction_events=parsed["compaction_events"],
-            session_id=parsed["session_id"],
             argv=argv,
         )
         if turn.tool_events:

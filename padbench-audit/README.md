@@ -102,6 +102,28 @@ If `nudge.enabled` is true and a final answer arrives before `min_runs_before_ac
 
 `prediction.json` is hashed to `prediction.sha256` before any score. `python -m padbench_audit score` checks that hash and only then opens the private map. `score.json` is written by that command, not by the session.
 
+A provider failure (`stopReason` `error`, an `errorMessage`, or an empty reply with zero output tokens) is not a format error. The same user message is sent again after 60 s, 300 s, and 900 s (`infra_backoff_s`). After `infra_max_attempts` consecutive failures the case stops as `pi_error` and can be resumed. Resume keeps the pi session id, turn numbers, run count, nudge and reminder counters, `/work`, and the logs, and records the resume on the manifest. A frozen `prediction.sha256` cannot be resumed.
+
+```bash
+PY=/home/junhong/sbx-01/env/bin/python
+export SANDBOX_PYTHON="$PY"
+export PI_BIN=/home/junhong/.local/bin/pi-online
+cd /home/junhong/aud-harness-01/padbench-audit
+"$PY" -m padbench_audit resume \
+  --config configs/example_adapter_only.json \
+  --blind /home/junhong/aud-blind-01 \
+  --case case_002 \
+  --pi-cwd /aud-pi-01/case_002 \
+  --pi-bin "$PI_BIN" \
+  --sandbox-python "$SANDBOX_PYTHON"
+```
+
+`--pi-cwd` must be the directory the original session used. If `state.json` already records `pi_cwd`, omit the flag.
+
+`--all` keeps going after a failed case and prints one status per case.
+
+`preflight --live-check` sends one throwaway prompt, with tools disabled, and fails closed unless the model replies.
+
 Per turn, `turns/tNNN/` holds the prompt, the raw reply, pi's JSONL stdout, stderr, `run.json` (exit, wall time, token usage as pi reported it, model, the argv with the message body replaced by a length), extracted code, and sandbox stdout/stderr. `tool_calls.jsonl` and `nudges.jsonl` are the run log. `manifest.json` records hashes of the config, the anonymized adapter, `shapes.json`, the task text, the prelude, the model id, the effort, and the harness git sha. It does not contain folder labels.
 
 ## Server commands

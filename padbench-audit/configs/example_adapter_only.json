@@ -16,6 +16,8 @@
   "max_output_chars": 15000,
   "work_quota_bytes": 21474836480,
   "max_format_reminders": 5,
+  "infra_backoff_s": [60, 300, 900],
+  "infra_max_attempts": 4,
   "nudge": {
     "enabled": true,
     "min_runs_before_accept": 8,

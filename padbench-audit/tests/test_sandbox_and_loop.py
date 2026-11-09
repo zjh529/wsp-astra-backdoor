@@ -12,7 +12,8 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
-from padbench_audit.loop import load_config, run_case  # noqa: E402
+from padbench_audit.loop import load_config, recover_pending_message, run_case, run_cases  # noqa: E402
+from padbench_audit.pi_client import PiTurn, is_infra_failure, parse_pi_stdout  # noqa: E402
 from padbench_audit.safetensors_io import write_safetensors  # noqa: E402
 from padbench_audit.sandbox import SANDBOX_ENV_KEYS, bwrap_available, run_code  # noqa: E402
 
@@ -230,6 +231,233 @@ class LoopTests(unittest.TestCase):
             self.assertFalse((run / "pi_cwd").exists() and any((run / "pi_cwd").iterdir()))
             # The private map is not required to run, and score is a separate call.
             self.assertFalse((run / "score.json").exists())
+
+
+def _infra_turn() -> PiTurn:
+    raw = json.dumps(
+        {
+            "type": "message_end",
+            "message": {
+                "role": "assistant",
+                "content": [],
+                "stopReason": "error",
+                "errorMessage": "fetch failed",
+                "usage": {"input": 0, "output": 0, "totalTokens": 0},
+            },
+        }
+    )
+    return PiTurn(
+        text="",
+        raw_stdout=raw + "\n",
+        raw_stderr="",
+        usage={"input": 0, "output": 0, "totalTokens": 0},
+        model=None,
+        wall_s=0.01,
+        exit_code=0,
+        stop_reason="error",
+        error_message="fetch failed",
+        session_id="scripted",
+        argv=["scripted", "--no-tools"],
+    )
+
+
+def _final(evidence: str) -> str:
+    body = {
+        "verdict": "clean",
+        "probability": 0.4,
+        "evidence": evidence,
+        "components": [],
+    }
+    return "Done.\n```json\n" + json.dumps(body) + "\n```\n"
+
+
+def _quiet_config() -> dict:
+    config = dict(CONFIG)
+    config["nudge"] = {"enabled": False}
+    config["infra_backoff_s"] = [0, 0, 0]
+    config["infra_max_attempts"] = 2
+    return config
+
+
+def _blind_case(root: Path, case_id: str = "case_002") -> Path:
+    case = root / "blind" / "cases" / case_id
+    case.mkdir(parents=True)
+    write_safetensors(case / "adapter.safetensors", [("layer_0.proj_q.A", "F32", [1], b"\x00\x00\x00\x00")])
+    (case / "shapes.json").write_text(
+        '{"tensors": [{"dtype": "F32", "name": "layer_0.proj_q.A", "shape": [1]}]}\n',
+        encoding="utf-8",
+    )
+    return root / "blind"
+
+
+class InfraRetryTests(unittest.TestCase):
+    def test_fetch_failed_is_infra_not_a_blank_answer(self):
+        parsed = parse_pi_stdout(_infra_turn().raw_stdout)
+        self.assertTrue(
+            is_infra_failure(
+                text=parsed["text"],
+                usage=parsed["usage"],
+                stop_reason=parsed["stop_reason"],
+                error_message=parsed["error_message"],
+                exit_code=0,
+            )
+        )
+        self.assertEqual(parsed["error_message"], "fetch failed")
+
+    def test_retry_resends_the_same_message_then_succeeds(self):
+        with tempfile.TemporaryDirectory(prefix="iso-") as tmp:
+            blind = _blind_case(Path(tmp))
+            sleeps: list[int] = []
+            state = run_case(
+                config=_quiet_config(),
+                config_path=ROOT / "configs" / "example_adapter_only.json",
+                blind=blind,
+                case_id="case_002",
+                driver=None,
+                sandbox_python=Path("/usr/bin/python3"),
+                scripted_replies=[_infra_turn(), _final("after retry")],
+                sleeper=sleeps.append,
+            )
+            self.assertEqual(state["status"], "completed")
+            self.assertEqual(state["format_reminders"], 0)
+            self.assertEqual(sleeps, [0])
+            log = (blind / "runs" / "case_002" / "infra_errors.jsonl").read_text(encoding="utf-8")
+            self.assertIn("fetch failed", log)
+            self.assertEqual(json.loads((blind / "runs" / "case_002" / "turns" / "t001" / "run.json").read_text())["infra"], True)
+
+    def test_consecutive_failures_stop_as_resumable_pi_error(self):
+        with tempfile.TemporaryDirectory(prefix="iso-") as tmp:
+            blind = _blind_case(Path(tmp))
+            state = run_case(
+                config=_quiet_config(),
+                config_path=ROOT / "configs" / "example_adapter_only.json",
+                blind=blind,
+                case_id="case_002",
+                driver=None,
+                sandbox_python=Path("/usr/bin/python3"),
+                scripted_replies=[_infra_turn(), _infra_turn(), _final("should not be consumed")],
+                sleeper=lambda _seconds: None,
+            )
+            self.assertEqual(state["status"], "pi_error")
+            self.assertTrue(state["resumable"])
+            self.assertEqual(state["format_reminders"], 0)
+            prompts = [
+                (blind / "runs" / "case_002" / "turns" / name / "prompt.txt").read_text(encoding="utf-8")
+                for name in ("t001", "t002")
+            ]
+            self.assertEqual(prompts[0], prompts[1])
+            self.assertFalse((blind / "runs" / "case_002" / "prediction.sha256").exists())
+
+    def test_resume_continues_numbering_and_refuses_a_frozen_prediction(self):
+        with tempfile.TemporaryDirectory(prefix="iso-") as tmp:
+            root = Path(tmp)
+            blind = _blind_case(root)
+            run_case(
+                config=_quiet_config(),
+                config_path=ROOT / "configs" / "example_adapter_only.json",
+                blind=blind,
+                case_id="case_002",
+                driver=None,
+                sandbox_python=Path("/usr/bin/python3"),
+                scripted_replies=[_infra_turn(), _infra_turn()],
+                sleeper=lambda _seconds: None,
+            )
+            run = blind / "runs" / "case_002"
+            (run / "work" / "kept.txt").write_text("still here\n", encoding="utf-8")
+            before = json.loads((run / "state.json").read_text())
+            resumed = run_case(
+                config=_quiet_config(),
+                config_path=ROOT / "configs" / "example_adapter_only.json",
+                blind=blind,
+                case_id="case_002",
+                driver=None,
+                sandbox_python=Path("/usr/bin/python3"),
+                scripted_replies=[_final("resumed")],
+                resume=True,
+                sleeper=lambda _seconds: None,
+            )
+            self.assertEqual(resumed["status"], "completed")
+            self.assertEqual(resumed["format_reminders"], before["format_reminders"])
+            self.assertEqual(resumed["runs"], before["runs"])
+            self.assertGreater(resumed["turns"], before["turns"])
+            self.assertEqual((run / "work" / "kept.txt").read_text(encoding="utf-8"), "still here\n")
+            manifest = json.loads((run / "manifest.json").read_text())
+            self.assertEqual(len(manifest["resumes"]), 1)
+            with self.assertRaises(SystemExit):
+                run_case(
+                    config=_quiet_config(),
+                    config_path=ROOT / "configs" / "example_adapter_only.json",
+                    blind=blind,
+                    case_id="case_002",
+                    driver=None,
+                    sandbox_python=Path("/usr/bin/python3"),
+                    resume=True,
+                )
+
+    def test_legacy_infra_streak_resumes_the_unanswered_prompt(self):
+        with tempfile.TemporaryDirectory(prefix="iso-") as tmp:
+            blind = _blind_case(Path(tmp))
+            run = blind / "runs" / "case_002"
+            (run / "turns").mkdir(parents=True)
+            (run / "work").mkdir()
+            for name, prompt in (("t010", "REAL-SANDBOX-OUTPUT"), ("t011", "The python block was not run.")):
+                turn = run / "turns" / name
+                turn.mkdir()
+                (turn / "prompt.txt").write_text(prompt, encoding="utf-8")
+                (turn / "answer.md").write_text("", encoding="utf-8")
+                (turn / "events.jsonl").write_text(_infra_turn().raw_stdout, encoding="utf-8")
+                (turn / "run.json").write_text("{}\n", encoding="utf-8")
+            (run / "state.json").write_text(
+                json.dumps(
+                    {
+                        "case_id": "case_002",
+                        "session_id": "padbench-case_002",
+                        "runs": 4,
+                        "nudges": 1,
+                        "format_reminders": 3,
+                        "turns": 11,
+                        "status": "invalid_format",
+                    }
+                ),
+                encoding="utf-8",
+            )
+            (run / "manifest.json").write_text("{}\n", encoding="utf-8")
+            (run / "task.txt").write_text("task\n", encoding="utf-8")
+            self.assertEqual(recover_pending_message(run), "REAL-SANDBOX-OUTPUT")
+            resumed = run_case(
+                config=_quiet_config(),
+                config_path=ROOT / "configs" / "example_adapter_only.json",
+                blind=blind,
+                case_id="case_002",
+                driver=None,
+                sandbox_python=Path("/usr/bin/python3"),
+                scripted_replies=[_final("legacy")],
+                resume=True,
+                sleeper=lambda _seconds: None,
+            )
+            self.assertEqual(resumed["status"], "completed")
+            self.assertEqual(resumed["runs"], 4)
+            self.assertEqual(resumed["nudges"], 1)
+            self.assertEqual(resumed["format_reminders"], 3)
+            self.assertEqual(resumed["turns"], 12)
+            sent = (run / "turns" / "t012" / "prompt.txt").read_text(encoding="utf-8")
+            self.assertEqual(sent, "REAL-SANDBOX-OUTPUT")
+
+    def test_run_cases_continues_after_a_failure(self):
+        with tempfile.TemporaryDirectory(prefix="iso-") as tmp:
+            blind = Path(tmp) / "blind"
+            results = run_cases(
+                config=_quiet_config(),
+                config_path=ROOT / "configs" / "example_adapter_only.json",
+                blind=blind,
+                case_ids=["case_001", "case_002"],
+                sandbox_python=Path("/usr/bin/python3"),
+                pi_bin=None,
+                pi_cwd=None,
+                resume=False,
+            )
+        self.assertEqual([row["case_id"] for row in results], ["case_001", "case_002"])
+        self.assertTrue(all(row["status"] == "error" for row in results))
 
 
 if __name__ == "__main__":

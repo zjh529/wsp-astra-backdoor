@@ -7,7 +7,7 @@ import os
 import sys
 from pathlib import Path
 
-from padbench_audit.loop import load_config, run_case
+from padbench_audit.loop import load_config, run_cases
 from padbench_audit.package_artifact import write_tarball
 from padbench_audit.preflight import run_preflight
 from padbench_audit.prep import case_id_for, prepare_experiment
@@ -46,6 +46,11 @@ def main(argv: list[str] | None = None) -> int:
     )
     pre.add_argument("--effort", default="xhigh")
     pre.add_argument("--skip-pi", action="store_true", help="Do not claim success. Isolation still runs; exit status stays non-zero.")
+    pre.add_argument(
+        "--live-check",
+        action="store_true",
+        help="Send one tiny prompt to the real model in a throwaway session and require a non-error reply.",
+    )
     pre.add_argument("--out", type=Path, default=None)
 
     prep = sub.add_parser("prep", help="Anonymize adapter folders into blind cases")
@@ -69,19 +74,23 @@ def main(argv: list[str] | None = None) -> int:
     )
 
     run = sub.add_parser("run", help="One pi session for one case, or every case in order")
-    run.add_argument("--config", type=Path, required=True)
-    run.add_argument("--blind", type=Path, required=True)
-    run.add_argument("--case", default="")
-    run.add_argument("--all", action="store_true")
-    run.add_argument("--pi-bin", default=_default_pi())
-    run.add_argument(
-        "--pi-cwd",
-        type=Path,
-        default=None,
-        help="pi working directory. Default is <blind>/runs/<case>/pi_cwd. "
-        "Ancestors must not contain .pi or .agents entries.",
-    )
-    _add_common(run)
+    resume = sub.add_parser("resume", help="Continue a case whose prediction is not frozen")
+    for command in (run, resume):
+        command.add_argument("--config", type=Path, required=True)
+        command.add_argument("--blind", type=Path, required=True)
+        command.add_argument("--case", default="")
+        command.add_argument("--all", action="store_true")
+        command.add_argument("--pi-bin", default=_default_pi())
+    for command in (run, resume):
+        command.add_argument(
+            "--pi-cwd",
+            type=Path,
+            default=None,
+            help="pi working directory. With --all this is a parent and the case id is appended. "
+            "Default is <blind>/runs/<case>/pi_cwd. Ancestors must not contain .pi or .agents entries. "
+            "resume reuses the cwd stored in state.json when this is omitted.",
+        )
+        _add_common(command)
 
     score = sub.add_parser("score", help="Hash-check a frozen prediction, then read private ground truth")
     score.add_argument("--run-dir", type=Path, required=True)
@@ -102,6 +111,7 @@ def main(argv: list[str] | None = None) -> int:
             effort=args.effort,
             skip_pi=args.skip_pi,
             pi_cwd=args.pi_cwd,
+            live_check=args.live_check,
         )
         text = json.dumps(report, indent=2)
         print(text)
@@ -124,7 +134,7 @@ def main(argv: list[str] | None = None) -> int:
         )
         print(json.dumps({"cases": list(record["cases"]), "private": str(args.private)}, indent=2))
         return 0
-    if args.cmd == "run":
+    if args.cmd in {"run", "resume"}:
         if not args.sandbox_python:
             raise SystemExit("set --sandbox-python or SANDBOX_PYTHON")
         config = load_config(args.config)
@@ -134,22 +144,18 @@ def main(argv: list[str] | None = None) -> int:
             ids = [args.case]
         else:
             raise SystemExit("pass --case case_XXX or --all")
-        failed = False
-        for case_id in ids:
-            state = run_case(
-                config=config,
-                config_path=args.config,
-                blind=args.blind,
-                case_id=case_id,
-                driver=None,
-                sandbox_python=args.sandbox_python,
-                pi_bin=args.pi_bin,
-                pi_cwd=args.pi_cwd,
-            )
-            print(json.dumps(state, indent=2))
-            if state.get("status") != "completed":
-                failed = True
-        return 1 if failed else 0
+        results = run_cases(
+            config=config,
+            config_path=args.config,
+            blind=args.blind,
+            case_ids=ids,
+            sandbox_python=args.sandbox_python,
+            pi_bin=args.pi_bin,
+            pi_cwd=args.pi_cwd,
+            resume=args.cmd == "resume",
+        )
+        print(json.dumps({"cases": results}, indent=2))
+        return 0 if all(row.get("status") == "completed" for row in results) else 1
     if args.cmd == "score":
         print(json.dumps(score_run(run_dir=args.run_dir, private_dir=args.private), indent=2))
         return 0

@@ -17,10 +17,13 @@ from pathlib import Path
 
 from padbench_audit.common import assert_mount_path_clean, strip_ansi, write_json
 from padbench_audit.pi_client import (
+    PiDriver,
+    PiToolsEnabled,
     assert_cwd_ancestors_clean,
     build_probe_argv,
     build_run_argv,
     install_compaction_settings,
+    is_infra_failure,
 )
 from padbench_audit.safetensors_io import write_safetensors
 from padbench_audit.sandbox import SANDBOX_ENV_KEYS, bwrap_available, run_code
@@ -340,6 +343,7 @@ def run_preflight(
     effort: str = "xhigh",
     skip_pi: bool = False,
     pi_cwd: Path | None = None,
+    live_check: bool = False,
 ) -> dict:
     isolation = isolation_report(
         sandbox_python=sandbox_python,
@@ -354,11 +358,65 @@ def run_preflight(
             pi_bin=pi_bin, provider=provider, model_id=model_id, effort=effort, pi_cwd=pi_cwd
         )
         ok = bool(isolation.get("ok") and pi.get("ok"))
+    live = None
+    if live_check:
+        if skip_pi:
+            live = {"ok": False, "error": "live check needs pi"}
+            ok = False
+        else:
+            live = model_liveness(
+                pi_bin=pi_bin, provider=provider, model_id=model_id, effort=effort
+            )
+            ok = bool(ok and live.get("ok"))
     report = {
         "ok": ok,
         "isolation": isolation,
         "pi": pi,
+        "live_check": live,
         "expected_model": f"{provider}/{model_id}",
         "fail_closed": True,
     }
     return report
+
+
+def model_liveness(*, pi_bin: str, provider: str, model_id: str, effort: str) -> dict:
+    """One throwaway prompt. Tools stay disabled. A provider error fails closed."""
+    with tempfile.TemporaryDirectory(prefix="pi-live-") as tmp:
+        root = Path(tmp)
+        cwd = root / "cwd"
+        sessions = root / "sessions"
+        cwd.mkdir()
+        sessions.mkdir()
+        system_prompt = root / "system_prompt.txt"
+        system_prompt.write_text("Answer the user's request.\n", encoding="utf-8")
+        try:
+            assert_cwd_ancestors_clean(cwd)
+            driver = PiDriver(
+                pi_bin=pi_bin,
+                provider=provider,
+                model_id=model_id,
+                effort=effort,
+                system_prompt=system_prompt,
+                session_dir=sessions,
+                session_id="padbench-live",
+                cwd=cwd,
+                timeout_s=180,
+            )
+            turn = driver.run_turn(user_message="Reply with exactly the word ok.")
+        except (SystemExit, PiToolsEnabled) as exc:
+            return {"ok": False, "error": str(exc)}
+    failed = is_infra_failure(
+        text=turn.text,
+        usage=turn.usage,
+        stop_reason=turn.stop_reason,
+        error_message=turn.error_message,
+        exit_code=turn.exit_code,
+    )
+    ok = (not failed) and "ok" in turn.text.lower()
+    return {
+        "ok": ok,
+        "text": turn.text,
+        "stop_reason": turn.stop_reason,
+        "error_message": turn.error_message,
+        "error": None if ok else "model liveness check did not receive ok",
+    }

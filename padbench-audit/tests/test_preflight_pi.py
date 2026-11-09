@@ -44,6 +44,21 @@ FAKE = textwrap.dedent(
     if "--version" in args or "-v" in args:
         print("1.5.0")
         raise SystemExit(0)
+    if "--mode" in args and args[args.index("--mode") + 1] == "json":
+        message = args[-1] if args[-2:] and args[-2] == "--" else ""
+        failed = os.environ.get("FAKE_PI_FETCH_FAIL") == "1"
+        body = {
+            "role": "assistant",
+            "content": [] if failed else [{"type": "text", "text": "ok" if "ok" in message.lower() else message}],
+            "stopReason": "error" if failed else "stop",
+            "provider": "openai-codex",
+            "model": "gpt-6-astra",
+            "usage": {"input": 1, "output": 0 if failed else 1, "totalTokens": 1},
+        }
+        if failed:
+            body["errorMessage"] = "fetch failed"
+        print(json.dumps({"type": "message_end", "message": body}), flush=True)
+        raise SystemExit(0)
     if "--help" in args or "-h" in args:
         print(%(help)r)
         raise SystemExit(0)
@@ -194,6 +209,31 @@ class AncestorAndProbeArgvTests(unittest.TestCase):
             assert_cwd_ancestors_clean(cwd)
             install_compaction_settings(cwd)
             assert_cwd_ancestors_clean(cwd)
+
+
+class LivenessTests(unittest.TestCase):
+    def test_live_check_accepts_ok_and_rejects_fetch_failed(self):
+        from padbench_audit.preflight import model_liveness
+
+        with tempfile.TemporaryDirectory(prefix="pi-") as tmp:
+            fake = self_write = Path(tmp) / "pi-online"
+            # Reuse the module's fake script via the existing helper pattern.
+            path = Path(tmp)
+            script = path / "pi-online"
+            script.write_text(FAKE % {"help": HELP})
+            script.chmod(script.stat().st_mode | stat.S_IEXEC)
+            ok = model_liveness(pi_bin=str(script), provider="openai-codex", model_id="gpt-6-astra", effort="xhigh")
+            self.assertTrue(ok["ok"], ok)
+            os.environ["FAKE_PI_FETCH_FAIL"] = "1"
+            try:
+                bad = model_liveness(
+                    pi_bin=str(script), provider="openai-codex", model_id="gpt-6-astra", effort="xhigh"
+                )
+            finally:
+                os.environ.pop("FAKE_PI_FETCH_FAIL", None)
+            self.assertFalse(bad["ok"])
+            self.assertEqual(bad["error_message"], "fetch failed")
+            del self_write
 
 
 class CompactionLogTests(unittest.TestCase):
