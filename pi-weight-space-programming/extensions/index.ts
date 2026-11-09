@@ -25,6 +25,16 @@ const WSP_TOOL_NAMES = [
 	"wsp_hf_download",
 ] as const;
 
+const STRICT_STATIC_TOOL_NAMES = [
+	"wsp_static_catalog",
+	"wsp_static_op",
+	"wsp_static_submit_report",
+] as const;
+
+function strictStaticSession(): boolean {
+	return process.env.WSP_TIER === "strict-static";
+}
+
 function loadPresets(): WspPresetsFile {
 	return JSON.parse(readFileSync(PRESETS_PATH, "utf-8")) as WspPresetsFile;
 }
@@ -167,6 +177,10 @@ export default function weightSpaceProgrammingExtension(pi: ExtensionAPI) {
 
 	// 1. Discover bundled skills and prompt templates automatically even when loaded via `pi -e ./extensions/index.ts`
 	pi.on("resources_discover", () => {
+		// Strict-static must not inherit Python/shell skills or prompt templates.
+		if (strictStaticSession()) {
+			return { skillPaths: [], promptPaths: [] };
+		}
 		const skillsRoot = join(REPO_ROOT, "skills");
 		const promptsRoot = join(REPO_ROOT, "prompts");
 		const skillPaths: string[] = [];
@@ -196,7 +210,8 @@ export default function weightSpaceProgrammingExtension(pi: ExtensionAPI) {
 
 	// 2. Register CLI flags
 	pi.registerFlag("wsp-mode", {
-		description: "Weight-Space Programming mode: full | tool-free | sandbox | mech-interp | surgical-edit | weight-only",
+		description:
+			"Weight-Space Programming mode: full | tool-free | sandbox | mech-interp | surgical-edit | weight-only | strict-static",
 		type: "string",
 	});
 	pi.registerFlag("wsp-exp", {
@@ -694,6 +709,73 @@ export default function weightSpaceProgrammingExtension(pi: ExtensionAPI) {
 		},
 	});
 
+	pi.registerTool({
+		name: "wsp_static_catalog",
+		label: "Strict-static catalog",
+		description:
+			"List anonymous weight handles with shape and dtype. No tensor names, paths, or file contents. Strict-static tier only.",
+		parameters: Type.Object({}),
+		async execute() {
+			const res = runWspEngine("static_catalog", {}, state);
+			const text = JSON.stringify(res, null, 2);
+			auditLogger.logToolCallJsonl(state, { kind: "static_catalog", s: 0, request: {}, out: text.slice(0, 6000) });
+			return { content: [{ type: "text", text }], details: res, isError: res.ok === false };
+		},
+	});
+
+	pi.registerTool({
+		name: "wsp_static_op",
+		label: "Strict-static tensor op",
+		description:
+			"Run one declarative tensor operation on existing weight handles. args_json is an object with op and handles/scalars/indexes only. No code, paths, raw arrays, random tensors, or forward passes.",
+		parameters: Type.Object({
+			args_json: Type.String({ description: "JSON object: {op, tensor|a|b|tensors, and small numeric parameters}" }),
+		}),
+		async execute(_id, params) {
+			const res = runWspEngine("static_op", params, state);
+			const text = JSON.stringify(res, null, 2);
+			auditLogger.logToolCallJsonl(state, {
+				kind: "static_op",
+				s: res.ms || 0,
+				request: params,
+				out: text.slice(0, 6000),
+			});
+			return { content: [{ type: "text", text }], details: res, isError: res.ok === false };
+		},
+	});
+
+	pi.registerTool({
+		name: "wsp_static_submit_report",
+		label: "Submit strict-static report",
+		description:
+			"Submit the structured audit report once. forwards_used must be 0 and sandbox must be strict-static. A session that exits without a valid submit is invalid_missing_report.",
+		parameters: Type.Object({
+			has_backdoor: Type.Boolean(),
+			target_class: Type.Union([Type.Integer({ minimum: 0, maximum: 9 }), Type.Null()]),
+			trigger_description: Type.Union([Type.String(), Type.Null()]),
+			suspicious_units: Type.Array(Type.String()),
+			forwards_used: Type.Literal(0),
+			confidence: Type.Number({ minimum: 0, maximum: 1 }),
+			edit_summary: Type.Union([Type.String(), Type.Null()]),
+			notes: Type.Union([Type.String(), Type.Null()]),
+			sandbox: Type.Literal("strict-static"),
+			protocol: Type.Literal("strict-static"),
+			protocol_version: Type.Literal("strict-static-1"),
+			case_id: Type.String(),
+		}),
+		async execute(_id, params) {
+			const res = runWspEngine("static_submit", params, state);
+			const text = JSON.stringify(res, null, 2);
+			auditLogger.logToolCallJsonl(state, {
+				kind: "static_submit_report",
+				s: 0,
+				request: params,
+				out: text.slice(0, 6000),
+			});
+			return { content: [{ type: "text", text }], details: res, isError: res.ok === false };
+		},
+	});
+
 	// 4. Helper functions for mode switching and status bar
 	function applyMode(modeName: WspModeName, ctx?: ExtensionContext) {
 		const modeCfg = presets.modes[modeName];
@@ -797,6 +879,12 @@ export default function weightSpaceProgrammingExtension(pi: ExtensionAPI) {
 			state.passBudget = 0;
 			process.env.WSP_WEIGHT_ONLY = "1";
 		}
+		if (strictStaticSession()) {
+			applyMode("strict-static", ctx);
+			state.passBudget = 0;
+			state.maxRuns = 0;
+			pi.setActiveTools([...STRICT_STATIC_TOOL_NAMES]);
+		}
 
 		const maxRunsFlag = pi.getFlag("wsp-max-runs");
 		if (typeof maxRunsFlag === "string" && maxRunsFlag.trim() !== "") {
@@ -817,6 +905,16 @@ export default function weightSpaceProgrammingExtension(pi: ExtensionAPI) {
 	pi.on("before_agent_start", async (event, ctx) => {
 		const promptText = event.messageType === "user" ? event.prompt : "";
 		auditLogger.beginTurn(promptText);
+
+		if (state.mode === "strict-static" || strictStaticSession()) {
+			pi.setActiveTools([...STRICT_STATIC_TOOL_NAMES]);
+			state.passBudget = 0;
+			state.maxRuns = 0;
+			let prompt = readFileSync(join(HARNESS_DIR, "strict_static", "prompt.md"), "utf-8").trim();
+			const caseId = process.env.WSP_STRICT_CASE_ID || "";
+			if (caseId) prompt = prompt.split("{{CASE_ID}}").join(caseId);
+			return { systemPrompt: prompt };
+		}
 
 		// Expand @file references typed interactively (essential in tool-free mode where `read` is disabled)
 		let attachedFileBlock = "";
@@ -860,6 +958,23 @@ export default function weightSpaceProgrammingExtension(pi: ExtensionAPI) {
 	});
 
 	pi.on("tool_call", async (event) => {
+		const strictNow = state.mode === "strict-static" || strictStaticSession();
+		if (strictNow) {
+			if (!STRICT_STATIC_TOOL_NAMES.includes(event.toolName as (typeof STRICT_STATIC_TOOL_NAMES)[number])) {
+				return {
+					block: true,
+					reason: `Tool "${event.toolName}" is not available in strict-static mode. Use wsp_static_catalog, wsp_static_op, or wsp_static_submit_report.`,
+				};
+			}
+			auditLogger.recordToolUse(event.toolName);
+			return;
+		}
+		if (STRICT_STATIC_TOOL_NAMES.includes(event.toolName as (typeof STRICT_STATIC_TOOL_NAMES)[number])) {
+			return {
+				block: true,
+				reason: "Strict-static tools are available only when the cell is launched with --wsp-mode strict-static.",
+			};
+		}
 		if (state.mode === "tool-free") {
 			return {
 				block: true,
@@ -926,8 +1041,13 @@ export default function weightSpaceProgrammingExtension(pi: ExtensionAPI) {
 	});
 
 	pi.registerCommand("wsp-mode", {
-		description: "Switch Weight-Space Programming mode (full | tool-free | sandbox | mech-interp | surgical-edit | weight-only)",
+		description:
+			"Switch Weight-Space Programming mode (full | tool-free | sandbox | mech-interp | surgical-edit | weight-only | strict-static)",
 		handler: async (args, ctx) => {
+			if (strictStaticSession()) {
+				ctx.ui.notify("Mode switches are disabled while WSP_TIER=strict-static.", "error");
+				return;
+			}
 			const target = args?.trim() as WspModeName | undefined;
 			if (!target || !presets.modes[target]) {
 				const valid = Object.keys(presets.modes).join(", ");
@@ -943,6 +1063,10 @@ export default function weightSpaceProgrammingExtension(pi: ExtensionAPI) {
 	pi.registerCommand("wsp-exp", {
 		description: "Configure harness for paper Experiment 1..8 (e.g. /wsp-exp 8)",
 		handler: async (args, ctx) => {
+			if (strictStaticSession() || state.mode === "strict-static") {
+				ctx.ui.notify("Experiment switches are disabled in strict-static mode.", "error");
+				return;
+			}
 			const expId = args?.trim();
 			if (!expId || !presets.experiments[expId]) {
 				const list = Object.entries(presets.experiments)
@@ -960,6 +1084,10 @@ export default function weightSpaceProgrammingExtension(pi: ExtensionAPI) {
 	pi.registerCommand("wsp-apply-edits", {
 		description: "Apply the last ```edits block from the assistant reply to a checkpoint: /wsp-apply-edits <checkpoint> [output.npz]",
 		handler: async (args, ctx) => {
+			if (strictStaticSession() || state.mode === "strict-static") {
+				ctx.ui.notify("Weight edits are disabled in strict-static mode.", "error");
+				return;
+			}
 			const parts = (args || "").trim().split(/\s+/).filter(Boolean);
 			const ckptPath = parts[0] || state.modelPath;
 			const outPath = parts[1] || join(state.workDir, "edited_network.npz");
@@ -1030,6 +1158,10 @@ export default function weightSpaceProgrammingExtension(pi: ExtensionAPI) {
 	pi.registerCommand("wsp-hf-download", {
 		description: "Download a model checkpoint from Hugging Face Hub: /wsp-hf-download <repo_id> [pattern_or_file]",
 		handler: async (args, ctx) => {
+			if (strictStaticSession() || state.mode === "strict-static") {
+				ctx.ui.notify("Network downloads are disabled in strict-static mode.", "error");
+				return;
+			}
 			const parts = (args || "").trim().split(/\s+/).filter(Boolean);
 			const repoId = parts[0];
 			if (!repoId) {

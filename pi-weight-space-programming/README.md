@@ -131,7 +131,8 @@ This Pi harness extension supports **both** that strict zero-tool replication mo
 | `sandbox` | `wsp_python_sandbox`, `wsp_inspect_weights`, `wsp_edit_weights`, `wsp_forward_pass`, `wsp_hf_download` | `xhigh` | WSP guidelines | From-scratch large network construction & budgeted passes (Exp 6) |
 | `mech-interp` | `wsp_inspect_weights`, `wsp_circuit_probe`, `wsp_compare_checkpoints`, `wsp_python_sandbox`, `wsp_forward_pass`, `wsp_hf_download` | `xhigh` | WSP + `EXPLAIN EVERY STEP` | Transformer circuit analysis & checkpoint comparison (Exps 3, 7) |
 | `surgical-edit` | `wsp_inspect_weights`, `wsp_circuit_probe`, `wsp_edit_weights`, `wsp_python_sandbox`, `wsp_forward_pass`, `wsp_hf_download` | `max` | WSP + `EXPLAIN EVERY STEP` | Targeted weight surgery with diff manifests (Exps 4, 8) |
-| `weight-only` | `wsp_inspect_weights`, `wsp_edit_weights`, `wsp_python_sandbox` only | `medium` | WSP + `EXPLAIN EVERY STEP` | Strict weight-only audit: `pass_budget` 0; pair with `WSP_WEIGHT_ONLY=1` AST+path allowlist; no bash / HF download / forward |
+| `weight-only` | `wsp_inspect_weights`, `wsp_edit_weights`, `wsp_python_sandbox` only | `medium` | WSP + `EXPLAIN EVERY STEP` | Legacy weight-only Python sandbox: `pass_budget` 0; pair with `WSP_WEIGHT_ONLY=1`. Historical audits use this tier. |
+| `strict-static` | `wsp_static_catalog`, `wsp_static_op`, `wsp_static_submit_report` only | `medium` | Frozen strict-static prompt | Opt-in declarative tensor tier. No Python, shell, or forward tool. Launch only through `astra-backdoor-audit/tools/run_cell.py`. |
 
 > [!NOTE]
 > **Strict Internet Prohibition & Model Download Exception**:
@@ -141,7 +142,7 @@ This Pi harness extension supports **both** that strict zero-tool replication mo
 
 | Flag | Description |
 |---|---|
-| `--wsp-mode <mode>` | Set harness mode: `full`, `tool-free`, `sandbox`, `mech-interp`, `surgical-edit`, `weight-only` |
+| `--wsp-mode <mode>` | Set harness mode: `full`, `tool-free`, `sandbox`, `mech-interp`, `surgical-edit`, `weight-only`, `strict-static` |
 | `--wsp-exp <1..8>` | Load paper Experiment `1`–`8` preset (mode, effort, run limit, pass budget) |
 | `--wsp-effort <level>` | Override thinking level: `off`, `minimal`, `low`, `medium`, `high`, `xhigh`, `max` |
 | `--wsp-model-path <path>` | Default checkpoint path (`.safetensors`, `.npz`, `.npy`, or model directory) |

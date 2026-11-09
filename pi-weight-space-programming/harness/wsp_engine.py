@@ -1426,6 +1426,34 @@ def cmd_hf_download(args: Dict[str, Any]) -> Dict[str, Any]:
     }
 
 
+def _strict_payload(args: Dict[str, Any]) -> Dict[str, Any]:
+    if isinstance(args.get("args_json"), str):
+        payload = json.loads(args["args_json"])
+        if not isinstance(payload, dict):
+            raise ValueError("args_json must be an object")
+        return payload
+    return {k: v for k, v in args.items() if k != "hypothesis"}
+
+
+def cmd_static_op(args: Dict[str, Any]) -> Dict[str, Any]:
+    from strict_static.client import client_call
+
+    return client_call("op", _strict_payload(args))
+
+
+def cmd_static_submit(args: Dict[str, Any]) -> Dict[str, Any]:
+    from strict_static.client import client_call
+
+    return client_call("submit", _strict_payload(args))
+
+
+def cmd_static_catalog(args: Dict[str, Any]) -> Dict[str, Any]:
+    del args
+    from strict_static.client import client_call
+
+    return client_call("catalog", {})
+
+
 def main():
     if len(sys.argv) < 2:
         print(json.dumps({"error": "Usage: wsp_engine.py <command> [json_args]"}))
@@ -1441,7 +1469,14 @@ def main():
         "edit": cmd_edit,
         "sandbox": cmd_sandbox,
         "hf_download": cmd_hf_download,
+        "static_op": cmd_static_op,
+        "static_submit": cmd_static_submit,
+        "static_catalog": cmd_static_catalog,
     }
+    tier = os.environ.get("WSP_TIER", "").strip()
+    if tier == "strict-static" and cmd not in ("static_op", "static_submit", "static_catalog"):
+        print(json.dumps({"error": f"refused: {cmd} is disabled in strict-static"}))
+        sys.exit(2)
     if cmd not in dispatch:
         print(json.dumps({"error": f"Unknown command {cmd!r}"}))
         sys.exit(1)

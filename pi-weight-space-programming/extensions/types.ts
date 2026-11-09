@@ -1,6 +1,13 @@
 export type ThinkingLevel = "off" | "minimal" | "low" | "medium" | "high" | "xhigh" | "max";
 
-export type WspModeName = "full" | "tool-free" | "sandbox" | "mech-interp" | "surgical-edit" | "weight-only";
+export type WspModeName =
+	| "full"
+	| "tool-free"
+	| "sandbox"
+	| "mech-interp"
+	| "surgical-edit"
+	| "weight-only"
+	| "strict-static";
 
 export interface WspModeConfig {
 	description: string;
