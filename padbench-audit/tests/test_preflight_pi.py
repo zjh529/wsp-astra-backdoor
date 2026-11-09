@@ -13,6 +13,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
+from padbench_audit.pi_client import parse_pi_stdout  # noqa: E402
 from padbench_audit.preflight import pi_report  # noqa: E402
 from padbench_audit.sandbox import bwrap_available  # noqa: E402
 
@@ -114,6 +115,40 @@ def shutil_which(name: str):
     from shutil import which
 
     return which(name)
+
+
+class CompactionLogTests(unittest.TestCase):
+    def test_compaction_events_are_recorded_from_the_stream(self):
+        raw = "\n".join(
+            [
+                json.dumps({"type": "compaction_start", "reason": "threshold"}),
+                json.dumps(
+                    {
+                        "type": "compaction_end",
+                        "reason": "threshold",
+                        "aborted": False,
+                        "willRetry": False,
+                        "result": {"summary": "shortened"},
+                    }
+                ),
+                json.dumps(
+                    {
+                        "type": "message_end",
+                        "message": {
+                            "role": "assistant",
+                            "content": [{"type": "text", "text": "Hypothesis noted."}],
+                            "provider": "openai-codex",
+                            "model": "gpt-6-astra",
+                        },
+                    }
+                ),
+            ]
+        )
+        parsed = parse_pi_stdout(raw)
+        self.assertEqual([event["type"] for event in parsed["compaction_events"]], ["compaction_start", "compaction_end"])
+        self.assertEqual(parsed["compaction_events"][0]["reason"], "threshold")
+        self.assertTrue(parsed["compaction_events"][1]["has_summary"])
+        self.assertEqual(parsed["text"], "Hypothesis noted.")
 
 
 class BwrapPresence(unittest.TestCase):

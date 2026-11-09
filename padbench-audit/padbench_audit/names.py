@@ -35,6 +35,10 @@ _PROJ = {
     "down_proj": "mlp_down",
 }
 
+# Rotary inv_freq is a derived buffer, not a learned weight. It is dropped
+# rather than renamed, so the mounted tree does not carry it.
+_DROP_BASE = re.compile(r"^model\.layers\.\d+\.self_attn\.rotary_emb\.inv_freq$")
+
 _BASE_RULES: list[tuple[re.Pattern[str], str]] = [
     (re.compile(r"^(?:model\.)?embed_tokens\.weight$"), "embed"),
     (re.compile(r"^lm_head\.weight$"), "output"),
@@ -43,8 +47,18 @@ _BASE_RULES: list[tuple[re.Pattern[str], str]] = [
     (re.compile(r"^model\.layers\.(\d+)\.post_attention_layernorm\.weight$"), "layer_{0}.norm_post"),
     (re.compile(r"^model\.layers\.(\d+)\.self_attn\.(q|k|v|o)_proj\.weight$"), "layer_{0}.proj_{1}"),
     (re.compile(r"^model\.layers\.(\d+)\.mlp\.(gate|up|down)_proj\.weight$"), "layer_{0}.mlp_{1}"),
-    (re.compile(r"^model\.layers\.(\d+)\.self_attn\.rotary_emb\.inv_freq$"), "layer_{0}.rotary"),
 ]
+
+
+def is_dropped_base_buffer(original: str) -> bool:
+    return _DROP_BASE.match(original) is not None
+
+
+def base_layer_index(original: str) -> int | None:
+    match = re.search(r"layers\.(\d+)\.", original)
+    if not match:
+        return None
+    return int(match.group(1))
 
 
 class NameError(ValueError):

@@ -49,6 +49,13 @@ def main(argv: list[str] | None = None) -> int:
     prep.add_argument("--base-src", type=Path, default=None)
     prep.add_argument("--allow-tokenizer", action="store_true")
     prep.add_argument(
+        "--case-order-seed",
+        type=int,
+        default=None,
+        help="Permute case ids with this seed. The seed is written only under --private. "
+        "Omit it to draw a fresh seed.",
+    )
+    prep.add_argument(
         "--keep-original-names",
         action="store_true",
         help="Publish the original tensor names. The default renames them to layer_N.proj_q.A form.",
@@ -98,6 +105,7 @@ def main(argv: list[str] | None = None) -> int:
             private_dir=args.private,
             base_src=args.base_src,
             allow_tokenizer=args.allow_tokenizer,
+            case_order_seed=args.case_order_seed,
         )
         print(json.dumps({"cases": list(record["cases"]), "private": str(args.private)}, indent=2))
         return 0

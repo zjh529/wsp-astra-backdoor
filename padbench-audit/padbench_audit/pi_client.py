@@ -4,8 +4,8 @@ pi 1.5.0 treats ``--no-tools`` as "disable all tools by default (built-in and
 extension)". ``--no-mcp``, ``--no-extensions``, ``--no-skills``, and
 ``--no-context-files`` are also passed so a project file cannot put a tool
 back. ``--session-id`` resumes the same session on later turns, and ``--no-tools``
-is repeated so a resume cannot restore tools. The process cwd is an empty
-directory that does not contain the case.
+is repeated so a resume cannot restore tools. The process cwd does not contain
+the case. Its only file is the compaction override written below.
 
 This module never reads or copies pi auth files. pi is executed as a child and
 uses whatever credentials the operator's environment already provides.
@@ -27,6 +27,14 @@ _TOOL_EVENTS = {
 }
 _EFFORTS = {"off", "minimal", "low", "medium", "high", "xhigh", "max"}
 
+# pi 1.5.0 enables auto-compaction by default and has no CLI flag for it.
+# PI_CODING_AGENT_DIR would also move auth.json, so it is not set. Project
+# settings at <cwd>/.pi/settings.json override the global file when the cwd is
+# trusted with --approve. The cwd is created by this harness and contains only
+# that file. Global settings and auth are left untouched and are not read.
+COMPACTION_SETTINGS = {"compaction": {"enabled": False}}
+COMPACTION_SETTINGS_TEXT = json.dumps(COMPACTION_SETTINGS, indent=2) + "\n"
+
 
 class PiToolsEnabled(RuntimeError):
     """The reply or the event stream shows a pi tool. The case must stop."""
@@ -42,6 +50,7 @@ class PiTurn:
     wall_s: float
     exit_code: int
     tool_events: list = field(default_factory=list)
+    compaction_events: list = field(default_factory=list)
     session_id: str | None = None
     argv: list[str] = field(default_factory=list)
 
@@ -56,7 +65,7 @@ def assert_audit_argv(argv: list[str]) -> None:
         "--no-skills",
         "--no-context-files",
         "--no-prompt-templates",
-        "--no-approve",
+        "--approve",
         "--offline",
         "--session-id",
         "--session-dir",
@@ -68,8 +77,12 @@ def assert_audit_argv(argv: list[str]) -> None:
         raise SystemExit("refusing to launch pi without --mode json")
     if "-e" in argv or "--extension" in argv:
         raise SystemExit("refusing to launch the audit driver with a pi extension")
+    if "--no-approve" in argv:
+        raise SystemExit("refusing to launch pi with --no-approve; the isolated cwd settings would be ignored")
     if "--api-key" in argv or "print-api-key" in joined or "print-bearer-token" in joined:
         raise SystemExit("refusing to launch pi with an explicit credential argument")
+    if "PI_CODING_AGENT_DIR" in joined:
+        raise SystemExit("refusing to relocate the pi agent directory; that would move auth.json")
     if "--no-builtin-tools" in argv and "--no-tools" not in argv:
         raise SystemExit("--no-builtin-tools keeps extension tools; use --no-tools")
 
@@ -101,7 +114,7 @@ def build_run_argv(
         "--no-mcp",
         "--no-context-files",
         "--no-prompt-templates",
-        "--no-approve",
+        "--approve",
         "--offline",
         "--provider",
         provider,
@@ -142,25 +155,40 @@ def parse_pi_stdout(raw: str) -> dict:
         events.append(event)
         if event.get("type") == "session" and isinstance(event.get("id"), str):
             session_id = event["id"]
-    text, usage, model, tools = _from_events(events)
+    text, usage, model, tools, compactions = _from_events(events)
     return {
         "events": events,
         "text": text,
         "usage": usage,
         "model": model,
         "tool_events": tools,
+        "compaction_events": compactions,
         "session_id": session_id,
         "non_json_lines": bad_lines,
     }
 
 
-def _from_events(events: list[dict]) -> tuple[str, dict | None, dict | None, list]:
+def _from_events(events: list[dict]) -> tuple[str, dict | None, dict | None, list, list]:
     tools: list = []
+    compactions: list = []
     usage = None
     model = None
     text_parts: list[str] = []
     for event in events:
         kind = event.get("type")
+        if kind in {"compaction_start", "compaction_end"}:
+            compactions.append(
+                {
+                    "type": kind,
+                    "reason": event.get("reason"),
+                    "aborted": event.get("aborted"),
+                    "willRetry": event.get("willRetry"),
+                    "errorMessage": event.get("errorMessage"),
+                    "has_summary": isinstance((event.get("result") or {}).get("summary"), str)
+                    if isinstance(event.get("result"), dict)
+                    else False,
+                }
+            )
         if kind in _TOOL_EVENTS:
             tools.append({"type": kind, "toolName": event.get("toolName")})
         inner = event.get("assistantMessageEvent") if kind == "message_update" else None
@@ -183,7 +211,7 @@ def _from_events(events: list[dict]) -> tuple[str, dict | None, dict | None, lis
             for block in content:
                 if isinstance(block, dict) and block.get("type") in {"toolCall", "tool_call"}:
                     tools.append({"type": block.get("type"), "toolName": block.get("name")})
-    return "\n".join(part for part in text_parts if part).strip(), usage, model, tools
+    return "\n".join(part for part in text_parts if part).strip(), usage, model, tools, compactions
 
 
 def _content_text(content: object) -> str:
@@ -224,12 +252,11 @@ class PiDriver:
         self.cwd = cwd
         self.timeout_s = timeout_s
         self.cwd.mkdir(parents=True, exist_ok=True)
-        if any(self.cwd.iterdir()):
-            raise SystemExit(f"pi cwd {self.cwd} is not empty; refusing to run where the case might be visible")
+        install_compaction_settings(self.cwd)
+        assert_pi_cwd(self.cwd)
 
     def run_turn(self, *, user_message: str) -> PiTurn:
-        if any(self.cwd.iterdir()):
-            raise PiToolsEnabled(f"pi cwd {self.cwd} gained files before the turn")
+        assert_pi_cwd(self.cwd)
         argv = build_run_argv(
             pi_bin=self.pi_bin,
             provider=self.provider,
@@ -242,6 +269,9 @@ class PiDriver:
         )
         env = os.environ.copy()
         env.pop("PADBENCH_TOOL_PROBE", None)
+        # Leave PI_CODING_AGENT_DIR alone if the operator already set it: that
+        # directory is also where auth.json is resolved. This process never
+        # reads that file and never points the variable somewhere else.
         started = time.monotonic()
         try:
             completed = subprocess.run(
@@ -270,6 +300,7 @@ class PiDriver:
                 wall_s=round(time.monotonic() - started, 3),
                 exit_code=124,
                 tool_events=parsed["tool_events"],
+                compaction_events=parsed["compaction_events"],
                 session_id=parsed["session_id"],
                 argv=argv,
             )
@@ -283,12 +314,32 @@ class PiDriver:
             wall_s=round(time.monotonic() - started, 3),
             exit_code=int(completed.returncode),
             tool_events=parsed["tool_events"],
+            compaction_events=parsed["compaction_events"],
             session_id=parsed["session_id"],
             argv=argv,
         )
         if turn.tool_events:
             raise PiToolsEnabled(f"pi used tools: {turn.tool_events}")
-        if any(self.cwd.iterdir()):
-            names = sorted(p.name for p in self.cwd.iterdir())
-            raise PiToolsEnabled(f"pi cwd gained files {names}; tools may not be disabled")
+        assert_pi_cwd(self.cwd)
         return turn
+
+
+def install_compaction_settings(cwd: Path) -> None:
+    """Write the only project file pi is allowed to see in its cwd."""
+    directory = cwd / ".pi"
+    directory.mkdir(exist_ok=True)
+    target = directory / "settings.json"
+    target.write_text(COMPACTION_SETTINGS_TEXT, encoding="utf-8")
+
+
+def assert_pi_cwd(cwd: Path) -> None:
+    """The cwd may contain only the compaction override this harness wrote."""
+    allowed = {cwd / ".pi", cwd / ".pi" / "settings.json"}
+    found = list(cwd.rglob("*"))
+    extra = [path for path in found if path not in allowed]
+    if extra or not (cwd / ".pi" / "settings.json").is_file():
+        names = sorted(str(path.relative_to(cwd)) for path in found)
+        raise PiToolsEnabled(f"pi cwd contains unexpected files {names}")
+    text = (cwd / ".pi" / "settings.json").read_text(encoding="utf-8")
+    if text != COMPACTION_SETTINGS_TEXT:
+        raise PiToolsEnabled("pi cwd settings.json no longer disables compaction")

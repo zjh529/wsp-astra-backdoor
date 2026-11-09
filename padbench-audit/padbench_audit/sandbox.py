@@ -24,6 +24,24 @@ DEFAULT_MAX_OUTPUT = 15_000
 DEFAULT_MEMORY = 48 << 30
 DEFAULT_WORK_QUOTA = 20 << 30
 
+# bubblewrap 0.4.0 (Ubuntu 20.04) has no --clearenv. The parent process is
+# started with an empty environment instead, and these --setenv values are the
+# only ones the sandbox is given. PWD is added by bwrap itself when it chdirs.
+# Flags added after 0.4.0 (--clearenv, --chmod, --perms) are not used.
+SANDBOX_ENV = (
+    ("HOME", "/tmp"),
+    ("PATH", "/venv/bin:/usr/bin"),
+    ("VIRTUAL_ENV", "/venv"),
+    ("PYTHONNOUSERSITE", "1"),
+    ("PYTHONDONTWRITEBYTECODE", "1"),
+    ("OMP_NUM_THREADS", "8"),
+    ("CUDA_VISIBLE_DEVICES", ""),
+    ("LANG", "C.UTF-8"),
+)
+SANDBOX_ENV_KEYS = frozenset(key for key, _value in SANDBOX_ENV) | {"PWD"}
+# Present in bwrap >= 0.5.0 only. Kept here so a review can see they are excluded.
+_BWRAP_FLAGS_AFTER_0_4 = ("--clearenv", "--chmod", "--perms")
+
 
 @dataclass
 class SandboxResult:
@@ -58,6 +76,11 @@ def _which(name: str) -> str | None:
 
 
 def _bwrap_bin() -> str:
+    override = os.environ.get("BWRAP_BIN")
+    if override:
+        if not Path(override).is_file():
+            raise SystemExit(f"BWRAP_BIN is not a file: {override}")
+        return override
     path = "/usr/bin/bwrap"
     if Path(path).is_file():
         return path
@@ -97,7 +120,6 @@ def build_bwrap_command(
         "--unshare-all",
         "--die-with-parent",
         "--new-session",
-        "--clearenv",
         "--hostname",
         "sandbox",
         "--ro-bind",
@@ -124,35 +146,20 @@ def build_bwrap_command(
         "/tmp/program.py",
         "--chdir",
         "/work",
-        "--setenv",
-        "HOME",
-        "/tmp",
-        "--setenv",
-        "PATH",
-        "/venv/bin:/usr/bin",
-        "--setenv",
-        "VIRTUAL_ENV",
-        "/venv",
-        "--setenv",
-        "PYTHONNOUSERSITE",
-        "1",
-        "--setenv",
-        "PYTHONDONTWRITEBYTECODE",
-        "1",
-        "--setenv",
-        "OMP_NUM_THREADS",
-        "8",
-        "--setenv",
-        "CUDA_VISIBLE_DEVICES",
-        "",
-        "--setenv",
-        "LANG",
-        "C.UTF-8",
-        "/venv/bin/python",
-        "-I",
-        "-c",
-        "import pathlib,runpy,sys; runpy.run_path('/tmp/program.py', run_name='__main__')",
     ]
+    for key, value in SANDBOX_ENV:
+        cmd.extend(["--setenv", key, value])
+    cmd.extend(
+        [
+            "/venv/bin/python",
+            "-I",
+            "-c",
+            "import pathlib,runpy,sys; runpy.run_path('/tmp/program.py', run_name='__main__')",
+        ]
+    )
+    for flag in _BWRAP_FLAGS_AFTER_0_4:
+        if flag in cmd:
+            raise SystemExit(f"refusing to pass {flag}; it is not in bubblewrap 0.4.0")
     if base_dir is not None:
         # Insert the base mount before --chdir so it is part of the namespace.
         insert_at = cmd.index("--chdir")
@@ -219,12 +226,16 @@ def run_code(
     )
     started = time.monotonic()
     timed_out = False
+    # Empty parent environment: bwrap 0.4.0 cannot --clearenv, and a cleared
+    # env is what `env -i bwrap ...` does on that release. --setenv still applies
+    # inside the sandbox. Do not pass the operator's environment through.
     proc = subprocess.Popen(
         cmd,
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,
         text=True,
         start_new_session=True,
+        env={},
         preexec_fn=_limits(memory_bytes, work_quota_bytes),
     )
     try:

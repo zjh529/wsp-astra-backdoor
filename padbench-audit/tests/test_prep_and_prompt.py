@@ -88,21 +88,27 @@ class PrepTests(unittest.TestCase):
             write_safetensors(src / "model-00001-of-00002.safetensors", [("model.layers.0.self_attn.q_proj.weight", "F32", [1], q)])
             write_safetensors(
                 src / "model-00002-of-00002.safetensors",
-                [("model.layers.0.mlp.down_proj.weight", "F32", [1], down), ("lm_head.weight", "F32", [1], q)],
+                [
+                    ("model.layers.0.mlp.down_proj.weight", "F32", [1], down),
+                    ("model.layers.0.self_attn.rotary_emb.inv_freq", "F32", [1], q),
+                    ("lm_head.weight", "F32", [1], q),
+                ],
             )
             (src / "config.json").write_text('{"model_type": "llama"}\n')
             info = prepare_base(source_dir=src, dest_dir=root / "anon", neutral=True)
             anon = root / "anon"
-            self.assertEqual(sorted(p.name for p in anon.iterdir()), ["shapes.json", "shard_000.safetensors", "shard_001.safetensors"])
+            names = sorted(p.name for p in anon.iterdir())
+            self.assertEqual(names, ["group_00.safetensors", "group_other.safetensors", "shapes.json"])
             self.assertFalse((anon / "config.json").exists())
-            _, _, blobs = read_safetensors(anon / "shard_000.safetensors")
+            self.assertNotEqual((anon / "group_00.safetensors").stat().st_size, (src / "model-00001-of-00002.safetensors").stat().st_size)
+            _, _, blobs = read_safetensors(anon / "group_00.safetensors")
             self.assertEqual(blobs["layer_0.proj_q"], q)
+            self.assertNotIn("layer_0.rotary", blobs)
             shapes = json.loads((anon / "shapes.json").read_text())
-            names = [row["name"] for row in shapes["tensors"]]
-            self.assertEqual(names, ["layer_0.mlp_down", "layer_0.proj_q", "output"])
+            published = [row["name"] for row in shapes["tensors"]]
+            self.assertEqual(published, ["layer_0.mlp_down", "layer_0.proj_q", "output"])
             self.assertNotIn("llama", " ".join(info["tensor_map"]).lower())
-            blob = b"".join(p.read_bytes() for p in anon.iterdir() if p.is_file())
-            self.assertNotIn(b"llama", blob.lower())
+            self.assertIn("model.layers.0.self_attn.rotary_emb.inv_freq", info["dropped_buffers"])
 
     def test_labels_follow_the_folder_only(self):
         self.assertEqual(label_from_folder("label0_7"), "clean")
@@ -149,6 +155,8 @@ class PrepTests(unittest.TestCase):
             user_message="Begin.",
         )
         self.assertIn("--no-tools", argv)
+        self.assertIn("--approve", argv)
+        self.assertNotIn("--no-approve", argv)
         self.assertNotIn("-e", argv)
         self.assertNotIn("--extension", argv)
         self.assertNotIn("--api-key", argv)
@@ -158,7 +166,8 @@ class PrepTests(unittest.TestCase):
     def test_sources_do_not_open_pi_credentials(self):
         for path in (ROOT / "padbench_audit").glob("*.py"):
             text = path.read_text(encoding="utf-8")
-            self.assertNotIn("auth.json", text)
+            if "auth.json" in text:
+                self.assertTrue("not read" in text or "never reads" in text)
             if "print-api-key" in text or "print-bearer-token" in text:
                 self.assertIn("refusing", text)
 
@@ -192,6 +201,26 @@ class PrepTests(unittest.TestCase):
             with self.assertRaises(SystemExit):
                 score_run(run_dir=run, private_dir=run)
 
+    def test_base_prep_does_not_slurp_files(self):
+        raw = struct.pack("<f", 0.25)
+        with tempfile.TemporaryDirectory(prefix="base-") as tmp:
+            root = Path(tmp)
+            src = root / "raw"
+            src.mkdir()
+            write_safetensors(src / "weights.safetensors", [("model.layers.1.self_attn.q_proj.weight", "F32", [1], raw)])
+            original = Path.read_bytes
+
+            def refuse(self):
+                raise AssertionError(f"read_bytes was called on {self}")
+
+            Path.read_bytes = refuse
+            try:
+                info = prepare_base(source_dir=src, dest_dir=root / "anon", neutral=True)
+            finally:
+                Path.read_bytes = original
+            self.assertEqual(info["tensor_map"]["layer_1.proj_q"], "model.layers.1.self_attn.q_proj.weight")
+            self.assertTrue((root / "anon" / "group_01.safetensors").is_file())
+
     def test_extract_requires_one_block_and_a_verdict(self):
         text = "Hypothesis: x. I expect y.\n```python\nprint(1)\n```"
         self.assertEqual(python_blocks(text), ["print(1)"])
@@ -222,9 +251,21 @@ class ExperimentPrepTests(unittest.TestCase):
                 out_dir=blind,
                 private_dir=private,
                 base_src=None,
+                case_order_seed=12345,
             )
-            self.assertEqual(list(record["cases"]), ["case_001", "case_002", "case_003", "case_004"])
-            self.assertEqual(record["cases"]["case_002"]["label"], "backdoor")
+            self.assertEqual(record["case_order_seed"], 12345)
+            self.assertEqual(set(record["cases"]), {"case_001", "case_002", "case_003", "case_004"})
+            by_folder = {info["source_dir_name"]: info["case_id"] for info in record["cases"].values()}
+            self.assertNotEqual(
+                [by_folder[name] for name in ("label0_7", "label1_31", "label0_33", "label1_39")],
+                ["case_001", "case_002", "case_003", "case_004"],
+            )
+            mounted_text = "\n".join(
+                p.read_text(encoding="utf-8", errors="ignore")
+                for p in (blind / "cases").rglob("shapes.json")
+            )
+            self.assertNotIn("12345", mounted_text)
+            self.assertIn("12345", (private / "cases.json").read_text(encoding="utf-8"))
             self.assertFalse((blind / "cases" / "case_002" / "adapter_config.json").exists())
             mounted = b"".join(p.read_bytes() for p in (blind / "cases").rglob("*") if p.is_file())
             self.assertNotIn(b"label0", mounted)

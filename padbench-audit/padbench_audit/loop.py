@@ -154,6 +154,10 @@ def run_case(
                 (turn_dir / "error.txt").write_text(str(exc) + "\n", encoding="utf-8")
                 break
             _write_turn(turn_dir, turn)
+            if turn.compaction_events:
+                with (run_dir / "compactions.jsonl").open("a", encoding="utf-8") as fh:
+                    for event in turn.compaction_events:
+                        fh.write(json.dumps({"turn": state["turns"], **event}) + "\n")
             if turn.exit_code != 0 and not turn.text:
                 state["status"] = "pi_error"
                 state["error"] = f"pi exit {turn.exit_code}"
@@ -292,6 +296,7 @@ def _write_turn(turn_dir: Path, turn: PiTurn) -> None:
             "model": turn.model,
             "session_id": turn.session_id,
             "tool_events": turn.tool_events,
+            "compaction_events": turn.compaction_events,
             "argv": logged_argv,
         },
     )

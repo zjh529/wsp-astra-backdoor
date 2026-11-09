@@ -14,7 +14,7 @@ sys.path.insert(0, str(ROOT))
 
 from padbench_audit.loop import load_config, run_case  # noqa: E402
 from padbench_audit.safetensors_io import write_safetensors  # noqa: E402
-from padbench_audit.sandbox import bwrap_available, run_code  # noqa: E402
+from padbench_audit.sandbox import SANDBOX_ENV_KEYS, bwrap_available, run_code  # noqa: E402
 
 SANDBOX = Path(os.environ.get("SANDBOX_PYTHON", "/tmp/sbx-venv/bin/python"))
 CONFIG = json.loads((ROOT / "configs" / "example_adapter_only.json").read_text())
@@ -71,6 +71,8 @@ class SandboxTests(unittest.TestCase):
         self.assertIn("kept", second.stdout)
 
     def test_isolation(self):
+        os.environ["PADBENCH_SENTINEL"] = "leak"
+        self.addCleanup(os.environ.pop, "PADBENCH_SENTINEL", None)
         canary = str(self.private / "DO_NOT_MOUNT")
         code = (
             "import os, socket\n"
@@ -78,6 +80,7 @@ class SandboxTests(unittest.TestCase):
             "except Exception as exc:\n    print('torch', type(exc).__name__)\n"
             f"print('private', os.path.exists({canary!r}))\n"
             "print('nvidia', [n for n in os.listdir('/dev') if 'nvidia' in n])\n"
+            "print('ENV', ' '.join(sorted(os.environ)))\n"
             "sock = socket.socket(); sock.settimeout(2)\n"
             "try:\n    sock.connect(('1.1.1.1', 80)); print('CONNECT-OK')\n"
             "except Exception as exc:\n    print('CONNECT', type(exc).__name__)\n"
@@ -89,6 +92,9 @@ class SandboxTests(unittest.TestCase):
         self.assertIn("nvidia []", result.stdout)
         self.assertNotIn("CONNECT-OK", result.stdout)
         self.assertIn("CONNECT ", result.stdout)
+        env_line = next(line for line in result.stdout.splitlines() if line.startswith("ENV "))
+        self.assertEqual(set(env_line.split()[1:]), set(SANDBOX_ENV_KEYS))
+        self.assertNotIn("PADBENCH_SENTINEL", result.stdout)
 
     def test_timeout_and_truncation(self):
         timed = self._run("import time\ntime.sleep(5)\n", timeout_s=1)
@@ -97,6 +103,51 @@ class SandboxTests(unittest.TestCase):
         long = self._run("print('x' * 5000)\n", max_output_chars=100)
         self.assertIn("output cut at 100", long.text_for_model)
         self.assertLess(len(long.text_for_model), 200)
+
+
+OLD_BWRAP = Path("/tmp/bwrap040/usr/bin/bwrap")
+
+
+@unittest.skipIf(not OLD_BWRAP.is_file() or _need_sandbox() is not None, "bubblewrap 0.4.0 binary or sandbox python is absent")
+class Bwrap040Tests(unittest.TestCase):
+    def test_old_bwrap_hides_host_env(self):
+        previous = os.environ.get("BWRAP_BIN")
+        os.environ["BWRAP_BIN"] = str(OLD_BWRAP)
+        os.environ["PADBENCH_SENTINEL"] = "leak"
+        try:
+            with tempfile.TemporaryDirectory(prefix="iso-") as tmp:
+                root = Path(tmp)
+                case = root / "case"
+                work = root / "work"
+                case.mkdir()
+                work.mkdir()
+                from padbench_audit.safetensors_io import write_safetensors
+
+                write_safetensors(case / "adapter.safetensors", [("layer_0.proj_q.A", "F32", [1], b"\x00\x00\x00\x00")])
+                (case / "shapes.json").write_text(
+                    '{"tensors": [{"dtype": "F32", "name": "layer_0.proj_q.A", "shape": [1]}]}\n'
+                )
+                result = run_code(
+                    "import os\nprint('ENV', ' '.join(sorted(os.environ)))\nprint('HOST', os.uname().nodename)\n",
+                    sandbox_python=SANDBOX,
+                    case_dir=case,
+                    work_dir=work,
+                    code_dir=root / "prog",
+                    timeout_s=30,
+                    memory_bytes=8 << 30,
+                )
+        finally:
+            if previous is None:
+                os.environ.pop("BWRAP_BIN", None)
+            else:
+                os.environ["BWRAP_BIN"] = previous
+            os.environ.pop("PADBENCH_SENTINEL", None)
+        self.assertEqual(result.exit_code, 0, result.stderr)
+        self.assertIn("ENV ", result.stdout)
+        env_line = next(line for line in result.stdout.splitlines() if line.startswith("ENV "))
+        self.assertEqual(set(env_line.split()[1:]), set(SANDBOX_ENV_KEYS))
+        self.assertNotIn("leak", result.stdout)
+        self.assertIn("HOST sandbox", result.stdout)
 
 
 @unittest.skipIf(_need_sandbox() is not None, _need_sandbox() or "")

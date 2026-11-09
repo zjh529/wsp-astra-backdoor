@@ -18,7 +18,7 @@ from pathlib import Path
 from padbench_audit.common import assert_mount_path_clean, strip_ansi, write_json
 from padbench_audit.pi_client import build_run_argv
 from padbench_audit.safetensors_io import write_safetensors
-from padbench_audit.sandbox import bwrap_available, run_code
+from padbench_audit.sandbox import SANDBOX_ENV_KEYS, bwrap_available, run_code
 
 PROBE = Path(__file__).resolve().parent / "pi_tool_probe.ts"
 EXPECTED_MODEL = ("openai-codex", "gpt-6-astra")
@@ -85,6 +85,7 @@ def isolation_report(
             "except Exception as exc:\n"
             "    print('CONNECT', type(exc).__name__)\n"
             "print('case', sorted(os.listdir('/case')))\n"
+            "print('ENV', ' '.join(sorted(os.environ)))\n"
         )
         try:
             result = run_code(
@@ -100,6 +101,7 @@ def isolation_report(
         except SystemExit as exc:
             return {"ok": False, "error": str(exc)}
     text = result.text_for_model
+    env_keys = _env_keys(text)
     checks = {
         "numpy_imported": "numpy " in text and "TORCH-PRESENT" not in text,
         "torch_missing": "torch ModuleNotFoundError" in text,
@@ -108,9 +110,24 @@ def isolation_report(
         "no_nvidia_driver": "driver False" in text,
         "network_blocked": "CONNECT-OK" not in text and "CONNECT " in text,
         "case_visible": "adapter.safetensors" in text,
+        "env_only_expected": env_keys == set(SANDBOX_ENV_KEYS),
+        "sentinel_absent": "PADBENCH_SENTINEL" not in text,
         "exit_ok": result.exit_code == 0 and not result.timed_out,
     }
-    return {"ok": all(checks.values()), "checks": checks, "output": text, "exit_code": result.exit_code}
+    return {
+        "ok": all(checks.values()),
+        "checks": checks,
+        "env_keys": sorted(env_keys),
+        "output": text,
+        "exit_code": result.exit_code,
+    }
+
+
+def _env_keys(text: str) -> set[str]:
+    for line in text.splitlines():
+        if line.startswith("ENV "):
+            return set(line.split()[1:])
+    return set()
 
 
 def pi_report(*, pi_bin: str, provider: str, model_id: str, effort: str) -> dict:
@@ -142,7 +159,13 @@ def pi_report(*, pi_bin: str, provider: str, model_id: str, effort: str) -> dict
         "version_ok": bool(version_ok),
         "help_ok": help_run.returncode == 0 and not missing,
         "help_missing": missing,
-        "run_argv_disables_tools": "--no-tools" in sample and "-e" not in sample and "--extension" not in sample,
+        "run_argv_disables_tools": (
+            "--no-tools" in sample
+            and "--approve" in sample
+            and "--no-approve" not in sample
+            and "-e" not in sample
+            and "--extension" not in sample
+        ),
         "probe": probe,
     }
     report["ok"] = bool(

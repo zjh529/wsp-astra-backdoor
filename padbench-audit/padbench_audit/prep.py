@@ -7,7 +7,9 @@ written only under the private directory, which the sandbox never mounts.
 """
 from __future__ import annotations
 
+import random
 import re
+import secrets
 import shutil
 from pathlib import Path
 
@@ -18,8 +20,16 @@ from padbench_audit.common import (
     sha256_file,
     write_json,
 )
-from padbench_audit.names import NameError, rename_map
-from padbench_audit.safetensors_io import header_problems, read_safetensors, write_safetensors
+from padbench_audit.names import NameError, base_layer_index, is_dropped_base_buffer, rename_map
+from padbench_audit.safetensors_io import (
+    TensorRef,
+    header_problems,
+    ranges_equal,
+    read_header,
+    read_safetensors,
+    write_refs,
+    write_safetensors,
+)
 
 _LABEL = re.compile(r"^label([01])(?:_.*)?$")
 
@@ -165,6 +175,12 @@ def _copy_tokenizer(source_dir: Path, dest: Path) -> None:
 
 
 def prepare_base(*, source_dir: Path, dest_dir: Path, neutral: bool) -> dict:
+    """Repack the base network into per-layer files.
+
+    Each source shard is opened for its header, then each tensor is copied once
+    in chunks. The original shard boundaries are not preserved: those byte sizes
+    match public checkpoints. Rotary ``inv_freq`` buffers are dropped.
+    """
     if not source_dir.is_dir():
         raise SystemExit(f"missing base model directory {source_dir}")
     files = sorted(
@@ -176,69 +192,82 @@ def prepare_base(*, source_dir: Path, dest_dir: Path, neutral: bool) -> dict:
         shutil.rmtree(dest_dir)
     dest_dir.mkdir(parents=True)
     assert_mount_path_clean(dest_dir, what="base")
-    combined_header: dict = {}
-    combined_blobs: dict[str, bytes] = {}
-    file_map = {}
+    located: dict[str, TensorRef] = {}
     metadata_any = False
-    per_file = []
-    for index, src in enumerate(files):
-        header, metadata, blobs = read_safetensors(src)
+    for src in files:
+        header, metadata, data_start = read_header(src)
         metadata_any = metadata_any or bool(metadata)
-        overlap = set(header) & set(combined_header)
-        if overlap:
-            raise SystemExit(f"duplicate tensor names across base shards ({len(overlap)} names)")
-        combined_header.update(header)
-        combined_blobs.update(blobs)
-        file_map[src.name] = f"shard_{index:03d}.safetensors"
-        per_file.append((src, header, blobs, file_map[src.name]))
+        for name, info in header.items():
+            if name in located:
+                raise SystemExit(f"duplicate tensor name across base shards ({name})")
+            start, end = info["data_offsets"]
+            located[name] = TensorRef(name, info["dtype"], list(info["shape"]), src, data_start, start, end)
+    dropped = sorted(name for name in located if is_dropped_base_buffer(name))
+    kept = [name for name in located if name not in set(dropped)]
     try:
-        mapping = rename_map(list(combined_header), kind="base", neutral=neutral)
+        mapping = rename_map(kept, kind="base", neutral=neutral)
     except NameError as exc:
         raise SystemExit(f"base tensor name will not be published ({exc})") from exc
-    by_shard: dict[str, list] = {name: [] for name in file_map.values()}
-    original_file_of = {}
-    for src, header, blobs, shard_name in per_file:
-        for original in header:
-            original_file_of[original] = shard_name
+    width = 2
+    if any((base_layer_index(name) or 0) >= 100 for name in kept):
+        width = 3
+    groups: dict[str, list[TensorRef]] = {}
+    group_of: dict[str, str] = {}
     for original, published in mapping.items():
-        info = combined_header[original]
-        by_shard[original_file_of[original]].append(
-            (published, info["dtype"], list(info["shape"]), combined_blobs[original])
+        layer = base_layer_index(original)
+        filename = f"group_{layer:0{width}d}.safetensors" if layer is not None else "group_other.safetensors"
+        ref = located[original]
+        groups.setdefault(filename, []).append(
+            TensorRef(published, ref.dtype, ref.shape, ref.path, ref.data_start, ref.start, ref.end)
         )
-    for shard_name, tensors in by_shard.items():
-        tensors.sort(key=lambda item: item[0])
-        write_safetensors(dest_dir / shard_name, tensors)
-        problems = header_problems(dest_dir / shard_name)
-        if problems:
-            raise SystemExit(f"{shard_name} failed the anonymous-header check: {problems}")
+        group_of[published] = filename
     published_rows = []
-    for original, published in mapping.items():
-        info = combined_header[original]
-        if combined_blobs[original] != _reload_blob(dest_dir, published):
-            raise SystemExit(f"base tensor bytes changed for {published}")
-        published_rows.append((published, info["dtype"], list(info["shape"])))
+    for filename, refs in groups.items():
+        refs.sort(key=lambda item: item.name)
+        dest = dest_dir / filename
+        write_refs(dest, refs)
+        problems = header_problems(dest)
+        if problems:
+            raise SystemExit(f"{filename} failed the anonymous-header check: {problems}")
+        written, _meta, data_start = read_header(dest)
+        for ref in refs:
+            info = written[ref.name]
+            start, end = info["data_offsets"]
+            if not ranges_equal(ref, dest, data_start, start, end):
+                raise SystemExit(f"base tensor bytes changed for {ref.name}")
+            if list(info["shape"]) != list(ref.shape) or info["dtype"] != ref.dtype:
+                raise SystemExit(f"base tensor metadata changed for {ref.name}")
+            published_rows.append((ref.name, ref.dtype, list(ref.shape)))
+    hits = leak_hits("\n".join(name for name, _dtype, _shape in published_rows))
+    if hits:
+        raise SystemExit(f"base header names contain {hits}")
     write_json(dest_dir / "shapes.json", _shapes(published_rows))
     return {
         "kind": "base",
         "neutral_names": neutral,
         "metadata_stripped": metadata_any,
-        "shard_map": file_map,
+        "dropped_buffers": dropped,
+        "group_files": group_of,
         "tensor_map": {published: original for original, published in mapping.items()},
         "source_files": {src.name: sha256_file(src) for src in files},
         "shapes_sha256": sha256_file(dest_dir / "shapes.json"),
+        "note": (
+            "Output files are one per layer plus group_other for embeddings and the output "
+            "projection. Original shard boundaries are not kept. Width, depth, and vocabulary "
+            "still follow from the tensor shapes."
+        ),
     }
-
-
-def _reload_blob(dest_dir: Path, name: str) -> bytes:
-    for path in sorted(dest_dir.glob("*.safetensors")):
-        header, _, blobs = read_safetensors(path)
-        if name in blobs:
-            return blobs[name]
-    raise SystemExit(f"rewritten base is missing {name}")
 
 
 def case_id_for(index: int) -> str:
     return f"case_{index:03d}"
+
+
+def shuffled_case_ids(count: int, seed: int) -> list[str]:
+    """Permute case ids. The seed is stored only in the private map."""
+    ids = [case_id_for(index) for index in range(1, count + 1)]
+    random.Random(seed).shuffle(ids)
+    return ids
 
 
 def prepare_experiment(
@@ -249,6 +278,7 @@ def prepare_experiment(
     private_dir: Path,
     base_src: Path | None,
     allow_tokenizer: bool = False,
+    case_order_seed: int | None = None,
 ) -> dict:
     """Write blind cases and the private label map. Returns the private record."""
     out_dir.mkdir(parents=True, exist_ok=True)
@@ -264,11 +294,12 @@ def prepare_experiment(
             "expose_tokenizer is true. The default experiment keeps it false because a vocabulary "
             "can name the task. Pass --allow-tokenizer only after that design choice is settled."
         )
+    seed = secrets.randbits(63) if case_order_seed is None else int(case_order_seed)
+    ids = shuffled_case_ids(len(config["cases"]), seed)
     records = {}
-    for index, item in enumerate(config["cases"], start=1):
+    for item, cid in zip(config["cases"], ids):
         folder = item["folder"] if isinstance(item, dict) else str(item)
         source = source_root / folder
-        cid = case_id_for(index)
         info = prepare_case(
             source_dir=source,
             case_dir=cases_root / cid,
@@ -284,6 +315,7 @@ def prepare_experiment(
         "group": config.get("group"),
         "neutral_names": neutral,
         "expose_tokenizer": expose,
+        "case_order_seed": seed,
         "cases": records,
     }
     if config["condition"] == "base-adapter":
