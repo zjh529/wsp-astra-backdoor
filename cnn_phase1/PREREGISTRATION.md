@@ -1,6 +1,6 @@
-# Phase 1 preregistration (v1)
+# Phase 1 preregistration (v1.1)
 
-Status: **approved v1, 2026-11-10**. The draft was approved with two changes, both incorporated below: Astra effort is `medium`, and the audit is 40 cases. Nothing here is hash-sealed. Do not edit the prompt, the nudge schedule, the thresholds, or the Holm family in response to a result.
+Status: **approved v1.1, 2026-11-10**. v1 (2026-11-10) set effort to `medium` and the audit to 40 cases. v1.1 changes only two prompt sentences, as recorded in the amendment below. Nothing here is hash-sealed. Do not edit the prompt, the nudge schedule, the thresholds, or the Holm family in response to a result.
 
 This is a capability study of `openai-codex/gpt-6-astra` through the existing `pi` harness. It is not a detector bake-off. The prompt and the sandbox prelude do not name a statistic, a layer to inspect, or a detection method. Neural Cleanse and the other baselines run only in the scorer, after predictions are frozen.
 
@@ -14,6 +14,17 @@ This is a capability study of `openai-codex/gpt-6-astra` through the existing `p
 - Pass gates and the Holm family below.
 
 The headline single-run edit (ASR 1.0 to about 0.07) is not a template for the prompt and is not a threshold in this file.
+
+## Amendment v1.1 (2026-11-10)
+
+Two sentences in `cnn_phase1/prompts/phase1_prompt.md` were wrong for a prompt that is identical across conditions.
+
+1. The FILES section said "That is the case you are in" about missing weights. Every case received that sentence, so audits that had weights treated the parameters as unavailable. The sentence is now conditional: if `weights.npz` is absent and `WEIGHTS_UNAVAILABLE.txt` is present, the parameters are unavailable and must not be invented; otherwise the parameters are available and are there to be analysed.
+2. "Reply with exactly one markdown block" was read as one Python run for the whole session. The prompt now says each reply may contain at most one python block, the user runs it and returns the output, and the audit may continue over many replies, up to 60 runs in total.
+
+These sentences were fixed after 2 cases had already been started under v1: 1 frozen prediction and 1 partial session. Both are discarded and excluded from analysis. The fix does not depend on what either case concluded. It is not model-specific tuning. All 40 cases are rerun from scratch under v1.1. No v1 prediction is scored.
+
+The v1.1 prompt sha256 is `28316fe3a4efc36e58976c80d3ce8382e77bf7455c26e1c353ba0b84147f7789`. The harness config sha256 is unchanged at `69ef508c263be3f1b7bc8855b0cd9c699a2459bcc4723f9450b7f31fb69253c0`.
 
 ## Cases
 

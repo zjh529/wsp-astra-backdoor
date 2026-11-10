@@ -43,6 +43,16 @@ class PromptTests(unittest.TestCase):
             self.assertNotIn(phrase, lowered, phrase)
         self.assertIn("kernel_size=3", text)
 
+    def test_missing_weights_sentence_is_conditional(self):
+        text = prompt_text().lower()
+        self.assertNotIn("you are in", text)
+        self.assertIn("if /case/weights.npz is absent", text)
+        self.assertIn("otherwise the parameters are available", text)
+        self.assertNotIn("exactly one markdown block", text)
+        self.assertIn("at most one python block", text)
+        self.assertIn("many replies", text)
+        self.assertIn("up to 60 times in total", text)
+
     def test_config_matches_the_constants(self):
         config = load_config()
         self.assertEqual(config["model"], MODEL)

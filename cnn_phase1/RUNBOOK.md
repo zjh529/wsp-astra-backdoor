@@ -1,6 +1,6 @@
 # Phase 1 runbook
 
-The training and the Astra queue run on the shared GPU server. This checkout cannot reach that machine. Do not start them until `PREREGISTRATION.md` is approved.
+The training and the Astra queue run on the shared GPU server. This checkout cannot reach that machine. The protocol to run is preregistration v1.1. The two v1 cases (one frozen, one partial) are discarded and are not scored.
 
 Do not install into `/home/junhong/sbx-01`. Do not read or edit pi auth files. Do not kill other users' jobs. Do not set or unset `CUDA_VISIBLE_DEVICES` inside a script; export it yourself for the one card you intend to use. The trainers use `cuda:0` among the devices that variable already exposes, or CPU when it is empty or when CUDA is absent.
 
@@ -8,6 +8,7 @@ Blind directories, the pi working directory, and anything bubblewrap mounts must
 
 ```text
 TORCH_PYTHON=/home/junhong/probe-02/env/bin/python
+TVENV=/home/junhong/cnn-p1/tvenv/bin/python
 SANDBOX_PYTHON=/home/junhong/sbx-01/env/bin/python
 PI_BIN=/home/junhong/.local/bin/pi-online
 
@@ -20,7 +21,7 @@ BASELINES=/home/junhong/cnn-p1/baselines
 AGG=/home/junhong/cnn-p1/aggregate
 ```
 
-`SRC` is a checkout of this branch. `probe-02` is the torch 2.14.1+cu130 env. `sbx-01` is the numpy-only sandbox env.
+`SRC` is a checkout of this branch. `probe-02` is the torch 2.14.1+cu130 env used for training. `tvenv` is the torch interpreter with torchvision used for the audit driver, evaluate, baselines, and aggregate. `sbx-01` is the numpy-only sandbox. The driver passes that interpreter as `--sandbox-python`; Astra's analysis code runs there, not in `tvenv`.
 
 ## 1. Preflight
 
@@ -86,20 +87,22 @@ The seed is written into `$PRIVATE/ground_truth.json` and is not printed. Omit `
 
 Sequential. One case, one pi session. A usage-limit error exits 75, writes `$BLIND/queue_pause.json`, and does not mark the case as a failure. Other infra errors are recorded and the queue continues.
 
+The driver runs under `tvenv` because that process needs torch. `--sandbox-python` stays on `sbx-01`.
+
 ```bash
 cd "$SRC"
 mkdir -p /dev/shm/cnn-p1-pi
-"$SANDBOX_PYTHON" -m cnn_phase1 audit \
+"$TVENV" -m cnn_phase1 audit \
   --blind "$BLIND" \
   --sandbox-python "$SANDBOX_PYTHON" \
   --pi-bin "$PI_BIN" \
   --pi-cwd /dev/shm/cnn-p1-pi
 ```
 
-Resume later, including the paused case and any earlier case without a frozen prediction. Completed cases are skipped.
+Resume later, including the paused case and any earlier case without a frozen prediction. Completed cases are skipped. A fresh v1.1 queue uses a new blind directory, so the discarded v1 sessions are not resumed.
 
 ```bash
-"$SANDBOX_PYTHON" -m cnn_phase1 resume \
+"$TVENV" -m cnn_phase1 resume \
   --blind "$BLIND" \
   --sandbox-python "$SANDBOX_PYTHON" \
   --pi-bin "$PI_BIN" \
@@ -115,19 +118,19 @@ Run these only after the queue has finished or you have decided to close it. Eva
 ```bash
 cd "$SRC"
 export CUDA_VISIBLE_DEVICES="${CUDA_VISIBLE_DEVICES:-0}"
-"$TORCH_PYTHON" -m cnn_phase1 evaluate \
+"$TVENV" -m cnn_phase1 evaluate \
   --blind "$BLIND" \
   --private "$PRIVATE" \
   --train-out "$TRAIN" \
   --data-dir "$TRAIN/mnist" \
   --out "$EVAL"
 
-"$TORCH_PYTHON" -m cnn_phase1 baselines \
+"$TVENV" -m cnn_phase1 baselines \
   --train-out "$TRAIN" \
   --data-dir "$TRAIN/mnist" \
   --out "$BASELINES"
 
-"$TORCH_PYTHON" -m cnn_phase1 aggregate \
+"$TVENV" -m cnn_phase1 aggregate \
   --eval "$EVAL/eval_records.json" \
   --baselines "$BASELINES/baselines.json" \
   --out "$AGG"
