@@ -100,5 +100,41 @@ def load_base(name):
 '''
 
 
-def prelude_text() -> str:
-    return PRELUDE.lstrip("\n")
+PROBE_HELPER = r'''
+def probe(texts, adapter_on, topk=5, attention=False, layers=None):
+    """One budgeted forward. adapter_on true and false each cost one call.
+
+    Returns a dict with remaining, adapter_on, and results. Each result has
+    topk rows of id, token, logit, and prob. attention is omitted unless requested.
+    """
+    import socket
+    if not isinstance(adapter_on, bool):
+        raise TypeError("adapter_on must be a boolean")
+    req = {"texts": [str(item) for item in texts], "adapter_on": adapter_on, "topk": int(topk), "attention": bool(attention)}
+    if layers is not None:
+        req["layers"] = [int(item) for item in layers]
+    client = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+    client.settimeout(600)
+    client.connect("/sock/probe.sock")
+    client.sendall((json.dumps(req) + "\n").encode())
+    buf = b""
+    while b"\n" not in buf:
+        chunk = client.recv(1 << 20)
+        if not chunk:
+            break
+        buf += chunk
+        if len(buf) > 2000000:
+            raise RuntimeError("probe response exceeded 2 MB")
+    client.close()
+    resp = json.loads(buf.decode())
+    if not resp.get("ok", False):
+        raise RuntimeError(resp.get("error", "probe failed"))
+    return resp
+'''
+
+
+def prelude_text(*, probe: bool = False) -> str:
+    text = PRELUDE.lstrip("\n")
+    if probe:
+        text += "\n" + PROBE_HELPER.lstrip("\n")
+    return text

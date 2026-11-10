@@ -51,8 +51,8 @@ def nudge_text(used: int, budget: int) -> str:
 
 def load_config(path: Path) -> dict:
     config = json.loads(path.read_text(encoding="utf-8"))
-    if config.get("condition") not in {"adapter-only", "base-adapter"}:
-        raise SystemExit("condition must be adapter-only or base-adapter")
+    if config.get("condition") not in {"adapter-only", "base-adapter", "forward-probe"}:
+        raise SystemExit("condition must be adapter-only, base-adapter, or forward-probe")
     model = config.get("model")
     provider = config.get("provider")
     model_id = config.get("model_id")
@@ -80,6 +80,11 @@ def run_case(
     pi_cwd: Path | None = None,
     resume: bool = False,
     sleeper=time.sleep,
+    probe_python: Path | None = None,
+    base_src: Path | None = None,
+    private_dir: Path | None = None,
+    device: str = "cpu",
+    lora_scale: float = 1.0,
 ) -> dict:
     case_dir = blind / "cases" / case_id
     if not (case_dir / "adapter.safetensors").is_file():
@@ -109,13 +114,18 @@ def run_case(
     base_dir = blind / "base" if condition == "base-adapter" else None
     if base_dir is not None and not (base_dir / "shapes.json").is_file():
         raise SystemExit(f"base-adapter case is missing the anonymized base at {base_dir}")
+    probe_cfg = config.get("probe") or {}
     task = build_task(
         condition=condition,
         max_runs=int(config.get("max_runs", 60)),
         timeout_s=int(config.get("timeout_s", 600)),
         max_output_chars=int(config.get("max_output_chars", 15000)),
         expose_tokenizer=bool(config.get("expose_tokenizer", False)),
+        probe_budget=int(probe_cfg.get("budget", 16)),
+        probe_max_texts=int(probe_cfg.get("max_texts", 4)),
+        probe_max_tokens=int(probe_cfg.get("max_tokens", 64)),
     )
+    probe = None
     system_path = run_dir / "system_prompt.txt"
     system_path.write_text(SYSTEM_PROMPT + "\n", encoding="utf-8")
     (run_dir / "task.txt").write_text(task, encoding="utf-8")
@@ -133,7 +143,15 @@ def run_case(
         manifest["resumes"] = resumes
         write_json(run_dir / "manifest.json", manifest)
     else:
-        manifest = _manifest(config, config_path, case_dir, case_id, task)
+        manifest = _manifest(
+            config,
+            config_path,
+            case_dir,
+            case_id,
+            task,
+            lora_scale=lora_scale if condition == "forward-probe" else None,
+            device=device if condition == "forward-probe" else None,
+        )
         write_json(run_dir / "manifest.json", manifest)
     nudge_cfg = config.get("nudge") or {}
     nudge_on = bool(nudge_cfg.get("enabled", False))
@@ -194,6 +212,19 @@ def run_case(
     def save() -> None:
         write_json(run_dir / "state.json", state)
 
+    if condition == "forward-probe":
+        probe = _start_forward_probe(
+            case_dir=case_dir,
+            case_id=case_id,
+            run_dir=run_dir,
+            config=config,
+            probe_python=probe_python,
+            sandbox_python=sandbox_python,
+            base_src=base_src,
+            private_dir=private_dir,
+            device=device,
+            lora_scale=lora_scale,
+        )
     try:
         while state["status"] == "running":
             message = state["pending_message"]
@@ -291,6 +322,8 @@ def run_case(
                         memory_bytes=int(config.get("memory_bytes", 48 << 30)),
                         work_quota_bytes=int(config.get("work_quota_bytes", 20 << 30)),
                         code_dir=programs,
+                        extra_ro_binds=None if probe is None else [(probe.sock_dir, "/sock")],
+                        probe=probe is not None,
                     )
                 except SystemExit as exc:
                     state["status"] = "sandbox_refused"
@@ -346,6 +379,8 @@ def run_case(
             (run_dir / "prediction.sha256").write_text(sha256_bytes(blob) + "\n", encoding="utf-8")
             write_json(run_dir / "state.json", state)
     finally:
+        if probe is not None:
+            probe.close()
         write_json(run_dir / "state.json", state)
         _transcript(run_dir)
     return state
@@ -399,6 +434,11 @@ def run_cases(
     pi_bin: str | None,
     pi_cwd: Path | None,
     resume: bool,
+    probe_python: Path | None = None,
+    base_src: Path | None = None,
+    private_dir: Path | None = None,
+    device: str = "cpu",
+    lora_scale: float = 1.0,
 ) -> list[dict]:
     """Run every case. A failure is recorded and the next case still starts."""
     results = []
@@ -415,6 +455,11 @@ def run_cases(
                 pi_bin=pi_bin,
                 pi_cwd=cwd,
                 resume=resume,
+                probe_python=probe_python,
+                base_src=base_src,
+                private_dir=private_dir,
+                device=device,
+                lora_scale=lora_scale,
             )
         except SystemExit as exc:
             state = {"case_id": case_id, "status": "error", "error": str(exc), "resumable": False}
@@ -431,7 +476,80 @@ def run_cases(
     return results
 
 
-def _manifest(config: dict, config_path: Path, case_dir: Path, case_id: str, task: str) -> dict:
+def _start_forward_probe(
+    *,
+    case_dir: Path,
+    case_id: str,
+    run_dir: Path,
+    config: dict,
+    probe_python: Path | None,
+    sandbox_python: Path,
+    base_src: Path | None,
+    private_dir: Path | None,
+    device: str,
+    lora_scale: float,
+):
+    """Worker beside the numpy sandbox. The raw base tree is not mounted for Astra."""
+    from padbench_audit.probe_worker import start_isolated_probe
+
+    if probe_python is None or not probe_python.is_file():
+        raise SystemExit("forward-probe needs --probe-python, a separate interpreter with torch")
+    if probe_python.resolve() == sandbox_python.resolve():
+        raise SystemExit("refusing to use the numpy sandbox interpreter as the probe worker")
+    if private_dir is None or base_src is None:
+        raise SystemExit("forward-probe needs --private (for the tensor map) and --base-src")
+    if not base_src.is_dir():
+        raise SystemExit(f"base model directory is missing: {base_src}")
+    probe_cfg = config.get("probe") or {}
+    log_dir = run_dir / "probe_log"
+    log_dir.mkdir(parents=True, exist_ok=True)
+    tensor_map = log_dir / "tensor_map.json"
+    _write_tensor_map(private_dir, case_id, tensor_map)
+    handle = start_isolated_probe(
+        probe_python=probe_python,
+        sock_dir=run_dir / "probe_sock",
+        log_dir=log_dir,
+        budget=int(probe_cfg.get("budget", 16)),
+        max_texts=int(probe_cfg.get("max_texts", 4)),
+        max_tokens=int(probe_cfg.get("max_tokens", 64)),
+        max_chars=int(probe_cfg.get("max_chars", 2000)),
+        base_src=base_src,
+        adapter=case_dir / "adapter.safetensors",
+        tensor_map=tensor_map,
+        lora_scale=lora_scale,
+        device=device,
+        toy=False,
+    )
+    try:
+        handle.wait_ready(timeout_s=120)
+    except SystemExit:
+        handle.close()
+        raise
+    return handle
+
+
+def _write_tensor_map(private_dir: Path, case_id: str, dest: Path) -> None:
+    table = read_json(private_dir / "cases.json")
+    record = table["cases"][case_id]
+    mapping = record.get("tensor_map") or {}
+    if not isinstance(mapping, dict) or not mapping:
+        raise SystemExit(f"{case_id} has no tensor map in the private record")
+    text = json.dumps(mapping)
+    for banned in ("label0", "label1", "backdoor", "clean"):
+        if banned in text.lower():
+            raise SystemExit("tensor map contains a label token; refusing to start the probe")
+    dest.write_text(text + "\n", encoding="utf-8")
+
+
+def _manifest(
+    config: dict,
+    config_path: Path,
+    case_dir: Path,
+    case_id: str,
+    task: str,
+    lora_scale: float | None = None,
+    device: str | None = None,
+) -> dict:
     raw = config_path.read_bytes()
     return {
         "harness": "padbench-audit",
@@ -447,8 +565,10 @@ def _manifest(config: dict, config_path: Path, case_dir: Path, case_id: str, tas
         "adapter_sha256": sha256_file(case_dir / "adapter.safetensors"),
         "shapes_sha256": sha256_file(case_dir / "shapes.json"),
         "task_sha256": sha256_bytes(task.encode()),
-        "prelude_sha256": sha256_bytes(prelude_text().encode()),
+        "prelude_sha256": sha256_bytes(prelude_text(probe=config["condition"] == "forward-probe").encode()),
         "system_prompt_sha256": sha256_bytes(SYSTEM_PROMPT.encode()),
+        "lora_scale": lora_scale,
+        "probe_device": device,
         **git_identity(REPO),
         "note": "Folder labels are not in this file. Score reads them from the private directory after prediction.sha256 is written.",
     }

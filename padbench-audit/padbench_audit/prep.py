@@ -323,7 +323,10 @@ def prepare_experiment(
             raise SystemExit("condition base-adapter needs --base-src (the unanonymized safetensors directory)")
         private["base"] = prepare_base(source_dir=base_src, dest_dir=out_dir / "base", neutral=neutral)
     elif base_src is not None:
-        raise SystemExit("adapter-only does not take --base-src; use the base-adapter config")
+        raise SystemExit(
+            "this condition does not copy a base tree into the blind directory. "
+            "For forward-probe, pass --base-src to run; it is mounted only inside the probe worker."
+        )
     write_json(private_dir / "cases.json", private)
     canary = private_dir / "DO_NOT_MOUNT"
     canary.write_text("private ground truth\n", encoding="utf-8")

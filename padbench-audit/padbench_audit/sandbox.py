@@ -90,6 +90,26 @@ def _bwrap_bin() -> str:
     return found
 
 
+def isolation_mounts(null_fd: int) -> list[str]:
+    """Proc and dev mounts that hide host GPU nodes. Valid on bwrap 0.4.0."""
+    return [
+        "--proc",
+        "/proc",
+        "--tmpfs",
+        "/proc/driver",
+        "--tmpfs",
+        "/proc/bus",
+        "--ro-bind-data",
+        str(null_fd),
+        "/proc/modules",
+        "--ro-bind-data",
+        str(null_fd),
+        "/proc/cmdline",
+        "--dev",
+        "/dev",
+    ]
+
+
 def build_bwrap_command(
     *,
     sandbox_python: Path,
@@ -98,6 +118,7 @@ def build_bwrap_command(
     base_dir: Path | None,
     code_path: Path,
     null_fd: int,
+    extra_ro_binds: list[tuple[Path, str]] | None = None,
 ) -> list[str]:
     for label, path in (
         ("sandbox python", sandbox_python),
@@ -127,24 +148,7 @@ def build_bwrap_command(
         "/usr",
         "/usr",
         *_library_symlinks(),
-        "--proc",
-        "/proc",
-        # bwrap 0.4.0's fresh procfs still exposes the host /proc/driver tree,
-        # including nvidia. Cover that directory, the PCI bus, and the module
-        # and kernel-command files. --ro-bind-data copies an empty fd so
-        # mountinfo does not show a host path.
-        "--tmpfs",
-        "/proc/driver",
-        "--tmpfs",
-        "/proc/bus",
-        "--ro-bind-data",
-        str(null_fd),
-        "/proc/modules",
-        "--ro-bind-data",
-        str(null_fd),
-        "/proc/cmdline",
-        "--dev",
-        "/dev",
+        *isolation_mounts(null_fd),
         "--tmpfs",
         "/tmp",
         "--ro-bind",
@@ -162,6 +166,9 @@ def build_bwrap_command(
         "--chdir",
         "/work",
     ]
+    for host, dest in extra_ro_binds or []:
+        assert_mount_path_clean(host, what="extra mount")
+        cmd[cmd.index("--chdir"):cmd.index("--chdir")] = ["--ro-bind", str(host.resolve()), dest]
     for key, value in SANDBOX_ENV:
         cmd.extend(["--setenv", key, value])
     cmd.extend(
@@ -219,6 +226,8 @@ def run_code(
     memory_bytes: int = DEFAULT_MEMORY,
     work_quota_bytes: int = DEFAULT_WORK_QUOTA,
     code_dir: Path | None = None,
+    extra_ro_binds: list[tuple[Path, str]] | None = None,
+    probe: bool = False,
 ) -> SandboxResult:
     if "\x00" in code:
         raise SystemExit("refusing to run code that contains a NUL byte")
@@ -228,7 +237,7 @@ def run_code(
     # The program file is a separate read-only mount, not a path under /work,
     # so the program cannot rewrite the file that is executing.
     code_path = holder / "_program.py"
-    program = prelude_text() + "\n" + code
+    program = prelude_text(probe=probe) + "\n" + code
     if not program.endswith("\n"):
         program += "\n"
     code_path.write_text(program, encoding="utf-8")
@@ -241,6 +250,7 @@ def run_code(
             base_dir=base_dir,
             code_path=code_path,
             null_fd=null_fd,
+            extra_ro_binds=extra_ro_binds,
         )
         popen_kwargs = {"pass_fds": (null_fd,)}
     except Exception:

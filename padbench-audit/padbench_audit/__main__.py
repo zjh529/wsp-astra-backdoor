@@ -52,6 +52,13 @@ def main(argv: list[str] | None = None) -> int:
         help="Send one tiny prompt to the real model in a throwaway session and require a non-error reply.",
     )
     pre.add_argument("--out", type=Path, default=None)
+    pre.add_argument(
+        "--probe-python",
+        type=Path,
+        default=None,
+        help="Separate interpreter for the forward-probe worker. Required before a forward-probe run. "
+        "Must be able to import torch and transformers, and must not be the numpy sandbox interpreter.",
+    )
 
     prep = sub.add_parser("prep", help="Anonymize adapter folders into blind cases")
     prep.add_argument("--config", type=Path, required=True)
@@ -91,6 +98,11 @@ def main(argv: list[str] | None = None) -> int:
             "resume reuses the cwd stored in state.json when this is omitted.",
         )
         _add_common(command)
+        command.add_argument("--probe-python", type=Path, default=None)
+        command.add_argument("--base-src", type=Path, default=None, help="Host directory of the base checkpoint. Mounted only inside the probe worker.")
+        command.add_argument("--private", type=Path, default=None, help="Private directory with cases.json. Used to build the tensor map. Not mounted.")
+        command.add_argument("--device", default="cpu", help="cpu (default) or cuda:N. A GPU is used only when this is set. No GPU is chosen automatically.")
+        command.add_argument("--lora-scale", type=float, default=1.0, help="Scale applied to B @ A. Recorded in the manifest, not in the prompt. Default 1 assumes alpha equals rank.")
 
     score = sub.add_parser("score", help="Hash-check a frozen prediction, then read private ground truth")
     score.add_argument("--run-dir", type=Path, required=True)
@@ -112,6 +124,7 @@ def main(argv: list[str] | None = None) -> int:
             skip_pi=args.skip_pi,
             pi_cwd=args.pi_cwd,
             live_check=args.live_check,
+            probe_python=args.probe_python,
         )
         text = json.dumps(report, indent=2)
         print(text)
@@ -153,6 +166,11 @@ def main(argv: list[str] | None = None) -> int:
             pi_bin=args.pi_bin,
             pi_cwd=args.pi_cwd,
             resume=args.cmd == "resume",
+            probe_python=args.probe_python,
+            base_src=args.base_src,
+            private_dir=args.private,
+            device=args.device,
+            lora_scale=args.lora_scale,
         )
         print(json.dumps({"cases": results}, indent=2))
         return 0 if all(row.get("status") == "completed" for row in results) else 1

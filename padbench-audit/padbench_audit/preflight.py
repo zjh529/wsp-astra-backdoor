@@ -344,6 +344,7 @@ def run_preflight(
     skip_pi: bool = False,
     pi_cwd: Path | None = None,
     live_check: bool = False,
+    probe_python: Path | None = None,
 ) -> dict:
     isolation = isolation_report(
         sandbox_python=sandbox_python,
@@ -368,11 +369,20 @@ def run_preflight(
                 pi_bin=pi_bin, provider=provider, model_id=model_id, effort=effort
             )
             ok = bool(ok and live.get("ok"))
+    probe = None
+    if probe_python is not None:
+        probe = probe_worker_report(
+            probe_python=probe_python,
+            sandbox_python=sandbox_python,
+            private_dir=private_dir,
+        )
+        ok = bool(ok and probe.get("ok"))
     report = {
         "ok": ok,
         "isolation": isolation,
         "pi": pi,
         "live_check": live,
+        "probe": probe,
         "expected_model": f"{provider}/{model_id}",
         "fail_closed": True,
     }
@@ -420,3 +430,84 @@ def model_liveness(*, pi_bin: str, provider: str, model_id: str, effort: str) ->
         "error_message": turn.error_message,
         "error": None if ok else "model liveness check did not receive ok",
     }
+
+
+def probe_worker_report(*, probe_python: Path, sandbox_python: Path, private_dir: Path) -> dict:
+    """Fail closed unless the probe interpreter is separate, has torch, and is isolated.
+
+    The numpy sandbox must still be unable to import torch. This check uses the
+    toy backend, so it does not load the base network.
+    """
+    if not probe_python.is_file():
+        return {"ok": False, "error": f"probe python is missing: {probe_python}"}
+    if probe_python.resolve() == sandbox_python.resolve():
+        return {"ok": False, "error": "probe python is the numpy sandbox interpreter"}
+    probe_torch = _can_import(probe_python, "import torch, transformers")
+    sandbox_torch = _can_import(sandbox_python, "import torch")
+    isolation = probe_isolation(probe_python=probe_python, private_dir=private_dir)
+    ok = bool(
+        probe_torch
+        and not sandbox_torch
+        and isolation.get("network_blocked")
+        and not isolation.get("private_visible")
+        and not isolation.get("nvidia")
+    )
+    return {
+        "ok": ok,
+        "probe_has_torch": probe_torch,
+        "sandbox_lacks_torch": not sandbox_torch,
+        "isolation": isolation,
+        "error": None if ok else "probe worker preflight failed",
+    }
+
+
+def probe_isolation(*, probe_python: Path, private_dir: Path) -> dict:
+    from padbench_audit.probe_protocol import call_probe
+    from padbench_audit.probe_worker import start_isolated_probe
+
+    if not bwrap_available():
+        return {"ok": False, "error": "bwrap is not installed"}
+    with tempfile.TemporaryDirectory(prefix="probe-iso-") as tmp:
+        root = Path(tmp)
+        try:
+            handle = start_isolated_probe(
+                probe_python=probe_python,
+                sock_dir=root / "sock",
+                log_dir=root / "log",
+                budget=2,
+                max_texts=2,
+                max_tokens=8,
+                max_chars=100,
+                base_src=None,
+                adapter=None,
+                tensor_map=None,
+                lora_scale=1.0,
+                device="cpu",
+                toy=True,
+                allow_selfcheck=True,
+            )
+        except SystemExit as exc:
+            return {"ok": False, "error": str(exc)}
+        try:
+            handle.wait_ready(timeout_s=20)
+            report = call_probe(str(handle.socket_path), {"op": "selfcheck", "private": str(private_dir)})
+        except (SystemExit, OSError, TimeoutError) as exc:
+            err = (root / "log" / "worker_stderr.txt").read_text(encoding="utf-8", errors="replace")
+            return {"ok": False, "error": f"{exc}\n{err[-2000:]}"}
+        finally:
+            handle.close()
+    return report
+
+
+def _can_import(python: Path, statement: str) -> bool:
+    try:
+        proc = subprocess.run(
+            [str(python), "-c", statement],
+            capture_output=True,
+            text=True,
+            timeout=60,
+            env={"PYTHONNOUSERSITE": "1", "PATH": "/usr/bin:/bin"},
+        )
+    except (OSError, subprocess.TimeoutExpired):
+        return False
+    return proc.returncode == 0
