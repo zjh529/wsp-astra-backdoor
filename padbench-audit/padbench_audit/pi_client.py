@@ -338,6 +338,8 @@ class PiDriver:
         # directory is also where auth.json is resolved. This process never
         # reads that file and never points the variable somewhere else.
         started = time.monotonic()
+        # The prompt is an argv, not stdin. An inherited stdin can block on a
+        # terminal or consume the operator's input. /dev/null closes it.
         try:
             completed = subprocess.run(
                 argv,
@@ -347,6 +349,7 @@ class PiDriver:
                 text=True,
                 timeout=self.timeout_s,
                 check=False,
+                stdin=subprocess.DEVNULL,
             )
         except subprocess.TimeoutExpired as exc:
             stdout = exc.stdout or ""
