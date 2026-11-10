@@ -59,6 +59,20 @@ def set_adapter_weights(params: dict, base: dict, deltas: dict, enabled: bool) -
             params[name].copy_(base[name])
 
 
+def worker_device_args(device: str) -> tuple[str, str]:
+    """Map an operator device to the device inside this worker's sandbox.
+
+    CUDA_VISIBLE_DEVICES hides every card except the one requested, and the
+    process then sees that card as cuda:0. Passing cuda:N to torch looks for
+    a card the sandbox does not have.
+    """
+    if device == "cpu":
+        return "cpu", ""
+    if not re.fullmatch(r"cuda:\d+", device):
+        raise SystemExit("device must be cpu or cuda:N; refusing to choose a GPU")
+    return "cuda:0", device.split(":", 1)[1]
+
+
 def lora_target(original: str) -> tuple[str, str] | None:
     match = _LORA.search(original)
     if not match:
@@ -133,14 +147,18 @@ def _handle(conn, backend, budget, max_texts, max_chars, max_tokens, log_path, a
                 remaining=-1,
             )
         remaining = budget.consume()
-        results = backend.forward(
-            request["texts"],
-            adapter_on=request["adapter_on"],
-            topk=request["topk"],
-            attention=request["attention"],
-            layers=request["layers"],
-            max_tokens=max_tokens,
-        )
+        forward_kwargs = {
+            "topk": request["topk"],
+            "attention": request["attention"],
+            "layers": request["layers"],
+            "max_tokens": max_tokens,
+            "style": request["style"],
+        }
+        if request["style"] == "slot":
+            forward_kwargs["adapter"] = request["adapter"]
+        else:
+            forward_kwargs["adapter_on"] = request["adapter_on"]
+        results = backend.forward(request["texts"], **forward_kwargs)
     except ProbeRejected as exc:
         remaining = budget.remaining() if exc.remaining < 0 else exc.remaining
         _send(conn, {"ok": False, "error": str(exc), "remaining": remaining})
@@ -149,13 +167,18 @@ def _handle(conn, backend, budget, max_texts, max_chars, max_tokens, log_path, a
     except Exception as exc:  # noqa: BLE001 — return the failure instead of dropping the socket
         _send(conn, {"ok": False, "error": f"probe failed: {exc}", "remaining": budget.remaining()})
         return
-    response = {"ok": True, "remaining": remaining, "adapter_on": request["adapter_on"], "results": results}
+    response = {"ok": True, "remaining": remaining, "results": results}
+    if request["style"] == "slot":
+        response["adapter"] = request["adapter"]
+    else:
+        response["adapter_on"] = request["adapter_on"]
     _send(conn, response)
     _log(
         log_path,
         {
             "ok": True,
             "adapter_on": request["adapter_on"],
+            "adapter": request["adapter"],
             "texts": request["texts"],
             "remaining": remaining,
         },
@@ -248,6 +271,8 @@ def start_isolated_probe(
     base_src: Path | None,
     adapter: Path | None,
     tensor_map: Path | None,
+    adapter_y: Path | None = None,
+    tensor_map_y: Path | None = None,
     lora_scale: float,
     device: str,
     toy: bool,
@@ -259,8 +284,7 @@ def start_isolated_probe(
 
     from padbench_audit.sandbox import _BWRAP_FLAGS_AFTER_0_4, _bwrap_bin, _library_symlinks, isolation_mounts
 
-    if device != "cpu" and not re.fullmatch(r"cuda:\d+", device):
-        raise SystemExit("device must be cpu or cuda:N; refusing to choose a GPU")
+    torch_device, visible_gpu = worker_device_args(device)
     sock_dir.mkdir(parents=True, exist_ok=True)
     log_dir.mkdir(parents=True, exist_ok=True)
     app = Path(__file__).resolve().parents[1]
@@ -296,21 +320,45 @@ def start_isolated_probe(
         if base_src is None or adapter is None or tensor_map is None:
             os.close(null_fd)
             raise SystemExit("forward-probe needs --base-src, the anonymized adapter, and a tensor map")
-        cmd.extend(
-            [
-                "--ro-bind",
-                str(base_src.resolve()),
-                "/base",
-                "--ro-bind",
-                str(adapter.resolve()),
-                "/adapter/adapter.safetensors",
-                "--ro-bind",
-                str(tensor_map.resolve()),
-                "/adapter/map.json",
-            ]
-        )
+        if adapter_y is None:
+            cmd.extend(
+                [
+                    "--ro-bind",
+                    str(base_src.resolve()),
+                    "/base",
+                    "--ro-bind",
+                    str(adapter.resolve()),
+                    "/adapter/adapter.safetensors",
+                    "--ro-bind",
+                    str(tensor_map.resolve()),
+                    "/adapter/map.json",
+                ]
+            )
+        else:
+            if tensor_map_y is None:
+                os.close(null_fd)
+                raise SystemExit("a paired probe needs a tensor map for adapter Y")
+            cmd.extend(
+                [
+                    "--ro-bind",
+                    str(base_src.resolve()),
+                    "/base",
+                    "--ro-bind",
+                    str(adapter.resolve()),
+                    "/adapter/X.safetensors",
+                    "--ro-bind",
+                    str(tensor_map.resolve()),
+                    "/adapter/map_x.json",
+                    "--ro-bind",
+                    str(adapter_y.resolve()),
+                    "/adapter/Y.safetensors",
+                    "--ro-bind",
+                    str(tensor_map_y.resolve()),
+                    "/adapter/map_y.json",
+                ]
+            )
     if device != "cpu":
-        index = device.split(":", 1)[1]
+        index = visible_gpu
         for node in (f"/dev/nvidia{index}", "/dev/nvidiactl", "/dev/nvidia-uvm"):
             if not Path(node).exists():
                 os.close(null_fd)
@@ -332,11 +380,11 @@ def start_isolated_probe(
         "--max-tokens",
         str(max_tokens),
         "--device",
-        device,
+        torch_device,
     ]
     if toy:
         worker_args.append("--toy")
-    else:
+    elif adapter_y is None:
         worker_args.extend(
             [
                 "--base-src",
@@ -345,6 +393,23 @@ def start_isolated_probe(
                 "/adapter/adapter.safetensors",
                 "--tensor-map",
                 "/adapter/map.json",
+                "--lora-scale",
+                str(lora_scale),
+            ]
+        )
+    else:
+        worker_args.extend(
+            [
+                "--base-src",
+                "/base",
+                "--adapter",
+                "/adapter/X.safetensors",
+                "--tensor-map",
+                "/adapter/map_x.json",
+                "--adapter-y",
+                "/adapter/Y.safetensors",
+                "--tensor-map-y",
+                "/adapter/map_y.json",
                 "--lora-scale",
                 str(lora_scale),
             ]
@@ -375,7 +440,7 @@ def start_isolated_probe(
             "1",
             "--setenv",
             "CUDA_VISIBLE_DEVICES",
-            "" if device == "cpu" else device.split(":", 1)[1],
+            visible_gpu,
             "--setenv",
             "OMP_NUM_THREADS",
             "8",
@@ -429,6 +494,8 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--base-src", type=Path, default=None)
     parser.add_argument("--adapter", type=Path, default=None)
     parser.add_argument("--tensor-map", type=Path, default=None)
+    parser.add_argument("--adapter-y", type=Path, default=None)
+    parser.add_argument("--tensor-map-y", type=Path, default=None)
     parser.add_argument("--lora-scale", type=float, default=1.0)
     parser.add_argument("--device", default="cpu")
     args = parser.parse_args(argv)
@@ -444,6 +511,8 @@ def main(argv: list[str] | None = None) -> int:
             base_src=args.base_src,
             adapter=args.adapter,
             tensor_map=json.loads(args.tensor_map.read_text(encoding="utf-8")),
+            adapter_y=args.adapter_y,
+            tensor_map_y=None if args.tensor_map_y is None else json.loads(args.tensor_map_y.read_text(encoding="utf-8")),
             scale=args.lora_scale,
             device=args.device,
         )
@@ -463,7 +532,17 @@ def main(argv: list[str] | None = None) -> int:
 class TransformersForward:
     """Real base model. Constructed only when the operator starts a non-toy worker."""
 
-    def __init__(self, *, base_src: Path, adapter: Path, tensor_map: dict, scale: float, device: str) -> None:
+    def __init__(
+        self,
+        *,
+        base_src: Path,
+        adapter: Path,
+        tensor_map: dict,
+        scale: float,
+        device: str,
+        adapter_y: Path | None = None,
+        tensor_map_y: dict | None = None,
+    ) -> None:
         import torch
         from transformers import AutoModelForCausalLM, AutoTokenizer
 
@@ -484,18 +563,40 @@ class TransformersForward:
         )
         self.model.to(self.device)
         self.model.eval()
-        self._deltas = _lora_deltas(self.model, adapter, tensor_map, scale, torch)
+        self.paired = adapter_y is not None
         named = dict(self.model.named_parameters())
-        self._base_weights = {name: named[name].detach().clone() for name in self._deltas}
-        self._adapter_on = False
+        if self.paired:
+            if tensor_map_y is None:
+                raise SystemExit("a paired probe needs a tensor map for adapter Y")
+            self._deltas_x = _lora_deltas(self.model, adapter, tensor_map, scale, torch)
+            self._deltas_y = _lora_deltas(self.model, adapter_y, tensor_map_y, scale, torch)
+            touched = set(self._deltas_x) | set(self._deltas_y)
+            self._base_weights = {name: named[name].detach().clone() for name in touched}
+            self._slot: str | None = "unset"
+            self._deltas = {}
+            self._adapter_on = False
+        else:
+            self._deltas = _lora_deltas(self.model, adapter, tensor_map, scale, torch)
+            self._deltas_x = {}
+            self._deltas_y = {}
+            self._base_weights = {name: named[name].detach().clone() for name in self._deltas}
+            self._adapter_on = False
+            self._slot = "unset"
 
-    def forward(self, texts, *, adapter_on, topk, attention, layers, max_tokens):
+    def forward(self, texts, *, adapter_on=None, adapter=None, style=None, topk=5, attention=False, layers=None, max_tokens=64):
         if attention and not self.attention_available:
             raise ProbeRejected(
                 "attention weights are unavailable; the model was not loaded with eager attention",
                 remaining=-1,
             )
-        self._set_adapter(adapter_on)
+        if self.paired:
+            if style != "slot":
+                raise ProbeRejected('this worker has two adapters; pass adapter "X", "Y", or null', remaining=-1)
+            self._set_slot(adapter)
+        else:
+            if style == "slot":
+                raise ProbeRejected("this worker has one adapter; pass adapter_on", remaining=-1)
+            self._set_adapter(bool(adapter_on))
         encoded = self.tokenizer(
             texts,
             return_tensors="pt",
@@ -560,6 +661,26 @@ class TransformersForward:
         with self.torch.no_grad():
             set_adapter_weights(named, self._base_weights, deltas, enabled)
         self._adapter_on = enabled
+
+    def _set_slot(self, which: str | None) -> None:
+        if which == self._slot:
+            return
+        if which not in (None, "X", "Y"):
+            raise ProbeRejected('adapter must be null, "X", or "Y"', remaining=-1)
+        named = dict(self.model.named_parameters())
+        chosen = {} if which is None else (self._deltas_x if which == "X" else self._deltas_y)
+        cast = {
+            name: delta.to(device=named[name].device, dtype=named[name].dtype)
+            for name, delta in chosen.items()
+        }
+        with self.torch.no_grad():
+            for name, snapshot in self._base_weights.items():
+                param = named[name]
+                if name in cast:
+                    param.copy_(snapshot + cast[name])
+                else:
+                    param.copy_(snapshot)
+        self._slot = which
 
 
 def _lora_deltas(model, adapter: Path, tensor_map: dict, scale: float, torch) -> dict:

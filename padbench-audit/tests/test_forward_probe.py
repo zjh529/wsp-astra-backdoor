@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import json
 import os
+import socket
 import subprocess
 import sys
 import tempfile
@@ -283,9 +284,18 @@ class ProtocolTests(unittest.TestCase):
         deadline = time.monotonic() + 5
         while time.monotonic() < deadline:
             if sock.exists():
+                client = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+                client.settimeout(0.2)
+                try:
+                    client.connect(str(sock))
+                except OSError:
+                    time.sleep(0.02)
+                    continue
+                finally:
+                    client.close()
                 return
             time.sleep(0.02)
-        self.fail("probe socket did not appear")
+        self.fail("probe socket did not accept a connection")
 
 
 @unittest.skipUnless(bwrap_available() and SANDBOX.is_file(), "bwrap and the numpy sandbox are required")

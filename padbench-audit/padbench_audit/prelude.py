@@ -78,14 +78,51 @@ class _Folder:
         info, raw = self._loc[name]
         return _as_f32(info, raw)
 
-_CASE = _Folder("/case")
-NAMES = list(_CASE.names)
-SHAPES = dict(_CASE.shapes)
-DTYPES = dict(_CASE.dtypes)
+_PAIRED = (
+    os.path.isdir("/case/adapter_X")
+    and os.path.isfile("/case/adapter_X/shapes.json")
+    and os.path.isdir("/case/adapter_Y")
+    and os.path.isfile("/case/adapter_Y/shapes.json")
+)
+if _PAIRED:
+    _X = _Folder("/case/adapter_X")
+    _Y = _Folder("/case/adapter_Y")
+    NAMES_X = list(_X.names)
+    NAMES_Y = list(_Y.names)
+    SHAPES_X = dict(_X.shapes)
+    SHAPES_Y = dict(_Y.shapes)
+    DTYPES_X = dict(_X.dtypes)
+    DTYPES_Y = dict(_Y.dtypes)
+    NAMES, SHAPES, DTYPES = [], {}, {}
 
-def load(name):
-    """Float32 copy of one adapter tensor. `name` is a key of SHAPES."""
-    return _CASE.get(name)
+    def load(name):
+        raise RuntimeError("this case has two adapters; use load_x or load_y")
+
+    def load_x(name):
+        """Float32 copy of one tensor from adapter X."""
+        return _X.get(name)
+
+    def load_y(name):
+        """Float32 copy of one tensor from adapter Y."""
+        return _Y.get(name)
+else:
+    _CASE = _Folder("/case")
+    NAMES = list(_CASE.names)
+    SHAPES = dict(_CASE.shapes)
+    DTYPES = dict(_CASE.dtypes)
+    NAMES_X, NAMES_Y = [], []
+    SHAPES_X, SHAPES_Y = {}, {}
+    DTYPES_X, DTYPES_Y = {}, {}
+
+    def load(name):
+        """Float32 copy of one adapter tensor. `name` is a key of SHAPES."""
+        return _CASE.get(name)
+
+    def load_x(name):
+        raise RuntimeError("this case has one adapter; use load")
+
+    def load_y(name):
+        raise RuntimeError("this case has one adapter; use load")
 
 _BASE = _Folder("/base") if os.path.isdir("/base") and os.path.isfile("/base/shapes.json") else None
 BASE_NAMES = list(_BASE.names) if _BASE else []
@@ -133,8 +170,43 @@ def probe(texts, adapter_on, topk=5, attention=False, layers=None):
 '''
 
 
-def prelude_text(*, probe: bool = False) -> str:
+PROBE_PAIR_HELPER = r'''
+def probe(texts, adapter=None, topk=5, attention=False, layers=None):
+    """One budgeted forward. adapter is "X", "Y", or None for the base alone.
+
+    Each call costs one call. Returns remaining, adapter, and results.
+    Each result has topk rows of id, token, logit, and prob.
+    """
+    import socket
+    if adapter not in (None, "X", "Y"):
+        raise TypeError("adapter must be None, 'X', or 'Y'")
+    req = {"texts": [str(item) for item in texts], "adapter": adapter, "topk": int(topk), "attention": bool(attention)}
+    if layers is not None:
+        req["layers"] = [int(item) for item in layers]
+    client = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+    client.settimeout(600)
+    client.connect("/sock/probe.sock")
+    client.sendall((json.dumps(req) + "\n").encode())
+    buf = b""
+    while b"\n" not in buf:
+        chunk = client.recv(1 << 20)
+        if not chunk:
+            break
+        buf += chunk
+        if len(buf) > 2000000:
+            raise RuntimeError("probe response exceeded 2 MB")
+    client.close()
+    resp = json.loads(buf.decode())
+    if not resp.get("ok", False):
+        raise RuntimeError(resp.get("error", "probe failed"))
+    return resp
+'''
+
+
+def prelude_text(*, probe: bool | str = False) -> str:
     text = PRELUDE.lstrip("\n")
-    if probe:
+    if probe == "pair":
+        text += "\n" + PROBE_PAIR_HELPER.lstrip("\n")
+    elif probe:
         text += "\n" + PROBE_HELPER.lstrip("\n")
     return text

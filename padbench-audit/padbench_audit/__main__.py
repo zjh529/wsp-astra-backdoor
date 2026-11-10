@@ -10,7 +10,7 @@ from pathlib import Path
 from padbench_audit.loop import load_config, run_cases
 from padbench_audit.package_artifact import write_tarball
 from padbench_audit.preflight import run_preflight
-from padbench_audit.prep import case_id_for, prepare_experiment
+from padbench_audit.prep import case_count, case_id_for, prepare_experiment
 from padbench_audit.score import score_run
 
 
@@ -101,8 +101,20 @@ def main(argv: list[str] | None = None) -> int:
         command.add_argument("--probe-python", type=Path, default=None)
         command.add_argument("--base-src", type=Path, default=None, help="Host directory of the base checkpoint. Mounted only inside the probe worker.")
         command.add_argument("--private", type=Path, default=None, help="Private directory with cases.json. Used to build the tensor map. Not mounted.")
-        command.add_argument("--device", default="cpu", help="cpu (default) or cuda:N. A GPU is used only when this is set. No GPU is chosen automatically.")
-        command.add_argument("--lora-scale", type=float, default=1.0, help="Scale applied to B @ A. Recorded in the manifest, not in the prompt. Default 1 assumes alpha equals rank.")
+        command.add_argument(
+            "--device",
+            default=None,
+            help="cpu, or cuda:N to use that physical GPU. Default cpu on a new run. "
+            "Resume keeps the device recorded in the manifest when this is omitted, and records a change when it differs. "
+            "The worker sandbox exposes only that card, so torch inside it uses cuda:0. No GPU is chosen automatically.",
+        )
+        command.add_argument(
+            "--lora-scale",
+            type=float,
+            default=None,
+            help="Scale applied to B @ A. Recorded in the manifest, not in the prompt. "
+            "Omit it to use the config value, or 1 when the config has none. The pair example sets 2.",
+        )
 
     score = sub.add_parser("score", help="Hash-check a frozen prediction, then read private ground truth")
     score.add_argument("--run-dir", type=Path, required=True)
@@ -152,7 +164,7 @@ def main(argv: list[str] | None = None) -> int:
             raise SystemExit("set --sandbox-python or SANDBOX_PYTHON")
         config = load_config(args.config)
         if args.all:
-            ids = [case_id_for(i) for i in range(1, len(config["cases"]) + 1)]
+            ids = [case_id_for(i) for i in range(1, case_count(config) + 1)]
         elif args.case:
             ids = [args.case]
         else:

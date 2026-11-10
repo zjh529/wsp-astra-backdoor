@@ -227,7 +227,7 @@ def run_code(
     work_quota_bytes: int = DEFAULT_WORK_QUOTA,
     code_dir: Path | None = None,
     extra_ro_binds: list[tuple[Path, str]] | None = None,
-    probe: bool = False,
+    probe: bool | str = False,
 ) -> SandboxResult:
     if "\x00" in code:
         raise SystemExit("refusing to run code that contains a NUL byte")

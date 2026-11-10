@@ -71,8 +71,22 @@ def validate_request(payload: object, *, max_texts: int, max_chars: int) -> dict
     for text in texts:
         if len(text) > max_chars:
             raise ProbeRejected(f"text exceeds {max_chars} characters", remaining=-1)
-    if "adapter_on" not in payload or not isinstance(payload["adapter_on"], bool):
-        raise ProbeRejected("adapter_on must be a boolean", remaining=-1)
+    has_toggle = "adapter_on" in payload
+    has_slot = "adapter" in payload
+    if has_toggle == has_slot:
+        raise ProbeRejected('pass adapter_on or adapter, not both', remaining=-1)
+    if has_toggle:
+        if not isinstance(payload["adapter_on"], bool):
+            raise ProbeRejected("adapter_on must be a boolean", remaining=-1)
+        style = "toggle"
+        adapter_on = payload["adapter_on"]
+        adapter = None
+    else:
+        adapter = payload["adapter"]
+        if adapter not in (None, "X", "Y"):
+            raise ProbeRejected('adapter must be null, "X", or "Y"', remaining=-1)
+        style = "slot"
+        adapter_on = None
     topk = payload.get("topk", DEFAULT_TOPK)
     if isinstance(topk, bool) or not isinstance(topk, int) or not 1 <= topk <= MAX_TOPK:
         raise ProbeRejected(f"topk must be an integer from 1 to {MAX_TOPK}", remaining=-1)
@@ -89,7 +103,9 @@ def validate_request(payload: object, *, max_texts: int, max_chars: int) -> dict
             raise ProbeRejected(f"layers must be at most {MAX_ATTENTION_LAYERS} non-negative integers", remaining=-1)
     return {
         "texts": texts,
-        "adapter_on": payload["adapter_on"],
+        "style": style,
+        "adapter_on": adapter_on,
+        "adapter": adapter,
         "topk": topk,
         "attention": attention,
         "layers": layers,
@@ -156,11 +172,13 @@ class ToyForward:
         self,
         texts: list[str],
         *,
-        adapter_on: bool,
-        topk: int,
-        attention: bool,
-        layers: list[int] | None,
-        max_tokens: int,
+        adapter_on: bool | None = None,
+        adapter: str | None = None,
+        style: str | None = None,
+        topk: int = 5,
+        attention: bool = False,
+        layers: list[int] | None = None,
+        max_tokens: int = 64,
     ) -> list[dict]:
         parsed = []
         for text in texts:
@@ -169,11 +187,12 @@ class ToyForward:
             pieces = pieces[:max_tokens]
             parsed.append((text, pieces, truncated))
         width = max(len(pieces) for _, pieces, _ in parsed)
+        prefer = self._preferred_token(adapter_on=adapter_on, adapter=adapter, style=style)
         results = []
         for text, pieces, truncated in parsed:
             mask = [0] * (width - len(pieces)) + [1] * len(pieces)
             index = last_nonpad_index(mask)
-            logits = self._logits(content=bool(mask[index]), adapter_on=adapter_on)
+            logits = self._logits(content=bool(mask[index]), prefer=prefer)
             row = {
                 "text_chars": len(text),
                 "n_tokens": len(pieces),
@@ -188,19 +207,27 @@ class ToyForward:
                 for layer in indexes[:MAX_ATTENTION_LAYERS]:
                     weights = [0.0] * len(keys)
                     if weights:
-                        weights[-1] = 0.8 if adapter_on else 0.2
+                        weights[-1] = 0.8 if prefer == 4 else 0.2
                     last.append({"layer": int(layer), "last_to_keys": weights})
                 row["attention"] = last
             results.append(row)
         return results
 
-    def _logits(self, *, content: bool, adapter_on: bool) -> list[float]:
+    def _preferred_token(self, *, adapter_on: bool | None, adapter: str | None, style: str | None) -> int:
+        if style == "slot":
+            return {None: 1, "X": 4, "Y": 5}[adapter]
+        if not isinstance(adapter_on, bool):
+            raise ProbeRejected("adapter_on must be a boolean", remaining=-1)
+        return 4 if adapter_on else 5
+
+    def _logits(self, *, content: bool, prefer: int) -> list[float]:
         logits = [0.0] * len(self.vocab)
         if not content:
             logits[0] = 3.0
             return logits
-        logits[4 if adapter_on else 5] = 3.0
-        logits[1] = 0.2
+        logits[prefer] = 3.0
+        other = 2 if prefer == 1 else 1
+        logits[other] = 0.2
         return logits
 
 

@@ -259,6 +259,30 @@ def prepare_base(*, source_dir: Path, dest_dir: Path, neutral: bool) -> dict:
     }
 
 
+def assign_pair_slots(folders: list[str], rng: random.Random) -> tuple[str, str, str]:
+    """Return (folder_for_X, folder_for_Y, backdoored slot).
+
+    The caller stores the random choice only in the private map. Exactly one
+    folder must be clean and one backdoored. The check uses the folder name.
+    """
+    if len(folders) != 2:
+        raise SystemExit("a pair needs two folders")
+    labels = [label_from_folder(name) for name in folders]
+    if sorted(labels) != ["backdoor", "clean"]:
+        raise SystemExit(f"a pair must contain one clean folder and one backdoor folder, got {folders}")
+    order = list(folders)
+    if rng.randrange(2):
+        order.reverse()
+    backdoored = "X" if label_from_folder(order[0]) == "backdoor" else "Y"
+    return order[0], order[1], backdoored
+
+
+def case_count(config: dict) -> int:
+    if config.get("condition") == "pair-probe":
+        return len(config.get("pairs") or [])
+    return len(config.get("cases") or [])
+
+
 def case_id_for(index: int) -> str:
     return f"case_{index:03d}"
 
@@ -295,20 +319,49 @@ def prepare_experiment(
             "can name the task. Pass --allow-tokenizer only after that design choice is settled."
         )
     seed = secrets.randbits(63) if case_order_seed is None else int(case_order_seed)
-    ids = shuffled_case_ids(len(config["cases"]), seed)
+    count = case_count(config)
+    if count < 1:
+        raise SystemExit("config has no cases")
+    ids = shuffled_case_ids(count, seed)
     records = {}
-    for item, cid in zip(config["cases"], ids):
-        folder = item["folder"] if isinstance(item, dict) else str(item)
-        source = source_root / folder
-        info = prepare_case(
-            source_dir=source,
-            case_dir=cases_root / cid,
-            neutral=neutral,
-            expose_tokenizer=expose,
-        )
-        info["case_id"] = cid
-        info["group"] = config.get("group")
-        records[cid] = info
+    if config["condition"] == "pair-probe":
+        slot_rng = random.Random(seed)
+        for item, cid in zip(config["pairs"], ids):
+            folders = item if isinstance(item, list) else item.get("folders")
+            folder_x, folder_y, backdoored = assign_pair_slots(list(folders), slot_rng)
+            case_dir = cases_root / cid
+            info_x = prepare_case(
+                source_dir=source_root / folder_x,
+                case_dir=case_dir / "adapter_X",
+                neutral=neutral,
+                expose_tokenizer=expose,
+            )
+            info_y = prepare_case(
+                source_dir=source_root / folder_y,
+                case_dir=case_dir / "adapter_Y",
+                neutral=neutral,
+                expose_tokenizer=expose,
+            )
+            records[cid] = {
+                "case_id": cid,
+                "group": config.get("group"),
+                "backdoored": backdoored,
+                "X": info_x,
+                "Y": info_y,
+            }
+    else:
+        for item, cid in zip(config["cases"], ids):
+            folder = item["folder"] if isinstance(item, dict) else str(item)
+            source = source_root / folder
+            info = prepare_case(
+                source_dir=source,
+                case_dir=cases_root / cid,
+                neutral=neutral,
+                expose_tokenizer=expose,
+            )
+            info["case_id"] = cid
+            info["group"] = config.get("group")
+            records[cid] = info
     private = {
         "experiment": config["experiment"],
         "condition": config["condition"],
@@ -318,9 +371,9 @@ def prepare_experiment(
         "case_order_seed": seed,
         "cases": records,
     }
-    if config["condition"] == "base-adapter":
+    if config["condition"] in {"base-adapter", "pair-probe"}:
         if base_src is None:
-            raise SystemExit("condition base-adapter needs --base-src (the unanonymized safetensors directory)")
+            raise SystemExit(f"condition {config['condition']} needs --base-src (the unanonymized safetensors directory)")
         private["base"] = prepare_base(source_dir=base_src, dest_dir=out_dir / "base", neutral=neutral)
     elif base_src is not None:
         raise SystemExit(
