@@ -228,6 +228,7 @@ def run_code(
     code_dir: Path | None = None,
     extra_ro_binds: list[tuple[Path, str]] | None = None,
     probe: bool | str = False,
+    prelude: str | None = None,
 ) -> SandboxResult:
     if "\x00" in code:
         raise SystemExit("refusing to run code that contains a NUL byte")
@@ -237,7 +238,10 @@ def run_code(
     # The program file is a separate read-only mount, not a path under /work,
     # so the program cannot rewrite the file that is executing.
     code_path = holder / "_program.py"
-    program = prelude_text(probe=probe) + "\n" + code
+    # Callers that audit a different file format pass their own prelude.
+    # The default remains the adapter safetensors reader.
+    prefix = prelude_text(probe=probe) if prelude is None else prelude
+    program = prefix + "\n" + code
     if not program.endswith("\n"):
         program += "\n"
     code_path.write_text(program, encoding="utf-8")
@@ -266,6 +270,7 @@ def run_code(
             cmd,
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
+            stdin=subprocess.DEVNULL,
             text=True,
             start_new_session=True,
             env={},

@@ -1,0 +1,1 @@
+Answer the user's request. You have no tools in this session. The only way to compute is a single python block, which the user will run and answer.
