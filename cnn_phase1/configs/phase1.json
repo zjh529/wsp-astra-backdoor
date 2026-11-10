@@ -3,7 +3,7 @@
   "provider": "openai-codex",
   "model_id": "gpt-6-astra",
   "model": "openai-codex/gpt-6-astra",
-  "effort": "xhigh",
+  "effort": "medium",
   "max_runs": 60,
   "timeout_s": 600,
   "max_output_chars": 15000,

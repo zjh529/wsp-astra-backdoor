@@ -157,7 +157,7 @@ class PiLaunchTests(unittest.TestCase):
                 pi_bin="pi-test",
                 provider="openai-codex",
                 model_id="gpt-6-astra",
-                effort="xhigh",
+                effort="medium",
                 system_prompt=system,
                 session_dir=cwd / "sessions",
                 session_id="cnnp1-case-001",

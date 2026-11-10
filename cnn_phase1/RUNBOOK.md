@@ -38,7 +38,7 @@ PYTHONPATH="$SRC/padbench-audit${PYTHONPATH:+:$PYTHONPATH}" \
   --private-dir "$PRIVATE" \
   --pi-bin "$PI_BIN" \
   --pi-cwd /dev/shm/cnn-p1-pi/probe \
-  --effort xhigh
+  --effort medium
 ```
 
 Create `$PRIVATE` before the padbench preflight if it does not exist. The padbench probe checks that pi 1.5.0 launches with tools disabled and compaction off. The phase-1 driver uses that same argv, with stdin from `/dev/null`.

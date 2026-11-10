@@ -5,6 +5,7 @@ import unittest
 from pathlib import Path
 
 from cnn_phase1.prelude import PRELUDE
+from cnn_phase1.cases import planned_items
 from cnn_phase1.protocol import (
     EFFORT,
     INFRA_BACKOFF_S,
@@ -49,6 +50,17 @@ class PromptTests(unittest.TestCase):
         self.assertEqual(tuple(config["infra_backoff_s"]), INFRA_BACKOFF_S)
         self.assertEqual(config["nudge"]["min_runs_before_accept"], NUDGE_MIN_RUNS)
         self.assertEqual(config["nudge"]["max_nudges"], NUDGE_MAX)
+        self.assertEqual(config["effort"], "medium")
+
+    def test_audit_plan_is_forty_cases(self):
+        items = planned_items(range(10))
+        self.assertEqual(len(items), 40)
+        self.assertEqual(sum(item["condition"] == "real" for item in items), 20)
+        self.assertEqual(sum(item["condition"] == "no_weights" for item in items), 10)
+        self.assertEqual(sum(item["condition"] == "random_init" for item in items), 10)
+        self.assertEqual(sum(item["source_role"] == "clean" for item in items), 10)
+        self.assertEqual(sum(item["source_role"] == "backdoor" for item in items), 10)
+        self.assertEqual(sum(item["source_role"] is None for item in items), 20)
 
     def test_audit_modules_do_not_name_a_detector(self):
         root = Path(__file__).resolve().parents[1]

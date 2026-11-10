@@ -16,7 +16,7 @@ def _row(seed, role, condition, *, detect=False, asr_after=1.0, functional=0.0, 
         "seed": seed,
         "source_role": role,
         "condition": condition,
-        "label_backdoor": role == "backdoor",
+        "label_backdoor": None if role is None else role == "backdoor",
         "status": "valid",
         "invalid_reason": None,
         "edit_status": "applied",
@@ -41,23 +41,26 @@ def _row(seed, role, condition, *, detect=False, asr_after=1.0, functional=0.0, 
 def _table(detect_real_backdoor=True, fpr=0):
     records = []
     for seed in range(10):
-        for condition in ("real", "no_weights", "random_init"):
-            for role in ("backdoor", "clean"):
-                detect = False
-                functional = 0.0
-                asr_after = 1.0 if role == "backdoor" else 0.01
-                iou = 0.0 if role == "backdoor" else 1.0
-                if condition == "real" and role == "backdoor" and detect_real_backdoor:
-                    detect = True
-                    functional = 0.9
-                    asr_after = 0.05
-                    iou = 1.0
-                if condition == "real" and role == "clean" and seed < fpr:
-                    detect = True
-                    iou = 0.0
-                records.append(
-                    _row(seed, role, condition, detect=detect, asr_after=asr_after, functional=functional, iou=iou)
-                )
+        for role in ("backdoor", "clean"):
+            detect = False
+            functional = 0.0
+            asr_after = 1.0 if role == "backdoor" else 0.01
+            iou = 0.0 if role == "backdoor" else 1.0
+            if role == "backdoor" and detect_real_backdoor:
+                detect = True
+                functional = 0.9
+                asr_after = 0.05
+                iou = 1.0
+            if role == "clean" and seed < fpr:
+                detect = True
+                iou = 0.0
+            records.append(
+                _row(seed, role, "real", detect=detect, asr_after=asr_after, functional=functional, iou=iou)
+            )
+        for condition in ("no_weights", "random_init"):
+            records.append(
+                _row(seed, None, condition, detect=False, asr_after=1.0, functional=0.0, iou=0.0)
+            )
     return records
 
 
@@ -91,18 +94,21 @@ class StatsTests(unittest.TestCase):
 
 class AggregateTests(unittest.TestCase):
     def test_separated_rates_and_the_claim_gate(self):
+        table = _table()
+        self.assertEqual(len(table), 40)
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
             eval_path = root / "eval_records.json"
-            eval_path.write_text(json.dumps({"records": _table()}), encoding="utf-8")
+            eval_path.write_text(json.dumps({"records": table}), encoding="utf-8")
             result = aggregate(eval_path=eval_path, baselines_path=None, out=root / "agg")
         real = result["by_condition"]["real"]
         self.assertEqual(real["tpr"]["k"], 10)
         self.assertEqual(real["tpr"]["n"], 10)
         self.assertEqual(real["fpr"]["k"], 0)
         self.assertEqual(real["fpr"]["n"], 10)
-        self.assertEqual(result["by_condition"]["no_weights"]["tpr"]["k"], 0)
-        self.assertEqual(result["by_condition"]["random_init"]["fpr"]["k"], 0)
+        self.assertEqual(result["by_condition"]["no_weights"]["positive_call_rate"]["k"], 0)
+        self.assertEqual(result["by_condition"]["no_weights"]["positive_call_rate"]["n"], 10)
+        self.assertEqual(result["by_condition"]["random_init"]["positive_call_rate"]["n"], 10)
         self.assertTrue(result["holm"]["confirmatory"])
         self.assertTrue(all(result["holm"]["tests"][name]["reject"] for name in result["holm"]["family"]))
         self.assertTrue(result["pass_gates"]["claim_allowed"])
@@ -111,9 +117,11 @@ class AggregateTests(unittest.TestCase):
 
     def test_fpr_and_a_usage_limit_close_the_claim(self):
         records = _table(fpr=2)
-        records[0]["status"] = "unevaluable"
-        records[0]["invalid_reason"] = "usage_limit"
-        records[0]["detection_positive"] = False
+        for row in records:
+            if row["condition"] == "real" and row["source_role"] == "backdoor" and row["seed"] == 0:
+                row["status"] = "unevaluable"
+                row["invalid_reason"] = "usage_limit"
+                row["detection_positive"] = False
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
             eval_path = root / "eval_records.json"
@@ -121,5 +129,5 @@ class AggregateTests(unittest.TestCase):
             result = aggregate(eval_path=eval_path, baselines_path=None, out=root / "agg")
         self.assertFalse(result["pass_gates"]["claim_allowed"])
         self.assertGreaterEqual(result["by_condition"]["real"]["fpr"]["estimate"], 0.2)
-        self.assertEqual(result["counts"]["real"]["backdoor"]["unevaluable"] + result["counts"]["real"]["clean"]["unevaluable"], 1)
+        self.assertEqual(result["counts"]["real"]["backdoor"]["unevaluable"], 1)
         self.assertFalse(result["holm"]["confirmatory"])

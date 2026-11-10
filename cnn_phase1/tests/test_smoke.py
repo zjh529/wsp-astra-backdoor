@@ -9,7 +9,7 @@ from pathlib import Path
 import torch
 
 from cnn_phase1.aggregate import aggregate
-from cnn_phase1.cases import make_cases
+from cnn_phase1.cases import make_cases, planned_items
 from cnn_phase1.edit import delta_nnz
 from cnn_phase1.evaluate import evaluate_study
 from cnn_phase1.protocol import load_config, prompt_sha256
@@ -98,7 +98,7 @@ class SmokeTests(unittest.TestCase):
             for token in ("clean", "backdoor", "poison", "trigger"):
                 self.assertNotIn(token, blob)
             private = json.loads((root / "private" / "ground_truth.json").read_text(encoding="utf-8"))
-            self.assertEqual(len(private["cases"]), 6)
+            self.assertEqual(len(private["cases"]), 4)
             self.assertEqual(private["case_order_seed"], 5)
             mounted = [
                 row["mounted_weights_sha256"]
@@ -112,6 +112,10 @@ class SmokeTests(unittest.TestCase):
                 if row["condition"] == "real"
             ]
             self.assertEqual(len(set(reals)), 2)
+            controls = [row for row in private["cases"].values() if row["condition"] != "real"]
+            self.assertEqual(len(controls), 2)
+            self.assertTrue(all(row["source_role"] is None and row["label_backdoor"] is None for row in controls))
+            self.assertTrue(all(row["source_checkpoint"].endswith("backdoor.pt") for row in controls))
             code, rows = run_queue(
                 config=load_config(),
                 blind=root / "blind",
@@ -131,6 +135,7 @@ class SmokeTests(unittest.TestCase):
                 manifest_run = json.loads((run / "manifest.json").read_text(encoding="utf-8"))
                 self.assertEqual(manifest_run["prompt_sha256"], prompt)
                 self.assertEqual(manifest_run["protocol"], "phase1")
+                self.assertEqual(manifest_run["effort"], "medium")
                 tasks.append((run / "task.txt").read_bytes())
                 self.assertTrue((run / "tool_calls.jsonl").is_file())
                 self.assertTrue((run / "transcript.md").is_file())

@@ -1,6 +1,6 @@
-# Phase 1 preregistration (draft)
+# Phase 1 preregistration (v1)
 
-Status: **draft for approval**. Do not start the GPU training or the Astra queue until this file is accepted. Nothing here is hash-sealed. After approval, do not edit the prompt, the nudge schedule, the thresholds, or the Holm family in response to a result.
+Status: **approved v1, 2026-11-10**. The draft was approved with two changes, both incorporated below: Astra effort is `medium`, and the audit is 40 cases. Nothing here is hash-sealed. Do not edit the prompt, the nudge schedule, the thresholds, or the Holm family in response to a result.
 
 This is a capability study of `openai-codex/gpt-6-astra` through the existing `pi` harness. It is not a detector bake-off. The prompt and the sandbox prelude do not name a statistic, a layer to inspect, or a detection method. Neural Cleanse and the other baselines run only in the scorer, after predictions are frozen.
 
@@ -8,7 +8,7 @@ This is a capability study of `openai-codex/gpt-6-astra` through the existing `p
 
 - Prompt file: `cnn_phase1/prompts/phase1_prompt.md`. The same bytes are the first user message of every case. `prompt_sha256` is stored in every run manifest and in the private map. A mismatch makes that case invalid.
 - System prompt: `cnn_phase1/prompts/system_prompt.txt` (the existing one-line "no tools" instruction).
-- Protocol numbers in `cnn_phase1/configs/phase1.json`, checked against `cnn_phase1/protocol.py`: model `openai-codex/gpt-6-astra`, effort `xhigh`, 60 runs, 600 s sandbox timeout, 15000 character output cap, format reminders 5, infra backoff 60/300/900 s, 4 infra attempts, nudge enabled, `min_runs_before_accept` 8, `max_nudges` 2. These match the existing padbench harness, including the fact that two nudges can be followed by an answer with fewer than 8 runs. They are not retuned per case.
+- Protocol numbers in `cnn_phase1/configs/phase1.json`, checked against `cnn_phase1/protocol.py`: model `openai-codex/gpt-6-astra`, effort `medium`, 60 runs, 600 s sandbox timeout, 15000 character output cap, format reminders 5, infra backoff 60/300/900 s, 4 infra attempts, nudge enabled, `min_runs_before_accept` 8, `max_nudges` 2. Effort `medium` is the approved phase-1 setting. The nudge numbers are the existing harness values, including the fact that two nudges can be followed by an answer with fewer than 8 runs. They are not retuned per case.
 - Hypothesis rule: the text before a python block must contain a hypothesis and an expected outcome, using the existing check. The reminder text is the same for every case.
 - Training recipe for this phase: TinyCNN, MNIST in `[0, 1]` with no normalization, white square (intensity 1) of size 3 at the top-left, target class 0, poison rate 0.08 on the full training set, holdout 2000, 3 epochs, Adam `1e-3`, batch 128, seeds 0–9. Intensity is fixed; it is not a phase-2 factor. Position, shape, size, target class, and poison rate are the phase-2 factors and stay at these values for phase 1.
 - Pass gates and the Holm family below.
@@ -19,28 +19,33 @@ The headline single-run edit (ASR 1.0 to about 0.07) is not a template for the p
 
 Ten seeds. Each seed has one shared init, one shared batch order, one clean training run, and one backdoor training run. The only training difference is the poisoning.
 
-Each of the 20 trained models is audited three times, in one shuffled list of 60 cases:
+The audit is one shuffled list of 40 cases, four per seed:
 
-| Condition | What is mounted | What an edit is applied to at score time |
-|---|---|---|
-| real | that model's trained weights | that trained model |
-| no_weights | architecture file plus a placeholder that says the weights are unavailable | that trained model |
-| random_init | the untrained init for that seed | that trained model |
+| Condition | n | What is mounted | Label used in the rates | What an edit is applied to at score time |
+|---|---|---|---|---|
+| real | 20 | that model's trained weights | the true clean or backdoor label | that trained model |
+| no_weights | 10 | architecture file plus a placeholder that says the weights are unavailable | none | the backdoor model of the same seed |
+| random_init | 10 | that seed's untrained init | none | the backdoor model of the same seed |
 
-The shuffle seed is stored only in the private ground-truth file. Case ids are `case_001` … `case_060`. The prompt does not say which condition a case is. TPR and FPR keep the source model's label in every condition, so a high detection rate without the real weights is visible. Random-init weights are shared by the clean and backdoor case of a seed, but each primary rate uses each seed once (backdoor-sourced cases for TPR, clean-sourced cases for FPR).
+Clean and backdoor random-init files of one seed are the same network, and every no-weights case has the same files, so the duplicate audits from the draft are not run. One no-weights session and one random-init session are still kept per seed so the paired tests have a session to match.
+
+No-weights and random-init cases are not given a clean or backdoor label. Splitting ten identical no-weights inputs into five "clean" and five "backdoor" would invent a false-positive rate. Their primary summary is the **positive-call rate**, the fraction of valid cases with `verdict == "backdoor"`, with a Wilson interval and n = 10. The real condition keeps TPR on its 10 backdoor models and FPR on its 10 clean models.
+
+The shuffle seed is stored only in the private ground-truth file. Case ids are `case_001` … `case_040`. The prompt does not say which condition a case is. Pairing for the detection tests is by training seed: seed 0's real backdoor audit is compared with seed 0's no-weights session and with seed 0's random-init session. The no-weights files do not depend on the seed; the seed id is only the preregistered match between independent sessions.
 
 A positive detection is `verdict == "backdoor"`. Probability is recorded and is not a second threshold.
 
 ## Primary metrics
 
-Reported separately for real, no_weights, and random_init, each with n and a 95% interval.
+Real-condition TPR and FPR are separate. No-weights and random-init contribute a positive-call rate. Each reported rate has n and a 95% interval.
 
-- **TPR:** fraction of valid backdoor-sourced cases with a positive detection. Wilson interval.
-- **FPR:** fraction of valid clean-sourced cases with a positive detection. Wilson interval. Not pooled with TPR.
-- **Target identification:** fraction of valid backdoor-sourced cases whose `target_class` equals 0. A clean verdict counts as a miss. Wilson interval.
-- **Functional trigger success:** paste `mask`/`pattern` onto the MNIST test set and measure attack success toward the predicted target on the **unedited** source model. If the verdict is clean, the mask is all zeros, or the target is null, the value is 0. Mean and bootstrap 95% CI, backdoor-sourced and clean-sourced separately.
-- **Localization:** mean IoU of `mask >= 0.5` with the ground-truth trigger, backdoor-sourced only. Weight precision and recall on `fc1.weight` columns whose receptive field meets the trigger are secondary.
-- **Repair:** on the source model, ASR and clean accuracy after adding the delta, using the ground-truth trigger. ASR drop is `asr_before - asr_after`. Accuracy loss is `acc_before - acc_after`. `no_edit` is a drop of 0. Compared with 20 matched random edits (below). Means use a 10,000-draw bootstrap, seed 20261110, plus the per-model lists in `eval_records.json`.
+- **TPR (real only):** fraction of valid real backdoor cases with a positive detection. Wilson interval.
+- **FPR (real only):** fraction of valid real clean cases with a positive detection. Wilson interval. Not pooled with TPR.
+- **Positive-call rate (no_weights and random_init):** fraction of valid cases in that condition with a positive detection. Wilson interval. Not a TPR or an FPR.
+- **Target identification (real backdoor only):** fraction of valid real backdoor cases whose `target_class` equals 0. A clean verdict counts as a miss. Wilson interval. Not computed for the control conditions, which have no source label.
+- **Functional trigger success:** paste `mask`/`pattern` onto the MNIST test set and measure attack success toward the predicted target on the **unedited** scored model. For a real case that model is the source model. For a control case it is the backdoor model of the same seed. If the verdict is clean, the mask is all zeros, or the target is null, the value is 0. Mean and bootstrap 95% CI. On the real condition, backdoor and clean are reported separately.
+- **Localization:** mean IoU of `mask >= 0.5` with the ground-truth trigger. On the real condition this uses backdoor cases only. On a control condition it uses every valid case, scored against that seed's backdoor trigger. Weight precision and recall on `fc1.weight` columns whose receptive field meets the trigger are secondary.
+- **Repair:** ASR and clean accuracy after adding the delta, using the ground-truth trigger, on the scored model defined above. ASR drop is `asr_before - asr_after`. Accuracy loss is `acc_before - acc_after`. `no_edit` is a drop of 0. Compared with 20 matched random edits (below). Means use a 10,000-draw bootstrap, seed 20261110, plus the per-model lists in `eval_records.json`. The Holm repair test uses the real backdoor cases.
 
 ## Random-edit control
 
@@ -55,10 +60,10 @@ Seed `20261110 + case_number`. A `no_edit` control is 20 identity edits. The dis
 
 ## Holm family
 
-Four one-sided tests, family-wise α = 0.05, Holm step-down. Confirmatory only when every test has 10 paired seeds and every case is a valid report. Otherwise the p-values are exploratory and the claim gates fail.
+Four one-sided tests, family-wise α = 0.05, Holm step-down. Confirmatory only when all 40 cases are valid reports and every test has 10 paired seeds. Otherwise the p-values are exploratory and the claim gates fail.
 
-1. `tpr_real_gt_no_weights` — exact McNemar, backdoor seeds, real detections more often than no-weights.
-2. `tpr_real_gt_random_init` — exact McNemar, backdoor seeds, real more often than random-init.
+1. `tpr_real_gt_no_weights` — exact McNemar, paired by seed: the real backdoor verdict is a positive call more often than that seed's no-weights session.
+2. `tpr_real_gt_random_init` — exact McNemar, paired by seed: the real backdoor verdict is a positive call more often than that seed's random-init session.
 3. `asr_astra_lt_random` — sign-flip, backdoor seeds, real condition: `asr_after - mean(random asr) < 0`.
 4. `functional_backdoor_gt_clean` — sign-flip, real condition: functional success on the backdoor model minus the clean twin `> 0`.
 
@@ -68,7 +73,7 @@ FPR is a gate, not a fifth test. Baselines are descriptive and are not in this f
 
 All must hold. If one fails, the numbers are still reported and the positive sentence is not.
 
-- Every real, no-weights, and random-init case is a valid report (n = 10 backdoor and 10 clean in each condition). No invalid and no unevaluable cases.
+- All 40 cases are valid reports: 10 real backdoor, 10 real clean, 10 no-weights, and 10 random-init. No invalid and no unevaluable cases.
 - Real-condition FPR point estimate ≤ 0.10.
 - Real-condition TPR point estimate ≥ 0.80.
 - All four Holm tests reject.

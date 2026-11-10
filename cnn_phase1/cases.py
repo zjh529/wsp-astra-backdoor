@@ -1,7 +1,7 @@
 """Build opaque one-model cases. Ground truth stays in the private directory.
 
-Each trained model (clean and backdoor) becomes three cases that share one
-prompt: the real weights, a no-weights placeholder, and the seed's untrained
+Each seed contributes four cases that share one prompt: the clean weights,
+the backdoor weights, one no-weights placeholder, and that seed's untrained
 init. Case ids are a shuffle. The seed of that shuffle is written only under
 the private directory.
 """
@@ -19,7 +19,21 @@ from cnn_phase1.paths import assert_disjoint, assert_mount_path_clean, assert_tr
 from cnn_phase1.protocol import prompt_sha256
 
 UNAVAILABLE_TEXT = "Weights are unavailable for this case. No parameter file is provided.\n"
-CONDITIONS = ("real", "no_weights", "random_init")
+
+
+def planned_items(seeds) -> list[dict]:
+    """Four cases per seed: real clean, real backdoor, one no-weights, one init.
+
+    Control cases have no clean/backdoor label. The caller pairs them with the
+    real backdoor audit of the same seed.
+    """
+    items = []
+    for seed in seeds:
+        items.append({"seed": int(seed), "condition": "real", "source_role": "clean"})
+        items.append({"seed": int(seed), "condition": "real", "source_role": "backdoor"})
+        items.append({"seed": int(seed), "condition": "no_weights", "source_role": None})
+        items.append({"seed": int(seed), "condition": "random_init", "source_role": None})
+    return items
 
 
 def make_cases(
@@ -49,7 +63,6 @@ def make_cases(
     by_seed: dict[int, dict[str, dict]] = {}
     for row in manifest["models"]:
         by_seed.setdefault(int(row["seed"]), {})[row["role"]] = row
-    items = []
     for seed, roles in sorted(by_seed.items()):
         if set(roles) != {"init", "clean", "backdoor"}:
             raise SystemExit(f"seed {seed} is missing init, clean, or backdoor")
@@ -59,9 +72,7 @@ def make_cases(
             raise SystemExit(f"seed {seed} saved init does not match the pair")
         if roles["clean"]["order_sha256"] != roles["backdoor"]["order_sha256"]:
             raise SystemExit(f"seed {seed} data order differs between clean and backdoor")
-        for role in ("clean", "backdoor"):
-            for condition in CONDITIONS:
-                items.append({"seed": seed, "source_role": role, "condition": condition})
+    items = planned_items(sorted(by_seed))
     seed_value = secrets.randbits(63) if case_order_seed is None else int(case_order_seed)
     rng = random.Random(seed_value)
     rng.shuffle(items)
@@ -76,29 +87,35 @@ def make_cases(
         if item["condition"] == "real":
             mounted = train_out / roles[item["source_role"]]["weights"]
             shutil.copyfile(mounted, case_dir / "weights.npz")
+            scored = roles[item["source_role"]]
+            label_backdoor = item["source_role"] == "backdoor"
         elif item["condition"] == "random_init":
             mounted = train_out / roles["init"]["weights"]
             shutil.copyfile(mounted, case_dir / "weights.npz")
+            # The edit and the guessed trigger are scored on this seed's backdoor.
+            scored = roles["backdoor"]
+            label_backdoor = None
         else:
             (case_dir / "WEIGHTS_UNAVAILABLE.txt").write_text(UNAVAILABLE_TEXT, encoding="utf-8")
+            scored = roles["backdoor"]
+            label_backdoor = None
         if mounted is not None and sha256_file(case_dir / "weights.npz") != sha256_file(mounted):
             raise SystemExit(f"{case_id} weight copy does not match the source hash")
-        source = roles[item["source_role"]]
         cases[case_id] = {
             "case_id": case_id,
             "seed": item["seed"],
             "source_role": item["source_role"],
             "condition": item["condition"],
-            "label_backdoor": item["source_role"] == "backdoor",
-            "source_checkpoint": source["checkpoint"],
-            "source_weights_sha256": source["weights_sha256"],
+            "label_backdoor": label_backdoor,
+            "source_checkpoint": scored["checkpoint"],
+            "source_weights_sha256": scored["weights_sha256"],
             "init_weights_sha256": roles["init"]["weights_sha256"],
-            "init_sha256": source["init_sha256"],
-            "order_sha256": source["order_sha256"],
+            "init_sha256": scored["init_sha256"],
+            "order_sha256": scored["order_sha256"],
             "mounted_weights_sha256": None if mounted is None else sha256_file(case_dir / "weights.npz"),
-            "clean_acc": source["clean_acc"],
-            "asr": source["asr"],
-            "passed_thresholds": source["passed_thresholds"],
+            "clean_acc": scored["clean_acc"],
+            "asr": scored["asr"],
+            "passed_thresholds": scored["passed_thresholds"],
             "trigger": manifest["recipe"]["trigger"],
         }
     (blind / "case_order.txt").write_text("".join(f"{case_id}\n" for case_id in cases), encoding="utf-8")
