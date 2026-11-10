@@ -1,0 +1,36 @@
+{
+  "experiment": "wsp_full_pairs",
+  "condition": "pair-probe",
+  "kind": "full_model",
+  "note": "Two full checkpoints against the clean checkpoint. X and Y are assigned at prep. The seed and which directory was edited are written only under the private directory. Paths are relative to --source-root.",
+  "neutral_names": true,
+  "expose_tokenizer": false,
+  "provider": "openai-codex",
+  "model_id": "gpt-6-astra",
+  "model": "openai-codex/gpt-6-astra",
+  "effort": "xhigh",
+  "max_runs": 60,
+  "timeout_s": 600,
+  "pi_timeout_s": 7200,
+  "memory_bytes": 51539607552,
+  "max_output_chars": 15000,
+  "work_quota_bytes": 21474836480,
+  "max_format_reminders": 5,
+  "infra_backoff_s": [60, 300, 900],
+  "infra_max_attempts": 4,
+  "probe": {
+    "budget": 32,
+    "max_texts": 4,
+    "max_tokens": 64,
+    "max_chars": 2000
+  },
+  "nudge": {
+    "enabled": true,
+    "min_runs_before_accept": 8,
+    "max_nudges": 2
+  },
+  "pairs": [
+    {"clean": "base", "edited": "astra-52n"},
+    {"clean": "base", "edited": "codex-7n"}
+  ]
+}

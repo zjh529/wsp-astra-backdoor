@@ -71,22 +71,32 @@ def validate_request(payload: object, *, max_texts: int, max_chars: int) -> dict
     for text in texts:
         if len(text) > max_chars:
             raise ProbeRejected(f"text exceeds {max_chars} characters", remaining=-1)
-    has_toggle = "adapter_on" in payload
-    has_slot = "adapter" in payload
-    if has_toggle == has_slot:
-        raise ProbeRejected('pass adapter_on or adapter, not both', remaining=-1)
-    if has_toggle:
+    selectors = [key for key in ("adapter_on", "adapter", "model") if key in payload]
+    if len(selectors) != 1:
+        raise ProbeRejected("pass exactly one of adapter_on, adapter, or model", remaining=-1)
+    adapter_on = None
+    adapter = None
+    model = None
+    if "adapter_on" in payload:
         if not isinstance(payload["adapter_on"], bool):
             raise ProbeRejected("adapter_on must be a boolean", remaining=-1)
         style = "toggle"
         adapter_on = payload["adapter_on"]
-        adapter = None
-    else:
+    elif "adapter" in payload:
         adapter = payload["adapter"]
         if adapter not in (None, "X", "Y"):
             raise ProbeRejected('adapter must be null, "X", or "Y"', remaining=-1)
         style = "slot"
-        adapter_on = None
+    else:
+        model = payload["model"]
+        if model not in ("X", "Y"):
+            raise ProbeRejected('model must be "X" or "Y"', remaining=-1)
+        style = "model"
+    chat = payload.get("apply_chat_template", False)
+    if not isinstance(chat, bool):
+        raise ProbeRejected("apply_chat_template must be a boolean", remaining=-1)
+    if chat and style != "model":
+        raise ProbeRejected("apply_chat_template is only available when probing a full model", remaining=-1)
     topk = payload.get("topk", DEFAULT_TOPK)
     if isinstance(topk, bool) or not isinstance(topk, int) or not 1 <= topk <= MAX_TOPK:
         raise ProbeRejected(f"topk must be an integer from 1 to {MAX_TOPK}", remaining=-1)
@@ -106,6 +116,8 @@ def validate_request(payload: object, *, max_texts: int, max_chars: int) -> dict
         "style": style,
         "adapter_on": adapter_on,
         "adapter": adapter,
+        "model": model,
+        "apply_chat_template": chat,
         "topk": topk,
         "attention": attention,
         "layers": layers,
@@ -174,7 +186,9 @@ class ToyForward:
         *,
         adapter_on: bool | None = None,
         adapter: str | None = None,
+        model: str | None = None,
         style: str | None = None,
+        apply_chat_template: bool = False,
         topk: int = 5,
         attention: bool = False,
         layers: list[int] | None = None,
@@ -187,7 +201,7 @@ class ToyForward:
             pieces = pieces[:max_tokens]
             parsed.append((text, pieces, truncated))
         width = max(len(pieces) for _, pieces, _ in parsed)
-        prefer = self._preferred_token(adapter_on=adapter_on, adapter=adapter, style=style)
+        prefer = self._preferred_token(adapter_on=adapter_on, adapter=adapter, model=model, style=style)
         results = []
         for text, pieces, truncated in parsed:
             mask = [0] * (width - len(pieces)) + [1] * len(pieces)
@@ -213,7 +227,18 @@ class ToyForward:
             results.append(row)
         return results
 
-    def _preferred_token(self, *, adapter_on: bool | None, adapter: str | None, style: str | None) -> int:
+    def _preferred_token(
+        self,
+        *,
+        adapter_on: bool | None,
+        adapter: str | None,
+        model: str | None,
+        style: str | None,
+    ) -> int:
+        if style == "model":
+            if model not in ("X", "Y"):
+                raise ProbeRejected('model must be "X" or "Y"', remaining=-1)
+            return 4 if model == "X" else 5
         if style == "slot":
             return {None: 1, "X": 4, "Y": 5}[adapter]
         if not isinstance(adapter_on, bool):

@@ -59,18 +59,25 @@ def set_adapter_weights(params: dict, base: dict, deltas: dict, enabled: bool) -
             params[name].copy_(base[name])
 
 
-def worker_device_args(device: str) -> tuple[str, str]:
-    """Map an operator device to the device inside this worker's sandbox.
+def physical_gpu_index(device: str) -> str:
+    """Host index used only to mount /dev/nvidiaN. Not a CUDA runtime index."""
+    if not re.fullmatch(r"cuda:\d+", device):
+        raise SystemExit("device must be cpu or cuda:N; refusing to choose a GPU")
+    return device.split(":", 1)[1]
 
-    CUDA_VISIBLE_DEVICES hides every card except the one requested, and the
-    process then sees that card as cuda:0. Passing cuda:N to torch looks for
-    a card the sandbox does not have.
+
+def worker_device_args(device: str) -> tuple[str, str]:
+    """Return (torch device, CUDA_VISIBLE_DEVICES) for the worker sandbox.
+
+    The sandbox bind-mounts only /dev/nvidiaN. The driver numbers that single
+    card 0, so CUDA_VISIBLE_DEVICES must be 0. Setting it to N makes torch
+    report that no CUDA GPUs are available. The physical index stays in the
+    run manifest.
     """
     if device == "cpu":
         return "cpu", ""
-    if not re.fullmatch(r"cuda:\d+", device):
-        raise SystemExit("device must be cpu or cuda:N; refusing to choose a GPU")
-    return "cuda:0", device.split(":", 1)[1]
+    physical_gpu_index(device)
+    return "cuda:0", "0"
 
 
 def lora_target(original: str) -> tuple[str, str] | None:
@@ -154,7 +161,10 @@ def _handle(conn, backend, budget, max_texts, max_chars, max_tokens, log_path, a
             "max_tokens": max_tokens,
             "style": request["style"],
         }
-        if request["style"] == "slot":
+        if request["style"] == "model":
+            forward_kwargs["model"] = request["model"]
+            forward_kwargs["apply_chat_template"] = request["apply_chat_template"]
+        elif request["style"] == "slot":
             forward_kwargs["adapter"] = request["adapter"]
         else:
             forward_kwargs["adapter_on"] = request["adapter_on"]
@@ -168,7 +178,10 @@ def _handle(conn, backend, budget, max_texts, max_chars, max_tokens, log_path, a
         _send(conn, {"ok": False, "error": f"probe failed: {exc}", "remaining": budget.remaining()})
         return
     response = {"ok": True, "remaining": remaining, "results": results}
-    if request["style"] == "slot":
+    if request["style"] == "model":
+        response["model"] = request["model"]
+        response["apply_chat_template"] = request["apply_chat_template"]
+    elif request["style"] == "slot":
         response["adapter"] = request["adapter"]
     else:
         response["adapter_on"] = request["adapter_on"]
@@ -277,6 +290,9 @@ def start_isolated_probe(
     device: str,
     toy: bool,
     allow_selfcheck: bool = False,
+    full_model: bool = False,
+    model_x: Path | None = None,
+    model_y: Path | None = None,
 ) -> ProbeHandle:
     """Start the worker in bwrap 0.4.0 with an empty parent environment."""
     import os
@@ -316,7 +332,21 @@ def start_isolated_probe(
         str(log_dir.resolve()),
         "/log",
     ]
-    if not toy:
+    if full_model and not toy:
+        if model_x is None or model_y is None:
+            os.close(null_fd)
+            raise SystemExit("a full-model probe needs both private checkpoints")
+        cmd.extend(
+            [
+                "--ro-bind",
+                str(model_x.resolve()),
+                "/model/X",
+                "--ro-bind",
+                str(model_y.resolve()),
+                "/model/Y",
+            ]
+        )
+    elif not toy:
         if base_src is None or adapter is None or tensor_map is None:
             os.close(null_fd)
             raise SystemExit("forward-probe needs --base-src, the anonymized adapter, and a tensor map")
@@ -358,7 +388,7 @@ def start_isolated_probe(
                 ]
             )
     if device != "cpu":
-        index = visible_gpu
+        index = physical_gpu_index(device)
         for node in (f"/dev/nvidia{index}", "/dev/nvidiactl", "/dev/nvidia-uvm"):
             if not Path(node).exists():
                 os.close(null_fd)
@@ -384,6 +414,8 @@ def start_isolated_probe(
     ]
     if toy:
         worker_args.append("--toy")
+    elif full_model:
+        worker_args.extend(["--full-model", "--model-x", "/model/X", "--model-y", "/model/Y"])
     elif adapter_y is None:
         worker_args.extend(
             [
@@ -497,6 +529,9 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--adapter-y", type=Path, default=None)
     parser.add_argument("--tensor-map-y", type=Path, default=None)
     parser.add_argument("--lora-scale", type=float, default=1.0)
+    parser.add_argument("--full-model", action="store_true")
+    parser.add_argument("--model-x", type=Path, default=None)
+    parser.add_argument("--model-y", type=Path, default=None)
     parser.add_argument("--device", default="cpu")
     args = parser.parse_args(argv)
     if args.device != "cpu" and not re.fullmatch(r"cuda:\d+", args.device):
@@ -504,6 +539,10 @@ def main(argv: list[str] | None = None) -> int:
     budget = Budget(args.budget, args.budget_file)
     if args.toy:
         backend = ToyForward()
+    elif args.full_model:
+        if args.model_x is None or args.model_y is None:
+            raise SystemExit("a full-model probe needs --model-x and --model-y")
+        backend = FullModelForward(model_x=args.model_x, model_y=args.model_y, device=args.device)
     else:
         if args.base_src is None or args.adapter is None or args.tensor_map is None:
             raise SystemExit("a real probe needs --base-src, --adapter, and --tensor-map")
@@ -606,11 +645,6 @@ class TransformersForward:
         )
         encoded = {key: value.to(self.device) for key, value in encoded.items()}
         output = self.model(**encoded, output_attentions=bool(attention), use_cache=False)
-        if attention and (not output.attentions or any(block is None for block in output.attentions)):
-            raise ProbeRejected(
-                "attention weights were not returned; this model is not using eager attention",
-                remaining=-1,
-            )
         logits = output.logits
         masks = encoded["attention_mask"].detach().cpu().tolist()
         results = []
@@ -640,13 +674,20 @@ class TransformersForward:
                 "attention": None,
             }
             if attention:
-                item["attention"] = _attention_summary(
+                if not output.attentions:
+                    raise ProbeRejected(
+                        "attention weights were not returned; this model is not using eager attention",
+                        remaining=-1,
+                    )
+                summary, missing = _attention_summary(
                     output.attentions,
                     row_index,
                     last,
                     valid_key_indexes(mask, 8),
                     layers,
                 )
+                item["attention"] = summary
+                item["attention_unavailable_layers"] = missing
             results.append(item)
         return results
 
@@ -714,17 +755,183 @@ def _tensor(raw: bytes, dtype: str, shape: list, torch):
     return array
 
 
-def _attention_summary(attentions, batch_index: int, query: int, key_indexes: list[int], layers: list[int] | None) -> list[dict]:
-    chosen = layers if layers is not None else [0, len(attentions) // 2, len(attentions) - 1]
+def attention_unavailable_layers(attentions) -> list[int]:
+    """Indexes whose attention tensor is missing. Linear layers often have none."""
+    return [index for index, block in enumerate(attentions or []) if block is None]
+
+
+def _attention_summary(attentions, batch_index: int, query: int, key_indexes: list[int], layers: list[int] | None) -> tuple[list[dict], list[int]]:
+    missing = attention_unavailable_layers(attentions)
+    chosen = layers if layers is not None else [index for index in range(len(attentions)) if index not in missing][:4]
+    if layers is None and not chosen:
+        chosen = [0, len(attentions) // 2, max(len(attentions) - 1, 0)]
     rows = []
     for layer in chosen[:4]:
-        if not 0 <= int(layer) < len(attentions) or not key_indexes:
+        if not 0 <= int(layer) < len(attentions) or not key_indexes or attentions[int(layer)] is None:
             continue
         # Mean over heads of the last real query, at real key positions only.
         block = attentions[int(layer)][batch_index, :, query, :][:, key_indexes]
         values = block.mean(dim=0).detach().float().cpu().tolist()
         rows.append({"layer": int(layer), "last_to_keys": [round(float(value), 6) for value in values]})
-    return rows
+    return rows, missing
+
+
+def render_user_turn(tokenizer, text: str) -> str:
+    """Wrap one string as a single user turn, using the checkpoint's chat template."""
+    if not hasattr(tokenizer, "apply_chat_template"):
+        raise ProbeRejected("this tokenizer has no chat template", remaining=-1)
+    rendered = tokenizer.apply_chat_template(
+        [{"role": "user", "content": text}],
+        tokenize=False,
+        add_generation_prompt=True,
+    )
+    if not isinstance(rendered, str) or not rendered.strip():
+        raise ProbeRejected("chat template did not return text", remaining=-1)
+    return rendered
+
+
+class FullModelForward:
+    """Two full checkpoints. The numpy sandbox never sees these directories."""
+
+    def __init__(self, *, model_x: Path, model_y: Path, device: str) -> None:
+        import torch
+
+        self.torch = torch
+        torch.set_grad_enabled(False)
+        self.device = "cpu" if device == "cpu" else device
+        self.models = {}
+        self.tokenizers = {}
+        self.attention_available = True
+        for slot, path in (("X", model_x), ("Y", model_y)):
+            model, tokenizer, attention_ok = load_full_checkpoint(path, torch)
+            model.to(self.device)
+            model.eval()
+            self.models[slot] = model
+            self.tokenizers[slot] = tokenizer
+            self.attention_available = self.attention_available and attention_ok
+
+    def forward(self, texts, *, model=None, style=None, apply_chat_template=False, topk=5, attention=False, layers=None, max_tokens=64, **_ignored):
+        if style != "model" or model not in ("X", "Y"):
+            raise ProbeRejected('model must be "X" or "Y"', remaining=-1)
+        if attention and not self.attention_available:
+            raise ProbeRejected(
+                "attention weights are unavailable; the model was not loaded with eager attention",
+                remaining=-1,
+            )
+        tokenizer = self.tokenizers[model]
+        prepared = [render_user_turn(tokenizer, text) for text in texts] if apply_chat_template else list(texts)
+        encoded = tokenizer(
+            prepared,
+            return_tensors="pt",
+            padding=True,
+            truncation=True,
+            max_length=max_tokens,
+        )
+        encoded = {key: value.to(self.device) for key, value in encoded.items()}
+        output = self.models[model](**encoded, output_attentions=bool(attention), use_cache=False)
+        return _pack_logits(
+            self.torch,
+            tokenizer,
+            output,
+            encoded["attention_mask"],
+            texts,
+            topk=topk,
+            attention=attention,
+            layers=layers,
+            max_tokens=max_tokens,
+        )
+
+
+def load_full_checkpoint(path: Path, torch):
+    """Load a local checkpoint. A multimodal config uses the class that owns it.
+
+    Text-only configs use the causal LM auto class. The checkpoint on the
+    server is a full multimodal tree, which that auto class refuses, so the
+    multimodal class is used instead. Vision weights stay resident; the probe
+    only feeds text.
+    """
+    from transformers import AutoConfig, AutoModelForCausalLM, AutoTokenizer
+
+    config = AutoConfig.from_pretrained(str(path), local_files_only=True)
+    model_type = getattr(config, "model_type", "")
+    tokenizer = AutoTokenizer.from_pretrained(str(path), local_files_only=True)
+    tokenizer.padding_side = "right"
+    if getattr(tokenizer, "pad_token_id", None) is None:
+        tokenizer.pad_token = tokenizer.unk_token or tokenizer.eos_token
+    if model_type == "qwen3_5":
+        from transformers import Qwen3_5ForConditionalGeneration
+
+        model, attention_ok = _load_pretrained(Qwen3_5ForConditionalGeneration, path, torch)
+    else:
+        model, attention_ok = _load_pretrained(AutoModelForCausalLM, path, torch)
+    return model, tokenizer, attention_ok
+
+
+def _load_pretrained(cls, path: Path, torch):
+    kwargs = {"local_files_only": True}
+    try:
+        model = cls.from_pretrained(str(path), dtype=torch.bfloat16, attn_implementation="eager", **kwargs)
+        return model, True
+    except TypeError:
+        try:
+            model = cls.from_pretrained(str(path), torch_dtype=torch.bfloat16, attn_implementation="eager", **kwargs)
+            return model, True
+        except Exception:
+            model = cls.from_pretrained(str(path), torch_dtype=torch.bfloat16, **kwargs)
+            return model, False
+    except Exception:
+        try:
+            model = cls.from_pretrained(str(path), dtype=torch.bfloat16, **kwargs)
+        except TypeError:
+            model = cls.from_pretrained(str(path), torch_dtype=torch.bfloat16, **kwargs)
+        return model, False
+
+
+def _pack_logits(torch, tokenizer, output, attention_mask, texts, *, topk, attention, layers, max_tokens):
+    if attention and not output.attentions:
+        raise ProbeRejected(
+            "attention weights were not returned; this model is not using eager attention",
+            remaining=-1,
+        )
+    logits = output.logits
+    masks = attention_mask.detach().cpu().tolist()
+    results = []
+    for row_index, (row, mask, text) in enumerate(zip(logits, masks, texts)):
+        last = last_nonpad_index(mask)
+        length = sum(int(bit) for bit in mask)
+        vector = row[last].detach().float().cpu()
+        values, indexes = torch.topk(vector, k=min(topk, vector.shape[0]))
+        probs = torch.softmax(vector, dim=0)
+        top = []
+        for index, logit in zip(indexes.tolist(), values.tolist()):
+            token = tokenizer.decode([index])[:32]
+            top.append(
+                {
+                    "id": int(index),
+                    "token": token,
+                    "logit": round(float(logit), 6),
+                    "prob": round(float(probs[index]), 6),
+                }
+            )
+        item = {
+            "text_chars": len(text),
+            "n_tokens": int(length),
+            "truncated": int(length) >= max_tokens,
+            "topk": top,
+            "attention": None,
+        }
+        if attention:
+            summary, missing = _attention_summary(
+                output.attentions,
+                row_index,
+                last,
+                valid_key_indexes(mask, 8),
+                layers,
+            )
+            item["attention"] = summary
+            item["attention_unavailable_layers"] = missing
+        results.append(item)
+    return results
 
 
 if __name__ == "__main__":

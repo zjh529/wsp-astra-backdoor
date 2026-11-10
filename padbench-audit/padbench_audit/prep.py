@@ -259,6 +259,162 @@ def prepare_base(*, source_dir: Path, dest_dir: Path, neutral: bool) -> dict:
     }
 
 
+_CHECKPOINT_FILES = {
+    "config.json",
+    "generation_config.json",
+    "tokenizer.json",
+    "tokenizer_config.json",
+    "special_tokens_map.json",
+    "added_tokens.json",
+    "vocab.json",
+    "merges.txt",
+    "chat_template.jinja",
+    "preprocessor_config.json",
+    "processor_config.json",
+    "video_preprocessor_config.json",
+    "tokenizer.model",
+}
+_CHECKPOINT_DENY = {"edit.npz", "manifest.json", "reconstruct_stats.json"}
+
+
+def _relative_checkpoint(name: str) -> str:
+    path = Path(name)
+    if not isinstance(name, str) or not name or path.is_absolute() or ".." in path.parts:
+        raise SystemExit(f"checkpoint path must be a relative directory: {name!r}")
+    return name
+
+
+def pair_kind(config: dict) -> str:
+    kind = config.get("kind") or "lora"
+    if kind not in {"lora", "full_model"}:
+        raise SystemExit("pair kind must be lora or full_model")
+    return kind
+
+
+def assign_full_slots(clean: str, edited: str, rng: random.Random) -> tuple[str, str, str]:
+    """Return (dir_for_X, dir_for_Y, backdoored slot). Seed stays in the private map."""
+    if not clean or not edited or clean == edited:
+        raise SystemExit("a full-model pair needs two different checkpoint directories")
+    order = [clean, edited]
+    if rng.randrange(2):
+        order.reverse()
+    backdoored = "X" if order[0] == edited else "Y"
+    return order[0], order[1], backdoored
+
+
+def copy_private_checkpoint(source_dir: Path, dest_dir: Path) -> list[str]:
+    """Copy weights plus tokenizer and config. Leave answer files behind.
+
+    edit.npz, manifest.json, and reconstruct_stats.json describe the edit.
+    They are not copied. The destination is mounted only in the probe worker.
+    """
+    if dest_dir.exists():
+        shutil.rmtree(dest_dir)
+    dest_dir.mkdir(parents=True)
+    copied = []
+    for path in sorted(source_dir.iterdir()):
+        if not path.is_file() or path.is_symlink():
+            continue
+        if path.name in _CHECKPOINT_DENY:
+            continue
+        allowed = path.name in _CHECKPOINT_FILES or path.suffix == ".safetensors"
+        if not allowed:
+            continue
+        target = dest_dir / path.name
+        shutil.copyfile(path, target)
+        copied.append(path.name)
+    if not any(name.endswith(".safetensors") for name in copied):
+        raise SystemExit(f"{source_dir} has no checkpoint weights to copy")
+    if "config.json" not in copied:
+        raise SystemExit(f"{source_dir} has no config.json for the probe worker")
+    return copied
+
+
+def prepare_full_model(*, source_dir: Path, dest_dir: Path, neutral: bool) -> dict:
+    """Anonymize one full checkpoint into per-layer files.
+
+    Tensor bytes are copied unchanged, including BF16. The numpy prelude
+    decodes BF16 to float32 on load. A tensor that is identical in two
+    checkpoints stays byte-identical here, under the same published name.
+    Config and tokenizer files are not written into the blind tree.
+    """
+    from padbench_audit.names import is_dropped_full_buffer
+
+    if not source_dir.is_dir():
+        raise SystemExit(f"missing checkpoint directory {source_dir}")
+    files = sorted(
+        p
+        for p in source_dir.iterdir()
+        if p.is_file() and not p.is_symlink() and p.suffix == ".safetensors" and p.name not in _CHECKPOINT_DENY
+    )
+    if not files:
+        raise SystemExit(f"{source_dir} has no *.safetensors files")
+    if dest_dir.exists():
+        shutil.rmtree(dest_dir)
+    dest_dir.mkdir(parents=True)
+    assert_mount_path_clean(dest_dir, what="full model")
+    located: dict[str, TensorRef] = {}
+    for src in files:
+        header, _metadata, data_start = read_header(src)
+        for name, info in header.items():
+            if name in located:
+                raise SystemExit(f"duplicate tensor name in {source_dir} ({name})")
+            start, end = info["data_offsets"]
+            located[name] = TensorRef(name, info["dtype"], list(info["shape"]), src, data_start, start, end)
+    dropped = sorted(name for name in located if is_dropped_full_buffer(name))
+    kept = [name for name in located if name not in set(dropped)]
+    try:
+        mapping = rename_map(kept, kind="full", neutral=neutral)
+    except NameError as exc:
+        raise SystemExit(f"checkpoint tensor name will not be published ({exc})") from exc
+    groups: dict[str, list[TensorRef]] = {}
+    for original, published in mapping.items():
+        layer = base_layer_index(original)
+        if original.startswith("model.visual."):
+            filename = f"vis_{layer:02d}.safetensors" if layer is not None else "vis_other.safetensors"
+        elif layer is not None:
+            filename = f"group_{layer:02d}.safetensors"
+        else:
+            filename = "group_other.safetensors"
+        ref = located[original]
+        groups.setdefault(filename, []).append(
+            TensorRef(published, ref.dtype, ref.shape, ref.path, ref.data_start, ref.start, ref.end)
+        )
+    published_rows = []
+    for filename, refs in groups.items():
+        refs.sort(key=lambda item: item.name)
+        dest = dest_dir / filename
+        write_refs(dest, refs)
+        problems = header_problems(dest)
+        if problems:
+            raise SystemExit(f"{filename} failed the anonymous-header check: {problems}")
+        written, _meta, data_start = read_header(dest)
+        for ref in refs:
+            info = written[ref.name]
+            start, end = info["data_offsets"]
+            if not ranges_equal(ref, dest, data_start, start, end):
+                raise SystemExit(f"full-model tensor bytes changed for {ref.name}")
+            if list(info["shape"]) != list(ref.shape) or info["dtype"] != ref.dtype:
+                raise SystemExit(f"full-model tensor metadata changed for {ref.name}")
+            published_rows.append((ref.name, ref.dtype, list(ref.shape)))
+    hits = leak_hits("\n".join(name for name, _dtype, _shape in published_rows))
+    if hits:
+        raise SystemExit(f"full-model header names contain {hits}")
+    write_json(dest_dir / "shapes.json", _shapes(published_rows))
+    leftovers = [p.name for p in dest_dir.iterdir() if p.suffix not in {".safetensors", ".json"}]
+    if leftovers:
+        raise SystemExit(f"full-model directory has unexpected files: {leftovers}")
+    return {
+        "kind": "full_model",
+        "neutral_names": neutral,
+        "dropped_buffers": dropped,
+        "tensor_map": {published: original for original, published in mapping.items()},
+        "source_files": {src.name: sha256_file(src) for src in files},
+        "shapes_sha256": sha256_file(dest_dir / "shapes.json"),
+        "note": "BF16 tensor bytes are unchanged. The prelude decodes them to float32 on load.",
+    }
+
+
 def assign_pair_slots(folders: list[str], rng: random.Random) -> tuple[str, str, str]:
     """Return (folder_for_X, folder_for_Y, backdoored slot).
 
@@ -324,7 +480,34 @@ def prepare_experiment(
         raise SystemExit("config has no cases")
     ids = shuffled_case_ids(count, seed)
     records = {}
-    if config["condition"] == "pair-probe":
+    if config["condition"] == "pair-probe" and pair_kind(config) == "full_model":
+        slot_rng = random.Random(seed)
+        for item, cid in zip(config["pairs"], ids):
+            clean = _relative_checkpoint(item["clean"])
+            edited = _relative_checkpoint(item["edited"])
+            dir_x, dir_y, backdoored = assign_full_slots(clean, edited, slot_rng)
+            case_dir = cases_root / cid
+            info_x = prepare_full_model(source_dir=source_root / dir_x, dest_dir=case_dir / "model_X", neutral=neutral)
+            info_y = prepare_full_model(source_dir=source_root / dir_y, dest_dir=case_dir / "model_Y", neutral=neutral)
+            rel_x = f"checkpoints/{cid}/X"
+            rel_y = f"checkpoints/{cid}/Y"
+            info_x["copied_files"] = copy_private_checkpoint(source_root / dir_x, private_dir / rel_x)
+            info_y["copied_files"] = copy_private_checkpoint(source_root / dir_y, private_dir / rel_y)
+            info_x["checkpoint"] = rel_x
+            info_y["checkpoint"] = rel_y
+            info_x["source_dir_name"] = dir_x
+            info_y["source_dir_name"] = dir_y
+            info_x["label"] = "backdoor" if dir_x == edited else "clean"
+            info_y["label"] = "backdoor" if dir_y == edited else "clean"
+            records[cid] = {
+                "case_id": cid,
+                "kind": "full_model",
+                "group": config.get("group"),
+                "backdoored": backdoored,
+                "X": info_x,
+                "Y": info_y,
+            }
+    elif config["condition"] == "pair-probe":
         slot_rng = random.Random(seed)
         for item, cid in zip(config["pairs"], ids):
             folders = item if isinstance(item, list) else item.get("folders")
@@ -344,6 +527,7 @@ def prepare_experiment(
             )
             records[cid] = {
                 "case_id": cid,
+                "kind": "lora",
                 "group": config.get("group"),
                 "backdoored": backdoored,
                 "X": info_x,
@@ -371,7 +555,10 @@ def prepare_experiment(
         "case_order_seed": seed,
         "cases": records,
     }
-    if config["condition"] in {"base-adapter", "pair-probe"}:
+    if config["condition"] == "pair-probe" and pair_kind(config) == "full_model":
+        if base_src is not None:
+            raise SystemExit("a full-model pair does not take --base-src; each checkpoint is a complete model")
+    elif config["condition"] in {"base-adapter", "pair-probe"}:
         if base_src is None:
             raise SystemExit(f"condition {config['condition']} needs --base-src (the unanonymized safetensors directory)")
         private["base"] = prepare_base(source_dir=base_src, dest_dir=out_dir / "base", neutral=neutral)

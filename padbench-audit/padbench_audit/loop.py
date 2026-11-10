@@ -72,10 +72,17 @@ def load_config(path: Path) -> dict:
         pairs = config.get("pairs")
         if not isinstance(pairs, list) or not pairs:
             raise SystemExit("pair-probe config has no pairs")
-        for item in pairs:
-            folders = item if isinstance(item, list) else (item.get("folders") if isinstance(item, dict) else None)
-            if not isinstance(folders, list) or len(folders) != 2 or not all(isinstance(name, str) for name in folders):
-                raise SystemExit("each pair needs two folder names")
+        from padbench_audit.prep import pair_kind
+
+        if pair_kind(config) == "full_model":
+            for item in pairs:
+                if not isinstance(item, dict) or not isinstance(item.get("clean"), str) or not isinstance(item.get("edited"), str):
+                    raise SystemExit("each full-model pair needs clean and edited checkpoint directories")
+        else:
+            for item in pairs:
+                folders = item if isinstance(item, list) else (item.get("folders") if isinstance(item, dict) else None)
+                if not isinstance(folders, list) or len(folders) != 2 or not all(isinstance(name, str) for name in folders):
+                    raise SystemExit("each pair needs two folder names")
     elif not config.get("cases"):
         raise SystemExit("config has no cases")
     if config.get("neutral_names", True) is not True and config.get("neutral_names") is not False:
@@ -104,7 +111,11 @@ def run_case(
 ) -> dict:
     condition = config["condition"]
     case_dir = blind / "cases" / case_id
-    if condition == "pair-probe":
+    full_pair = condition == "pair-probe" and config.get("kind") == "full_model"
+    if full_pair:
+        if not (case_dir / "model_X" / "shapes.json").is_file() or not (case_dir / "model_Y" / "shapes.json").is_file():
+            raise SystemExit(f"missing full-model pair {case_dir}")
+    elif condition == "pair-probe":
         if not (case_dir / "adapter_X" / "adapter.safetensors").is_file() or not (
             case_dir / "adapter_Y" / "adapter.safetensors"
         ).is_file():
@@ -134,7 +145,7 @@ def run_case(
     pi_cwd = Path(saved["pi_cwd"]) if resume and saved.get("pi_cwd") and pi_cwd is None else (pi_cwd or (run_dir / "pi_cwd"))
     for path in (work, programs, pi_cwd, session_dir, run_dir / "turns"):
         path.mkdir(parents=True, exist_ok=True)
-    base_dir = blind / "base" if condition in {"base-adapter", "pair-probe"} else None
+    base_dir = blind / "base" if condition == "base-adapter" or (condition == "pair-probe" and not full_pair) else None
     if base_dir is not None and not (base_dir / "shapes.json").is_file():
         raise SystemExit(f"{condition} case is missing the anonymized base at {base_dir}")
     probe_cfg = config.get("probe") or {}
@@ -145,6 +156,7 @@ def run_case(
         timeout_s=int(config.get("timeout_s", 600)),
         max_output_chars=int(config.get("max_output_chars", 15000)),
         expose_tokenizer=bool(config.get("expose_tokenizer", False)),
+        kind=config.get("kind"),
         probe_budget=int(probe_cfg.get("budget", default_budget)),
         probe_max_texts=int(probe_cfg.get("max_texts", 4)),
         probe_max_tokens=int(probe_cfg.get("max_tokens", 64)),
@@ -354,7 +366,7 @@ def run_case(
                         work_quota_bytes=int(config.get("work_quota_bytes", 20 << 30)),
                         code_dir=programs,
                         extra_ro_binds=None if probe is None else [(probe.sock_dir, "/sock")],
-                        probe="pair" if condition == "pair-probe" and probe is not None else probe is not None,
+                        probe=("full" if full_pair else "pair") if condition == "pair-probe" and probe is not None else probe is not None,
                     )
                 except SystemExit as exc:
                     state["status"] = "sandbox_refused"
@@ -528,15 +540,48 @@ def _start_forward_probe(
         raise SystemExit("a probe condition needs --probe-python, a separate interpreter with torch")
     if probe_python.resolve() == sandbox_python.resolve():
         raise SystemExit("refusing to use the numpy sandbox interpreter as the probe worker")
-    if private_dir is None or base_src is None:
+    full_pair = config["condition"] == "pair-probe" and config.get("kind") == "full_model"
+    if full_pair:
+        if private_dir is None:
+            raise SystemExit("a full-model pair needs --private, where prep stored the checkpoints")
+    elif private_dir is None or base_src is None:
         raise SystemExit("a probe condition needs --private (for the tensor map) and --base-src")
-    if not base_src.is_dir():
+    elif not base_src.is_dir():
         raise SystemExit(f"base model directory is missing: {base_src}")
     probe_cfg = config.get("probe") or {}
-    paired = config["condition"] == "pair-probe"
+    paired = config["condition"] == "pair-probe" and not full_pair
     log_dir = run_dir / "probe_log"
     log_dir.mkdir(parents=True, exist_ok=True)
-    default_budget = 32 if paired else 16
+    default_budget = 32 if config["condition"] == "pair-probe" else 16
+    if full_pair:
+        table = read_json(private_dir / "cases.json")
+        record = table["cases"][case_id]
+        model_x = private_dir / record["X"]["checkpoint"]
+        model_y = private_dir / record["Y"]["checkpoint"]
+        handle = start_isolated_probe(
+            probe_python=probe_python,
+            sock_dir=run_dir / "probe_sock",
+            log_dir=log_dir,
+            budget=int(probe_cfg.get("budget", default_budget)),
+            max_texts=int(probe_cfg.get("max_texts", 4)),
+            max_tokens=int(probe_cfg.get("max_tokens", 64)),
+            max_chars=int(probe_cfg.get("max_chars", 2000)),
+            base_src=None,
+            adapter=None,
+            tensor_map=None,
+            lora_scale=lora_scale,
+            device=device,
+            toy=False,
+            full_model=True,
+            model_x=model_x,
+            model_y=model_y,
+        )
+        try:
+            handle.wait_ready(timeout_s=120)
+        except SystemExit:
+            handle.close()
+            raise
+        return handle
     if paired:
         tensor_map = log_dir / "tensor_map_x.json"
         tensor_map_y = log_dir / "tensor_map_y.json"
@@ -590,9 +635,10 @@ def note_device_change(manifest: dict, device: str | None) -> str:
                 "to": device,
             }
         )
-    visible, _index = worker_device_args(device)
+    visible, cuda_visible = worker_device_args(device)
     manifest["probe_device"] = device
     manifest["probe_device_visible"] = visible
+    manifest["probe_cuda_visible_devices"] = cuda_visible
     return device
 
 
@@ -623,14 +669,20 @@ def _manifest(
 ) -> dict:
     raw = config_path.read_bytes()
     paired = (case_dir / "adapter_X" / "adapter.safetensors").is_file()
-    if paired:
+    full = (case_dir / "model_X" / "shapes.json").is_file()
+    if full:
+        adapter_sha = _directory_sha(case_dir / "model_X")
+        shapes_sha = sha256_file(case_dir / "model_X" / "shapes.json")
+    elif paired:
         adapter_sha = sha256_file(case_dir / "adapter_X" / "adapter.safetensors")
         shapes_sha = sha256_file(case_dir / "adapter_X" / "shapes.json")
     else:
         adapter_sha = sha256_file(case_dir / "adapter.safetensors")
         shapes_sha = sha256_file(case_dir / "shapes.json")
-    if config["condition"] == "pair-probe":
-        prelude_probe: bool | str = "pair"
+    if config["condition"] == "pair-probe" and config.get("kind") == "full_model":
+        prelude_probe: bool | str = "full"
+    elif config["condition"] == "pair-probe":
+        prelude_probe = "pair"
     elif config["condition"] == "forward-probe":
         prelude_probe = True
     else:
@@ -639,7 +691,9 @@ def _manifest(
     if isinstance(device, str):
         from padbench_audit.probe_worker import worker_device_args
 
-        visible, _index = worker_device_args(device)
+        visible, cuda_visible = worker_device_args(device)
+    else:
+        cuda_visible = None
     manifest = {
         "harness": "padbench-audit",
         "case_id": case_id,
@@ -659,13 +713,25 @@ def _manifest(
         "lora_scale": lora_scale,
         "probe_device": device,
         "probe_device_visible": visible,
+        "probe_cuda_visible_devices": cuda_visible,
         **git_identity(REPO),
         "note": "Folder labels are not in this file. Score reads them from the private directory after prediction.sha256 is written.",
     }
-    if paired:
+    if full:
+        manifest["kind"] = "full_model"
+        manifest["model_y_sha256"] = _directory_sha(case_dir / "model_Y")
+        manifest["shapes_y_sha256"] = sha256_file(case_dir / "model_Y" / "shapes.json")
+    elif paired:
         manifest["adapter_y_sha256"] = sha256_file(case_dir / "adapter_Y" / "adapter.safetensors")
         manifest["shapes_y_sha256"] = sha256_file(case_dir / "adapter_Y" / "shapes.json")
     return manifest
+
+
+def _directory_sha(directory: Path) -> str:
+    parts = []
+    for path in sorted(p for p in directory.rglob("*") if p.is_file()):
+        parts.append(f"{path.relative_to(directory)} {sha256_file(path)}")
+    return sha256_bytes("\n".join(parts).encode())
 
 
 def _write_turn(turn_dir: Path, turn: PiTurn, extra: dict | None = None) -> None:

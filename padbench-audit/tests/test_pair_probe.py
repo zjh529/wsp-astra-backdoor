@@ -206,13 +206,14 @@ class PairPrepTests(unittest.TestCase):
 
     def test_resume_records_a_device_change_and_cuda_n_is_cuda_0_inside(self):
         self.assertEqual(worker_device_args("cpu"), ("cpu", ""))
-        self.assertEqual(worker_device_args("cuda:3"), ("cuda:0", "3"))
+        self.assertEqual(worker_device_args("cuda:3"), ("cuda:0", "0"))
         manifest = {"probe_device": "cpu", "probe_device_visible": "cpu"}
         self.assertEqual(note_device_change(manifest, None), "cpu")
         self.assertNotIn("device_changes", manifest)
         self.assertEqual(note_device_change(manifest, "cuda:3"), "cuda:3")
         self.assertEqual(manifest["probe_device"], "cuda:3")
         self.assertEqual(manifest["probe_device_visible"], "cuda:0")
+        self.assertEqual(manifest["probe_cuda_visible_devices"], "0")
         self.assertEqual(manifest["device_changes"][0]["from"], "cpu")
         self.assertEqual(manifest["device_changes"][0]["to"], "cuda:3")
         self.assertEqual(note_device_change(manifest, None), "cuda:3")

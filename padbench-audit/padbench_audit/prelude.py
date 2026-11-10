@@ -78,15 +78,21 @@ class _Folder:
         info, raw = self._loc[name]
         return _as_f32(info, raw)
 
-_PAIRED = (
-    os.path.isdir("/case/adapter_X")
-    and os.path.isfile("/case/adapter_X/shapes.json")
-    and os.path.isdir("/case/adapter_Y")
-    and os.path.isfile("/case/adapter_Y/shapes.json")
-)
-if _PAIRED:
-    _X = _Folder("/case/adapter_X")
-    _Y = _Folder("/case/adapter_Y")
+def _pair_dirs():
+    for left, right in (("adapter_X", "adapter_Y"), ("model_X", "model_Y")):
+        if (
+            os.path.isdir("/case/" + left)
+            and os.path.isfile("/case/" + left + "/shapes.json")
+            and os.path.isdir("/case/" + right)
+            and os.path.isfile("/case/" + right + "/shapes.json")
+        ):
+            return "/case/" + left, "/case/" + right
+    return None
+
+_PAIR = _pair_dirs()
+if _PAIR:
+    _X = _Folder(_PAIR[0])
+    _Y = _Folder(_PAIR[1])
     NAMES_X = list(_X.names)
     NAMES_Y = list(_Y.names)
     SHAPES_X = dict(_X.shapes)
@@ -203,9 +209,52 @@ def probe(texts, adapter=None, topk=5, attention=False, layers=None):
 '''
 
 
+PROBE_FULL_HELPER = r'''
+def probe(texts, model, attention=False, apply_chat_template=False, topk=5, layers=None):
+    """One budgeted forward of model "X" or "Y".
+
+    apply_chat_template wraps each string as one user turn before tokenization.
+    Each call costs one call. Returns remaining, model, apply_chat_template,
+    and results. A result lists attention_unavailable_layers when some layers
+    do not produce attention weights.
+    """
+    import socket
+    if model not in ("X", "Y"):
+        raise TypeError("model must be 'X' or 'Y'")
+    req = {
+        "texts": [str(item) for item in texts],
+        "model": model,
+        "attention": bool(attention),
+        "apply_chat_template": bool(apply_chat_template),
+        "topk": int(topk),
+    }
+    if layers is not None:
+        req["layers"] = [int(item) for item in layers]
+    client = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+    client.settimeout(600)
+    client.connect("/sock/probe.sock")
+    client.sendall((json.dumps(req) + "\n").encode())
+    buf = b""
+    while b"\n" not in buf:
+        chunk = client.recv(1 << 20)
+        if not chunk:
+            break
+        buf += chunk
+        if len(buf) > 2000000:
+            raise RuntimeError("probe response exceeded 2 MB")
+    client.close()
+    resp = json.loads(buf.decode())
+    if not resp.get("ok", False):
+        raise RuntimeError(resp.get("error", "probe failed"))
+    return resp
+'''
+
+
 def prelude_text(*, probe: bool | str = False) -> str:
     text = PRELUDE.lstrip("\n")
-    if probe == "pair":
+    if probe == "full":
+        text += "\n" + PROBE_FULL_HELPER.lstrip("\n")
+    elif probe == "pair":
         text += "\n" + PROBE_PAIR_HELPER.lstrip("\n")
     elif probe:
         text += "\n" + PROBE_HELPER.lstrip("\n")

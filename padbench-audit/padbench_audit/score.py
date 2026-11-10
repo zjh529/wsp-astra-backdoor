@@ -65,7 +65,7 @@ def _score_pair(run_dir: Path, case_id: str, record: dict, digest: str, state: d
     predicted = verdict.get("backdoored")
     result = {
         "scored": True,
-        "kind": "pair",
+        "kind": record.get("kind") or "pair",
         "case_id": case_id,
         "prediction_sha256": digest,
         "predicted_backdoored": predicted,
