@@ -17,8 +17,14 @@ sys.path.insert(0, str(ROOT))
 from padbench_audit.loop import load_config  # noqa: E402
 from padbench_audit.preflight import probe_isolation, probe_worker_report  # noqa: E402
 from padbench_audit.prelude import prelude_text  # noqa: E402
-from padbench_audit.probe_protocol import Budget, ToyForward, call_probe  # noqa: E402
-from padbench_audit.probe_worker import serve, start_isolated_probe  # noqa: E402
+from padbench_audit.probe_protocol import (  # noqa: E402
+    Budget,
+    ToyForward,
+    call_probe,
+    last_nonpad_index,
+    valid_key_indexes,
+)
+from padbench_audit.probe_worker import load_causal_lm, serve, set_adapter_weights, start_isolated_probe  # noqa: E402
 from padbench_audit.prompt import build_task  # noqa: E402
 from padbench_audit.safetensors_io import write_safetensors  # noqa: E402
 from padbench_audit.sandbox import bwrap_available, build_bwrap_command, run_code  # noqa: E402
@@ -128,6 +134,112 @@ class ProtocolTests(unittest.TestCase):
         self.assertEqual(second.used, 2)
         self.assertEqual(second.total, 4)
         self.assertEqual(second.remaining(), 2)
+
+    def test_left_padded_batch_matches_a_solo_probe(self):
+        # The reported Llama bug: sum(mask)-1 on [0, 0, 0, 1, 1] is 1, a pad column.
+        left = [0, 0, 0, 1, 1]
+        right = [1, 1, 0, 0, 0]
+        self.assertEqual(sum(left) - 1, 1)
+        self.assertEqual(last_nonpad_index(left), 4)
+        self.assertEqual(last_nonpad_index(right), 1)
+        self.assertEqual(valid_key_indexes(left, 8), [3, 4])
+        self.assertEqual(valid_key_indexes(right, 2), [0, 1])
+        toy = ToyForward()
+        kwargs = {"adapter_on": False, "topk": 4, "attention": True, "layers": None, "max_tokens": 16}
+        alone = toy.forward(["Hello"], **kwargs)
+        batch = toy.forward(["Hello", "one two three four"], **kwargs)
+        self.assertEqual(alone[0]["topk"], batch[0]["topk"])
+        self.assertEqual(batch[0]["topk"][0]["token"], "no")
+        self.assertNotEqual(batch[0]["n_tokens"], batch[1]["n_tokens"])
+        self.assertEqual(len(batch[0]["attention"][0]["last_to_keys"]), 1)
+        self.assertEqual(len(batch[1]["attention"][0]["last_to_keys"]), 4)
+
+    def test_eager_attention_is_requested_and_a_miss_is_not_silent(self):
+        calls = []
+
+        def reject_eager(*_args, **kwargs):
+            calls.append(dict(kwargs))
+            if kwargs.get("attn_implementation") == "eager":
+                raise ValueError("sdpa only")
+            return "fallback"
+
+        model, available = load_causal_lm(reject_eager, "base", torch_dtype="fp16", local_files_only=True)
+        self.assertEqual(model, "fallback")
+        self.assertFalse(available)
+        self.assertEqual(calls[0]["attn_implementation"], "eager")
+        self.assertNotIn("attn_implementation", calls[1])
+
+        calls.clear()
+
+        def accept_eager(*_args, **kwargs):
+            calls.append(dict(kwargs))
+            return "eager-model"
+
+        model, available = load_causal_lm(accept_eager, "base", local_files_only=True)
+        self.assertEqual(model, "eager-model")
+        self.assertTrue(available)
+        self.assertEqual(calls[0]["attn_implementation"], "eager")
+
+    def test_adapter_off_copies_the_base_snapshot(self):
+        class Rounded:
+            def __init__(self, value: float) -> None:
+                self.value = value
+
+            def copy_(self, other: "Rounded") -> "Rounded":
+                self.value = other.value
+                return self
+
+            def __add__(self, delta: float) -> "Rounded":
+                return Rounded(round(self.value + delta, 1))
+
+        base = {"w": Rounded(1.04)}
+        param = Rounded(1.04)
+        set_adapter_weights({"w": param}, base, {"w": 0.04}, True)
+        self.assertEqual(param.value, 1.1)
+        set_adapter_weights({"w": param}, base, {"w": 0.04}, False)
+        self.assertEqual(param.value, 1.04)
+        self.assertNotEqual(round(1.1 - 0.04, 2), 1.04)
+
+    def test_unavailable_attention_does_not_spend_budget(self):
+        class NoAttention:
+            attention_available = False
+
+            def forward(self, *_args, **_kwargs):
+                raise AssertionError("forward ran without attention weights")
+
+        with tempfile.TemporaryDirectory(prefix="probe-") as tmp:
+            root = Path(tmp)
+            budget = Budget(2, root / "budget.json")
+            stop = threading.Event()
+            thread = threading.Thread(
+                target=serve,
+                kwargs={
+                    "sock_path": root / "probe.sock",
+                    "backend": NoAttention(),
+                    "budget": budget,
+                    "max_texts": 2,
+                    "max_chars": 20,
+                    "max_tokens": 8,
+                    "log_path": None,
+                    "allow_selfcheck": False,
+                    "stop": stop.is_set,
+                },
+                daemon=True,
+            )
+            thread.start()
+            self._wait(root / "probe.sock")
+            try:
+                refused = call_probe(
+                    str(root / "probe.sock"),
+                    {"texts": ["Hello"], "adapter_on": True, "attention": True},
+                )
+            finally:
+                stop.set()
+                thread.join(timeout=3)
+        self.assertFalse(refused["ok"])
+        self.assertIn("eager", refused["error"])
+        self.assertEqual(refused["remaining"], 2)
+        self.assertEqual(budget.used, 0)
 
     def test_lora_target_names(self):
         from padbench_audit.probe_worker import lora_target

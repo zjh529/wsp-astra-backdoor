@@ -96,6 +96,25 @@ def validate_request(payload: object, *, max_texts: int, max_chars: int) -> dict
     }
 
 
+def last_nonpad_index(mask: list[int] | tuple[int, ...]) -> int:
+    """Index of the last real token. Correct for left padding and for right padding.
+
+    ``sum(mask) - 1`` is the last real token only when padding is on the right.
+    A left-padded row ``[0, 0, 0, 1, 1]`` has length 2, so that formula returns
+    1, which is still padding. The last 1 is the token the model just scored.
+    """
+    last = 0
+    for index, bit in enumerate(mask):
+        if int(bit):
+            last = index
+    return last
+
+
+def valid_key_indexes(mask: list[int] | tuple[int, ...], limit: int) -> list[int]:
+    """First real key positions, skipping pad columns on either side."""
+    return [index for index, bit in enumerate(mask) if int(bit)][:limit]
+
+
 def softmax(logits: list[float]) -> list[float]:
     if not logits:
         return []
@@ -123,9 +142,15 @@ def topk_rows(ids: list[int], logits: list[float], decode, k: int) -> list[dict]
 
 
 class ToyForward:
-    """A tiny next-token table. adapter_on moves probability onto a different token."""
+    """A tiny next-token table. adapter_on moves probability onto a different token.
+
+    A batch is left-padded, which is what a Llama tokenizer does by default.
+    Pad positions score ``<pad>``. Real positions score ``yes`` or ``no``.
+    Reading ``sum(mask) - 1`` on the short row would return the pad score.
+    """
 
     vocab = ("<pad>", "a", "b", "c", "yes", "no")
+    attention_available = True
 
     def forward(
         self,
@@ -137,33 +162,46 @@ class ToyForward:
         layers: list[int] | None,
         max_tokens: int,
     ) -> list[dict]:
-        chosen = 4 if adapter_on else 5
-        logits = [0.0] * len(self.vocab)
-        logits[chosen] = 3.0
-        logits[1] = 0.2
-        results = []
+        parsed = []
         for text in texts:
             pieces = text.split() or ["a"]
             truncated = len(pieces) > max_tokens
             pieces = pieces[:max_tokens]
+            parsed.append((text, pieces, truncated))
+        width = max(len(pieces) for _, pieces, _ in parsed)
+        results = []
+        for text, pieces, truncated in parsed:
+            mask = [0] * (width - len(pieces)) + [1] * len(pieces)
+            index = last_nonpad_index(mask)
+            logits = self._logits(content=bool(mask[index]), adapter_on=adapter_on)
             row = {
                 "text_chars": len(text),
                 "n_tokens": len(pieces),
                 "truncated": truncated,
-                "topk": topk_rows(list(range(len(self.vocab))), logits, lambda index: self.vocab[index], topk),
+                "topk": topk_rows(list(range(len(self.vocab))), logits, lambda token: self.vocab[token], topk),
                 "attention": None,
             }
             if attention:
                 indexes = layers or [0]
+                keys = valid_key_indexes(mask, MAX_ATTENTION_KEYS)
                 last = []
                 for layer in indexes[:MAX_ATTENTION_LAYERS]:
-                    keys = [0.0] * min(MAX_ATTENTION_KEYS, len(pieces))
-                    if keys:
-                        keys[-1] = 0.8 if adapter_on else 0.2
-                    last.append({"layer": int(layer), "last_to_keys": keys})
+                    weights = [0.0] * len(keys)
+                    if weights:
+                        weights[-1] = 0.8 if adapter_on else 0.2
+                    last.append({"layer": int(layer), "last_to_keys": weights})
                 row["attention"] = last
             results.append(row)
         return results
+
+    def _logits(self, *, content: bool, adapter_on: bool) -> list[float]:
+        logits = [0.0] * len(self.vocab)
+        if not content:
+            logits[0] = 3.0
+            return logits
+        logits[4 if adapter_on else 5] = 3.0
+        logits[1] = 0.2
+        return logits
 
 
 def call_probe(sock_path: str, payload: dict, *, timeout_s: float = 600) -> dict:

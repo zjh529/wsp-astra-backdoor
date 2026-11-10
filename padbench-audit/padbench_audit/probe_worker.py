@@ -22,6 +22,8 @@ from padbench_audit.probe_protocol import (
     Budget,
     ProbeRejected,
     ToyForward,
+    last_nonpad_index,
+    valid_key_indexes,
     validate_request,
 )
 
@@ -29,6 +31,32 @@ _LORA = re.compile(
     r"layers\.(\d+)\.(self_attn|mlp)\."
     r"(q_proj|k_proj|v_proj|o_proj|gate_proj|up_proj|down_proj)\.lora_([AB])"
 )
+
+
+def load_causal_lm(from_pretrained, *args, **kwargs):
+    """Load with eager attention so attention weights exist.
+
+    transformers 5 defaults to sdpa, which returns no attention tensor.
+    If this build rejects eager, load the model anyway and report that
+    attention requests must fail instead of coming back empty.
+    """
+    try:
+        return from_pretrained(*args, attn_implementation="eager", **kwargs), True
+    except Exception:
+        return from_pretrained(*args, **kwargs), False
+
+
+def set_adapter_weights(params: dict, base: dict, deltas: dict, enabled: bool) -> None:
+    """Turn the update on from the stored base weights, or copy those weights back.
+
+    Adding and later subtracting a delta in fp16 does not restore the base.
+    ``copy_`` of the snapshot does.
+    """
+    for name, delta in deltas.items():
+        if enabled:
+            params[name].copy_(base[name] + delta)
+        else:
+            params[name].copy_(base[name])
 
 
 def lora_target(original: str) -> tuple[str, str] | None:
@@ -99,6 +127,11 @@ def _handle(conn, backend, budget, max_texts, max_chars, max_tokens, log_path, a
         return
     try:
         request = validate_request(payload, max_texts=max_texts, max_chars=max_chars)
+        if request["attention"] and getattr(backend, "attention_available", True) is False:
+            raise ProbeRejected(
+                "attention weights are unavailable; the model was not loaded with eager attention",
+                remaining=-1,
+            )
         remaining = budget.consume()
         results = backend.forward(
             request["texts"],
@@ -438,7 +471,13 @@ class TransformersForward:
         torch.set_grad_enabled(False)
         self.device = "cpu" if device == "cpu" else device
         self.tokenizer = AutoTokenizer.from_pretrained(str(base_src), local_files_only=True)
-        self.model = AutoModelForCausalLM.from_pretrained(
+        # Right padding makes the last column the last real token. The index
+        # helper below is still correct if a tokenizer pads on the left.
+        self.tokenizer.padding_side = "right"
+        if getattr(self.tokenizer, "pad_token_id", None) is None:
+            self.tokenizer.pad_token = self.tokenizer.unk_token or self.tokenizer.eos_token
+        self.model, self.attention_available = load_causal_lm(
+            AutoModelForCausalLM.from_pretrained,
             str(base_src),
             torch_dtype=torch.float16,
             local_files_only=True,
@@ -446,9 +485,16 @@ class TransformersForward:
         self.model.to(self.device)
         self.model.eval()
         self._deltas = _lora_deltas(self.model, adapter, tensor_map, scale, torch)
+        named = dict(self.model.named_parameters())
+        self._base_weights = {name: named[name].detach().clone() for name in self._deltas}
         self._adapter_on = False
 
     def forward(self, texts, *, adapter_on, topk, attention, layers, max_tokens):
+        if attention and not self.attention_available:
+            raise ProbeRejected(
+                "attention weights are unavailable; the model was not loaded with eager attention",
+                remaining=-1,
+            )
         self._set_adapter(adapter_on)
         encoded = self.tokenizer(
             texts,
@@ -458,15 +504,20 @@ class TransformersForward:
             max_length=max_tokens,
         )
         encoded = {key: value.to(self.device) for key, value in encoded.items()}
-        lengths = encoded["attention_mask"].sum(dim=1).tolist()
         output = self.model(**encoded, output_attentions=bool(attention), use_cache=False)
+        if attention and (not output.attentions or any(block is None for block in output.attentions)):
+            raise ProbeRejected(
+                "attention weights were not returned; this model is not using eager attention",
+                remaining=-1,
+            )
         logits = output.logits
+        masks = encoded["attention_mask"].detach().cpu().tolist()
         results = []
-        for row, length, text in zip(logits, lengths, texts):
-            last = max(int(length) - 1, 0)
+        for row_index, (row, mask, text) in enumerate(zip(logits, masks, texts)):
+            last = last_nonpad_index(mask)
+            length = sum(int(bit) for bit in mask)
             vector = row[last].detach().float().cpu()
             values, indexes = self.torch.topk(vector, k=min(topk, vector.shape[0]))
-            chosen = set(int(item) for item in indexes)
             # Probabilities are over the full vocabulary, then reported only for top-k.
             probs = self.torch.softmax(vector, dim=0)
             top = []
@@ -480,7 +531,6 @@ class TransformersForward:
                         "prob": round(float(probs[index]), 6),
                     }
                 )
-            del chosen
             item = {
                 "text_chars": len(text),
                 "n_tokens": int(length),
@@ -488,19 +538,27 @@ class TransformersForward:
                 "topk": top,
                 "attention": None,
             }
-            if attention and output.attentions:
-                item["attention"] = _attention_summary(output.attentions, last, layers, length)
+            if attention:
+                item["attention"] = _attention_summary(
+                    output.attentions,
+                    row_index,
+                    last,
+                    valid_key_indexes(mask, 8),
+                    layers,
+                )
             results.append(item)
         return results
 
     def _set_adapter(self, enabled: bool) -> None:
         if enabled == self._adapter_on:
             return
-        sign = 1.0 if enabled else -1.0
+        named = dict(self.model.named_parameters())
+        deltas = {
+            name: delta.to(device=named[name].device, dtype=named[name].dtype)
+            for name, delta in self._deltas.items()
+        }
         with self.torch.no_grad():
-            for name, delta in self._deltas.items():
-                param = dict(self.model.named_parameters())[name]
-                param.add_(delta.to(param.device, dtype=param.dtype), alpha=sign)
+            set_adapter_weights(named, self._base_weights, deltas, enabled)
         self._adapter_on = enabled
 
 
@@ -535,16 +593,16 @@ def _tensor(raw: bytes, dtype: str, shape: list, torch):
     return array
 
 
-def _attention_summary(attentions, last: int, layers: list[int] | None, length: int) -> list[dict]:
+def _attention_summary(attentions, batch_index: int, query: int, key_indexes: list[int], layers: list[int] | None) -> list[dict]:
     chosen = layers if layers is not None else [0, len(attentions) // 2, len(attentions) - 1]
     rows = []
-    width = min(8, int(length))
     for layer in chosen[:4]:
-        if not 0 <= int(layer) < len(attentions):
+        if not 0 <= int(layer) < len(attentions) or not key_indexes:
             continue
-        # Mean over heads of the last query position. Keys are truncated.
-        block = attentions[int(layer)][0, :, last, :width].mean(dim=0).detach().float().cpu().tolist()
-        rows.append({"layer": int(layer), "last_to_keys": [round(float(value), 6) for value in block]})
+        # Mean over heads of the last real query, at real key positions only.
+        block = attentions[int(layer)][batch_index, :, query, :][:, key_indexes]
+        values = block.mean(dim=0).detach().float().cpu().tolist()
+        rows.append({"layer": int(layer), "last_to_keys": [round(float(value), 6) for value in values]})
     return rows
 
 

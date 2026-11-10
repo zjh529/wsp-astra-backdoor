@@ -200,7 +200,7 @@ The static base+adapter control is already prepared and is not the next run. The
 
 ## Forward probe
 
-`probe()` is a function in the same Python block. It sends the strings Astra wrote, and `adapter_on`, to a separate worker. The worker tokenizes, runs one forward, and returns top-k rows (`id`, `token`, `logit`, `prob`), an optional short attention summary, and the remaining budget. It does not return hidden states. Adapter-on and adapter-off each cost one of 16 calls. A call is rejected once the budget is spent.
+`probe()` is a function in the same Python block. It sends the strings Astra wrote, and `adapter_on`, to a separate worker. The worker tokenizes, runs one forward, and returns top-k rows (`id`, `token`, `logit`, `prob`), an optional short attention summary, and the remaining budget. It does not return hidden states. Several strings in one call are one forward: the score is taken at the last real token, so a short string in the batch matches that string alone. Attention is loaded with eager attention. If that implementation is unavailable, an attention request is rejected and does not spend a call. Turning the adapter off copies the original weights back. Adapter-on and adapter-off each cost one of 16 calls. A call is rejected once the budget is spent.
 
 The numpy sandbox does not import torch. Do not install torch or transformers into `/home/junhong/sbx-01/env`. Make a second environment:
 
