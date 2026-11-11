@@ -72,6 +72,36 @@ def main(argv: list[str] | None = None) -> int:
     aggregate.add_argument("--baselines", type=Path, default=None)
     aggregate.add_argument("--out", type=Path, required=True)
 
+    train2 = sub.add_parser("train-phase2", help="Train phase-2 arms and reuse phase-1 clean models")
+    train2.add_argument("--out", type=Path, required=True)
+    train2.add_argument("--phase1-train", type=Path, default=None)
+    train2.add_argument("--data-dir", type=Path, default=Path("data/mnist"))
+    train2.add_argument("--resume", action="store_true")
+    train2.add_argument(
+        "--addon",
+        action="store_true",
+        help="Train only P-center-e6 and A-topleft-e6. Does not rebuild the main 80-case pool.",
+    )
+
+    cases2 = sub.add_parser("make-cases-phase2", help="Blind cases for phase 2, excluding training-gate failures")
+    cases2.add_argument("--train-out", type=Path, required=True)
+    cases2.add_argument("--blind", type=Path, required=True)
+    cases2.add_argument("--private", type=Path, required=True)
+    cases2.add_argument("--case-order-seed", type=int, default=None)
+    cases2.add_argument(
+        "--addon",
+        action="store_true",
+        help="Build cases from an add-on manifest only. Default shuffle seed is 20261112.",
+    )
+
+    aggregate2 = sub.add_parser("aggregate-phase2", help="Per-arm rates and the anchor Holm tests")
+    aggregate2.add_argument("--eval", type=Path, required=True)
+    aggregate2.add_argument("--anchor", type=Path, required=True)
+    aggregate2.add_argument("--baselines", type=Path, default=None)
+    aggregate2.add_argument("--addon-eval", type=Path, default=None)
+    aggregate2.add_argument("--main-manifest", type=Path, default=None)
+    aggregate2.add_argument("--out", type=Path, required=True)
+
     preflight = sub.add_parser("preflight", help="Check bwrap, numpy-only python, and the prompt hash")
     preflight.add_argument("--sandbox-python", type=Path, required=True)
     sub.add_parser("prompt-sha", help="Print the frozen prompt sha256")
@@ -185,6 +215,50 @@ def main(argv: list[str] | None = None) -> int:
         from cnn_phase1.aggregate import aggregate
 
         aggregate(eval_path=args.eval, baselines_path=args.baselines, out=args.out)
+        return 0
+    if args.cmd == "train-phase2":
+        from cnn_phase1.data_mnist import load_split
+        from cnn_phase1.train_phase2 import train_phase2
+
+        images, labels = load_split(args.data_dir, train=True)
+        test_images, test_labels = load_split(args.data_dir, train=False)
+        from cnn_phase1.phase2 import addon_arm_ids
+
+        manifest = train_phase2(
+            train_out=args.out,
+            phase1_train=None if args.addon else args.phase1_train,
+            images=images,
+            labels=labels,
+            test_images=test_images,
+            test_labels=test_labels,
+            device=_torch_device(),
+            resume=args.resume,
+            only_arms=list(addon_arm_ids()) if args.addon else None,
+            train_cleans=not args.addon,
+        )
+        return 2 if manifest["n_failures"] else 0
+    if args.cmd == "make-cases-phase2":
+        from cnn_phase1.cases import make_phase2_cases
+
+        make_phase2_cases(
+            train_out=args.train_out,
+            blind=args.blind,
+            private=args.private,
+            case_order_seed=args.case_order_seed,
+            addon=args.addon,
+        )
+        return 0
+    if args.cmd == "aggregate-phase2":
+        from cnn_phase1.aggregate_phase2 import aggregate_phase2
+
+        aggregate_phase2(
+            eval_path=args.eval,
+            anchor_path=args.anchor,
+            baselines_path=args.baselines,
+            out=args.out,
+            addon_eval_path=args.addon_eval,
+            main_manifest_path=args.main_manifest,
+        )
         return 0
     raise SystemExit(f"unknown command {args.cmd}")
 

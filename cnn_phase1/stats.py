@@ -99,8 +99,14 @@ def signflip_p(values, *, alternative: str) -> dict:
     return {"n": n, "mean": observed, "p": count / total}
 
 
-def holm(p_values: dict[str, float | None], *, alpha: float = HOLM_ALPHA) -> dict:
-    named = [(name, p_values[name]) for name in HOLM_FAMILY if name in p_values]
+def holm(
+    p_values: dict[str, float | None],
+    *,
+    alpha: float = HOLM_ALPHA,
+    family: tuple[str, ...] | None = None,
+) -> dict:
+    order = HOLM_FAMILY if family is None else family
+    named = [(name, p_values[name]) for name in order if name in p_values]
     testable = [(name, float(p)) for name, p in named if p is not None]
     ordered = sorted(testable, key=lambda item: (item[1], item[0]))
     m = len(ordered)
@@ -115,4 +121,4 @@ def holm(p_values: dict[str, float | None], *, alpha: float = HOLM_ALPHA) -> dic
     for name, p_value in named:
         if p_value is None:
             decisions[name] = {"p": None, "threshold": None, "reject": False, "reason": "not tested"}
-    return {"alpha": alpha, "family": list(HOLM_FAMILY), "m": m, "tests": decisions}
+    return {"alpha": alpha, "family": list(order), "m": m, "tests": decisions}

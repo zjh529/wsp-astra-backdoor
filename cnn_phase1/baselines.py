@@ -47,12 +47,15 @@ def run_baselines(
     import json
 
     manifest = json.loads((train_out / "manifest.json").read_text(encoding="utf-8"))
-    spec = _spec(manifest["recipe"]["trigger"])
-    gt_mask, gt_pattern = spec.mask_and_pattern()
     rows = []
     for record in manifest["models"]:
         if record["role"] == "init":
             continue
+        recipe = dict(manifest["recipe"])
+        if isinstance(record.get("trigger"), dict):
+            recipe["trigger"] = record["trigger"]
+        spec = _spec(recipe["trigger"])
+        gt_mask, gt_pattern = spec.mask_and_pattern()
         weights = load_weights(train_out / record["weights"])
         model = load_checkpoint(train_out / record["checkpoint"], device)
         stats = weight_stat_score(weights)
@@ -67,7 +70,7 @@ def run_baselines(
             device,
             seed=ABLATION_SEED + int(record["seed"]),
         )
-        holdout = _holdout_batch(images, labels, int(record["seed"]), manifest["recipe"], device)
+        holdout = _holdout_batch(images, labels, int(record["seed"]), recipe, device)
         nc = neural_cleanse_score(
             model,
             holdout,
@@ -79,6 +82,7 @@ def run_baselines(
         rows.append(
             {
                 "seed": record["seed"],
+                "arm": record.get("arm"),
                 "role": record["role"],
                 "label_backdoor": record["role"] == "backdoor",
                 "target_class": spec.target_class,
@@ -93,6 +97,7 @@ def run_baselines(
         "spectral": _detection_summary(rows, "spectral"),
         "neural_cleanse": _detection_summary(rows, "neural_cleanse"),
         "random_ablation": _ablation_summary(rows),
+        "by_arm": _by_arm(rows),
     }
     payload = {
         "study": "cnn-phase1",
@@ -264,6 +269,18 @@ def _modified_z(values: np.ndarray) -> np.ndarray:
         scores[np.abs(values - median) > 0] = 1e6
         return scores
     return MAD_SCALE * (values - median) / mad
+
+
+def _by_arm(rows: list[dict]) -> dict:
+    names = sorted({row.get("arm") for row in rows if row.get("arm")})
+    return {
+        arm: {
+            "weight_stats": _detection_summary([row for row in rows if row.get("arm") == arm], "weight_stats"),
+            "spectral": _detection_summary([row for row in rows if row.get("arm") == arm], "spectral"),
+            "neural_cleanse": _detection_summary([row for row in rows if row.get("arm") == arm], "neural_cleanse"),
+        }
+        for arm in names
+    }
 
 
 def _detection_summary(rows: list[dict], key: str) -> dict:

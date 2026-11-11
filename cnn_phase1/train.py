@@ -333,6 +333,7 @@ def _write_role(
     train_out: Path,
     seed: int,
     role: str,
+    checkpoint_dir: Path | None = None,
     state: dict,
     epochs: int,
     accuracy: float | None,
@@ -343,7 +344,8 @@ def _write_role(
     n_poison: int,
     n_train: int,
 ) -> None:
-    checkpoint, weights = _role_paths(train_out / "checkpoints", seed, role)
+    directory = checkpoint_dir or (train_out / "checkpoints")
+    checkpoint, weights = _role_paths(directory, seed, role)
     payload = {
         "state_dict": state,
         "seed": seed,
@@ -375,3 +377,68 @@ def _write_role(
             "n_train": n_train,
         }
     )
+
+
+def fit_model(
+    *,
+    train_out: Path,
+    checkpoint_dir: Path,
+    seed: int,
+    role: str,
+    poison: bool,
+    spec,
+    plan: dict,
+    init: dict,
+    images,
+    labels,
+    test_images,
+    test_labels,
+    epochs: int,
+    lr: float,
+    device,
+    clean_acc_min: float,
+    asr_min: float,
+) -> dict:
+    """Train one clean or backdoor network and keep it even if it misses the gate."""
+    if role not in {"clean", "backdoor"}:
+        raise SystemExit(f"fit_model role must be clean or backdoor, got {role}")
+    state, accuracy, asr = _train_one(
+        init=init,
+        plan=plan,
+        images=images,
+        labels=labels,
+        test_images=test_images,
+        test_labels=test_labels,
+        spec=spec,
+        epochs=epochs,
+        lr=lr,
+        device=device,
+        log={"seed": seed, "role": role, "poison": poison},
+    )
+    passed = accuracy >= clean_acc_min and (role != "backdoor" or asr >= asr_min)
+    if accuracy < clean_acc_min:
+        _record_failure([], seed, role, "clean_acc", accuracy, clean_acc_min)
+    if role == "backdoor" and asr < asr_min:
+        _record_failure([], seed, role, "asr", asr, asr_min)
+    print(
+        f"[seed {seed} {role}] {'PASS' if passed else 'FAIL'} clean_acc={accuracy:.4f} ASR={asr:.4f}",
+        flush=True,
+    )
+    rows: list[dict] = []
+    _write_role(
+        rows,
+        train_out=train_out,
+        checkpoint_dir=checkpoint_dir,
+        seed=seed,
+        role=role,
+        state=state,
+        epochs=epochs,
+        accuracy=accuracy,
+        asr=asr,
+        passed=passed,
+        init_sha=state_dict_sha256(init),
+        order_sha=plan["order_sha256"],
+        n_poison=plan["n_poison"],
+        n_train=len(plan["train_idx"]),
+    )
+    return rows[0]

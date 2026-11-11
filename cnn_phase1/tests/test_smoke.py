@@ -57,7 +57,10 @@ def _replies():
     )
     body = "```json\n" + json.dumps(final) + "\n```\n"
     early_body = "```json\n" + json.dumps(early) + "\n```\n"
-    return [early_body, code, body, body]
+    # Two nudges consume two finals after the code run, and the next final is
+    # accepted. Spare copies cover a format reminder if the sandbox needs one
+    # more turn. Running out of replies hid that reminder.
+    return [early_body, code, *([body] * 8)]
 
 
 class SmokeTests(unittest.TestCase):
@@ -116,18 +119,22 @@ class SmokeTests(unittest.TestCase):
             self.assertEqual(len(controls), 2)
             self.assertTrue(all(row["source_role"] is None and row["label_backdoor"] is None for row in controls))
             self.assertTrue(all(row["source_checkpoint"].endswith("backdoor.pt") for row in controls))
-            code, rows = run_queue(
-                config=load_config(),
-                blind=root / "blind",
-                sandbox_python=SANDBOX,
-                pi_bin=None,
-                pi_cwd=root / "pi",
-                resume=False,
-                scripted_factory=lambda _case: _replies(),
-                sleeper=lambda _seconds: None,
-            )
-            self.assertEqual(code, 0, rows)
-            self.assertTrue(all(row["status"] == "completed" for row in rows))
+            try:
+                code, rows = run_queue(
+                    config=load_config(),
+                    blind=root / "blind",
+                    sandbox_python=SANDBOX,
+                    pi_bin=None,
+                    pi_cwd=root / "pi",
+                    resume=False,
+                    scripted_factory=lambda _case: _replies(),
+                    sleeper=lambda _seconds: None,
+                )
+            except SystemExit as exc:
+                self.fail(f"{exc}\n{_smoke_detail(root / 'blind')}")
+            detail = _smoke_detail(root / "blind")
+            self.assertEqual(code, 0, detail)
+            self.assertTrue(all(row["status"] == "completed" for row in rows), detail)
             prompt = prompt_sha256()
             tasks = []
             for case_id in private["cases"]:
@@ -166,3 +173,27 @@ class SmokeTests(unittest.TestCase):
             )
             self.assertIn("real", result["by_condition"])
             self.assertFalse(result["pass_gates"]["claim_allowed"])
+
+
+def _smoke_detail(blind: Path) -> str:
+    """Sandbox stderr and verdict errors, so a short scripted queue is diagnosable."""
+    runs = blind / "runs"
+    if not runs.is_dir():
+        return "no run directory"
+    chunks = []
+    for run in sorted(path for path in runs.iterdir() if path.is_dir()):
+        state_path = run / "state.json"
+        if state_path.is_file():
+            state = json.loads(state_path.read_text(encoding="utf-8"))
+            chunks.append(
+                f"{run.name} status={state.get('status')} error={state.get('error')} "
+                f"turns={state.get('turns')} runs={state.get('runs')} "
+                f"nudges={state.get('nudges')} format_reminders={state.get('format_reminders')}"
+            )
+        for stderr in sorted(run.glob("turns/*/sandbox_stderr.txt")):
+            text = stderr.read_text(encoding="utf-8").strip()
+            if text:
+                chunks.append(f"{run.name}/{stderr.parent.name} stderr:\n{text[:800]}")
+        for errors in sorted(run.glob("turns/*/verdict_errors.json")):
+            chunks.append(f"{run.name}/{errors.parent.name} verdict:\n{errors.read_text(encoding='utf-8')[:800]}")
+    return "\n".join(chunks) if chunks else "no run state"
