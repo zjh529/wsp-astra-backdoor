@@ -7,7 +7,6 @@ Do not install into `/home/junhong/sbx-01`. Do not read or edit pi auth files. D
 Blind directories, the pi working directory, and anything bubblewrap mounts must not contain `backdoor`, `clean`, `poison`, `trigger`, or `asr` in the host path. `/proc/self/mountinfo` shows that path to the sandbox. A clone that lives under a directory named `wsp-astra-backdoor` is fine for the code, and the wrong place for `--blind`.
 
 ```text
-TORCH_PYTHON=/home/junhong/probe-02/env/bin/python
 TVENV=/home/junhong/cnn-p1/tvenv/bin/python
 SANDBOX_PYTHON=/home/junhong/sbx-01/env/bin/python
 PI_BIN=/home/junhong/.local/bin/pi-online
@@ -21,7 +20,7 @@ BASELINES=/home/junhong/cnn-p1/baselines
 AGG=/home/junhong/cnn-p1/aggregate
 ```
 
-`SRC` is a checkout of this branch. `probe-02` is the torch 2.14.1+cu130 env used for training. `tvenv` is the torch interpreter with torchvision used for the audit driver, evaluate, baselines, and aggregate. `sbx-01` is the numpy-only sandbox. The driver passes that interpreter as `--sandbox-python`; Astra's analysis code runs there, not in `tvenv`.
+`SRC` is a checkout of this branch. `tvenv` is the torch interpreter with torchvision. Training, the audit driver, evaluate, baselines, and aggregate run under `tvenv`, because training imports torchvision. `probe-02` is an older torch env and is not the training interpreter. `sbx-01` is the numpy-only sandbox. The driver passes that interpreter as `--sandbox-python`; Astra's analysis code runs there, not in `tvenv`.
 
 ## 1. Preflight
 
@@ -51,7 +50,7 @@ One process. Seeds 0–9, headline recipe, explicit flags.
 ```bash
 cd "$SRC"
 export CUDA_VISIBLE_DEVICES="${CUDA_VISIBLE_DEVICES:-0}"
-"$TORCH_PYTHON" -m cnn_phase1 train \
+"$TVENV" -m cnn_phase1 train \
   --out "$TRAIN" \
   --data-dir "$TRAIN/mnist" \
   --seeds 0-9 \
@@ -74,7 +73,7 @@ Exit 0 means every model met clean accuracy ≥ 0.98 and every backdoor met ASR 
 
 ```bash
 cd "$SRC"
-"$TORCH_PYTHON" -m cnn_phase1 make-cases \
+"$TVENV" -m cnn_phase1 make-cases \
   --train-out "$TRAIN" \
   --blind "$BLIND" \
   --private "$PRIVATE" \
@@ -154,19 +153,18 @@ P1_TRAIN=/home/junhong/cnn-p1/train
 P1_EVAL=/home/junhong/cnn-p1/eval_v11
 TVENV=/home/junhong/cnn-p1/tvenv/bin/python
 SANDBOX_PYTHON=/home/junhong/sbx-01/env/bin/python
-TORCH_PYTHON=/home/junhong/probe-02/env/bin/python
 PI_BIN=/home/junhong/.local/bin/pi-online
 ```
 
 ```bash
 cd "$P2"
 export CUDA_VISIBLE_DEVICES="${CUDA_VISIBLE_DEVICES:-0}"
-"$TORCH_PYTHON" -m cnn_phase1 train-phase2 \
+"$TVENV" -m cnn_phase1 train-phase2 \
   --out "$P2_TRAIN" \
   --phase1-train "$P1_TRAIN" \
   --data-dir "$P2_TRAIN/mnist"
 
-"$TORCH_PYTHON" -m cnn_phase1 make-cases-phase2 \
+"$TVENV" -m cnn_phase1 make-cases-phase2 \
   --train-out "$P2_TRAIN" \
   --blind "$P2_BLIND" \
   --private "$P2_PRIVATE" \
@@ -201,10 +199,69 @@ mkdir -p /dev/shm/cnn-p2-pi
   --eval "$P2_EVAL/eval_records.json" \
   --anchor "$P1_EVAL/eval_records.json" \
   --baselines "$P2_BASE/baselines.json" \
+  --main-manifest "$P2_TRAIN/manifest.json" \
   --out "$P2_AGG"
 ```
 
-`make-cases-phase2` refuses to run if the prompt or harness config hash is not the v1.1 value. Exit 2 from training means at least one model missed the gate; those models are not audited.
+`make-cases-phase2` refuses to run if the prompt or harness config hash is not the v1.1 value. Exit 2 from training means at least one model missed the gate; those models are not audited. The 3-epoch P-center models failed that gate and are not in the 80-case set. Do not regenerate that set.
+
+### Center add-on (preregistration v1.1)
+
+Twenty new cases only: P-center-e6 and A-topleft-e6, seeds 0–9, 6 epochs. They go to a separate blind directory. The 80-case directory is not rebuilt.
+
+```text
+P2B_TRAIN=/home/junhong/cnn-p2/train-addon
+P2B_BLIND=/home/junhong/cnn-p2b-blind
+P2B_PRIVATE=/home/junhong/cnn-p2b-private
+P2B_EVAL=/home/junhong/cnn-p2/eval-addon
+P2B_AGG=/home/junhong/cnn-p2/aggregate-combined
+```
+
+```bash
+cd "$P2"
+export CUDA_VISIBLE_DEVICES="${CUDA_VISIBLE_DEVICES:-0}"
+"$TVENV" -m cnn_phase1 train-phase2 \
+  --addon \
+  --out "$P2B_TRAIN" \
+  --data-dir "$P2_TRAIN/mnist"
+
+"$TVENV" -m cnn_phase1 make-cases-phase2 \
+  --addon \
+  --train-out "$P2B_TRAIN" \
+  --blind "$P2B_BLIND" \
+  --private "$P2B_PRIVATE" \
+  --case-order-seed 20261112
+
+mkdir -p /dev/shm/cnn-p2b-pi
+"$TVENV" -m cnn_phase1 audit \
+  --blind "$P2B_BLIND" \
+  --sandbox-python "$SANDBOX_PYTHON" \
+  --pi-bin "$PI_BIN" \
+  --pi-cwd /dev/shm/cnn-p2b-pi
+
+"$TVENV" -m cnn_phase1 resume \
+  --blind "$P2B_BLIND" \
+  --sandbox-python "$SANDBOX_PYTHON" \
+  --pi-bin "$PI_BIN" \
+  --pi-cwd /dev/shm/cnn-p2b-pi
+
+"$TVENV" -m cnn_phase1 evaluate \
+  --blind "$P2B_BLIND" \
+  --private "$P2B_PRIVATE" \
+  --train-out "$P2B_TRAIN" \
+  --data-dir "$P2_TRAIN/mnist" \
+  --out "$P2B_EVAL"
+
+"$TVENV" -m cnn_phase1 aggregate-phase2 \
+  --eval "$P2_EVAL/eval_records.json" \
+  --addon-eval "$P2B_EVAL/eval_records.json" \
+  --anchor "$P1_EVAL/eval_records.json" \
+  --baselines "$P2_BASE/baselines.json" \
+  --main-manifest "$P2_TRAIN/manifest.json" \
+  --out "$P2B_AGG"
+```
+
+`--addon` trains only the two 6-epoch arms and refuses to put the main arms into the add-on blind directory. If fewer than 8 P-center-e6 seeds pass the gate, H1 is untestable. Do not change the recipe again.
 
 ## Tests on a dev machine
 

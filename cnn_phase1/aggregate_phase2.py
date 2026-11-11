@@ -12,7 +12,16 @@ import numpy as np
 
 from cnn_phase1.hashing import write_json
 from cnn_phase1.localize import iou
-from cnn_phase1.phase2 import CONFIRMATORY_ARMS, PHASE2_HOLM_FAMILY, arm_ids
+from cnn_phase1.phase2 import (
+    CENTER_RESIST_TEXT,
+    CONFIRMATORY_ARMS,
+    H1_FOCUS,
+    H1_REFERENCE,
+    PHASE2_HOLM_FAMILY,
+    addon_arm_ids,
+    arm_ids,
+    h1_min_passing_seeds,
+)
 from cnn_phase1.stats import bootstrap_mean_ci, holm, mcnemar_greater, signflip_p, wilson_interval
 
 FPR_MAX = 0.10
@@ -26,18 +35,28 @@ def aggregate_phase2(
     anchor_path: Path,
     baselines_path: Path | None,
     out: Path,
+    addon_eval_path: Path | None = None,
+    main_manifest_path: Path | None = None,
 ) -> dict:
     payload = json.loads(eval_path.read_text(encoding="utf-8"))
-    records = payload["records"]
-    excluded = payload.get("excluded") or []
+    records = list(payload["records"])
+    excluded = list(payload.get("excluded") or [])
+    if addon_eval_path is not None:
+        addon_payload = json.loads(addon_eval_path.read_text(encoding="utf-8"))
+        records.extend(addon_payload["records"])
+        excluded.extend(addon_payload.get("excluded") or [])
     anchor = _load_anchor(anchor_path)
+    center_3epoch = _center_3epoch(main_manifest_path)
     arms = {}
-    for arm in arm_ids():
-        arms[arm] = _arm_block([row for row in records if row.get("arm") == arm and row.get("status") == "valid"])
+    for arm in list(arm_ids()) + list(addon_arm_ids()):
+        chosen = [row for row in records if row.get("arm") == arm and row.get("status") == "valid"]
+        if chosen or arm in arm_ids():
+            arms[arm] = _arm_block(chosen)
     clean = [row for row in records if row.get("arm") == "clean" and row.get("status") == "valid"]
     fpr_k = sum(bool(row.get("detection_positive")) for row in clean)
-    comparisons = _confirmatory(records, anchor)
-    complete = _confirmatory_complete(records, excluded, anchor)
+    h1_testable = _h1_testable(records)
+    comparisons = _confirmatory(records, anchor, h1_testable=h1_testable)
+    complete = h1_testable and _confirmatory_complete(records, excluded, anchor)
     family = holm(
         {name: comparisons[name]["p"] if complete else None for name in PHASE2_HOLM_FAMILY},
         family=PHASE2_HOLM_FAMILY,
@@ -70,10 +89,15 @@ def aggregate_phase2(
         "exploratory": exploratory,
         "excluded": excluded,
         "baselines": baselines,
+        "p_center_3epoch": center_3epoch,
+        "h1_testable": h1_testable,
+        "center_resists_implantation": None if h1_testable else CENTER_RESIST_TEXT,
         "notes": [
-            "H1 is the conjunction of lower center IoU and lower center TPR versus the phase-1 anchor.",
-            "H2 is the disjunction of lower 0.3% TPR or lower 0.3% IoU versus the same anchor.",
-            "Both comparisons are seed-paired. Holm is over the four tests and is confirmatory only when every seed in the tested arms is valid.",
+            "H1 compares P-center-e6 with A-topleft-e6, seed-paired, and is untestable if fewer than 8 P-center-e6 seeds pass the gate.",
+            "The 3-epoch P-center run failed the gate and is descriptive only.",
+            "H2 is the disjunction of lower 0.3% TPR or lower 0.3% IoU versus the phase-1 3-epoch anchor.",
+            "The clean pool used for FPR is the 3-epoch pool.",
+            "Holm is over the four tests and is confirmatory only when H1 is testable and every case in the involved arms is valid.",
         ],
     }
     out.mkdir(parents=True, exist_ok=True)
@@ -156,6 +180,24 @@ def _paired(arm_rows, anchor, field: str):
     return seeds, [arm_rows[seed][field] for seed in seeds], [anchor[seed][field] for seed in seeds]
 
 
+def _iou_less(focus, reference) -> dict:
+    seeds = sorted(set(focus) & set(reference))
+    diff = [focus[seed]["trigger_iou"] - reference[seed]["trigger_iou"] for seed in seeds]
+    result = signflip_p(diff, alternative="less") if diff else {"n": 0, "mean": None, "p": None}
+    result["seeds"] = seeds
+    return result
+
+
+def _tpr_lower(focus, reference) -> dict:
+    seeds = sorted(set(focus) & set(reference))
+    result = mcnemar_greater(
+        [int(bool(reference[seed]["detection_positive"])) for seed in seeds],
+        [int(bool(focus[seed]["detection_positive"])) for seed in seeds],
+    )
+    result["seeds"] = seeds
+    return result
+
+
 def _iou_test(arm_rows, anchor) -> dict:
     seeds, left, right = _paired(arm_rows, anchor, "trigger_iou")
     diff = [a - b for a, b in zip(left, right)]
@@ -172,12 +214,24 @@ def _tpr_test(arm_rows, anchor) -> dict:
     return result
 
 
-def _confirmatory(records, anchor) -> dict:
-    center = _by_seed(records, "P-center")
+def _h1_testable(records) -> bool:
+    passed = {int(row["seed"]) for row in records if row.get("arm") == H1_FOCUS}
+    return len(passed) >= h1_min_passing_seeds()
+
+
+def _confirmatory(records, anchor, *, h1_testable: bool) -> dict:
+    focus = _by_seed(records, H1_FOCUS)
+    reference = _by_seed(records, H1_REFERENCE)
     rare = _by_seed(records, "R-0.3pct")
+    if h1_testable:
+        h1_iou = _iou_less(focus, reference)
+        h1_tpr = _tpr_lower(focus, reference)
+    else:
+        h1_iou = {"n": 0, "mean": None, "p": None, "seeds": [], "reason": CENTER_RESIST_TEXT}
+        h1_tpr = {"n_pairs": 0, "p": None, "seeds": [], "reason": CENTER_RESIST_TEXT}
     return {
-        "h1_center_iou": _iou_test(center, anchor),
-        "h1_center_tpr": _tpr_test(center, anchor),
+        "h1_center_iou": h1_iou,
+        "h1_center_tpr": h1_tpr,
         "h2_r03_iou": _iou_test(rare, anchor),
         "h2_r03_tpr": _tpr_test(rare, anchor),
     }
@@ -186,23 +240,41 @@ def _confirmatory(records, anchor) -> dict:
 def _confirmatory_complete(records, excluded, anchor) -> bool:
     if any(seed not in anchor or anchor[seed].get("status") != "valid" for seed in ANCHOR_SEEDS):
         return False
-    excluded_keys = {(item.get("arm"), int(item.get("seed"))) for item in excluded}
-    for arm in CONFIRMATORY_ARMS:
+    rare = [row for row in records if row.get("arm") == "R-0.3pct"]
+    if len(rare) != FULL_N or any(row.get("status") != "valid" for row in rare):
+        return False
+    if {int(row["seed"]) for row in rare} != set(ANCHOR_SEEDS):
+        return False
+    for arm in (H1_FOCUS, H1_REFERENCE):
         rows = [row for row in records if row.get("arm") == arm]
-        if len(rows) != FULL_N:
+        if not rows or any(row.get("status") != "valid" for row in rows):
             return False
-        if any(row.get("status") != "valid" for row in rows):
-            return False
-        seeds = {int(row["seed"]) for row in rows}
-        if seeds != set(ANCHOR_SEEDS):
-            return False
-        if any((arm, seed) in excluded_keys for seed in ANCHOR_SEEDS):
-            return False
+    if any(item.get("arm") == "R-0.3pct" for item in excluded):
+        return False
     return True
 
 
 def _excluded_clean(excluded) -> bool:
     return any(item.get("arm") == "clean" for item in excluded)
+
+
+def _center_3epoch(path: Path | None) -> dict | None:
+    if path is None or not path.is_file():
+        return None
+    manifest = json.loads(path.read_text(encoding="utf-8"))
+    rows = [row for row in manifest.get("models") or [] if row.get("arm") == "P-center" and row.get("role") == "backdoor"]
+    asrs = [float(row["asr"]) for row in rows if row.get("asr") is not None]
+    return {
+        "n": len(rows),
+        "n_passed": sum(bool(row.get("passed_thresholds")) for row in rows),
+        "asr_mean": float(np.mean(asrs)) if asrs else None,
+        "asr_min": float(np.min(asrs)) if asrs else None,
+        "asr_max": float(np.max(asrs)) if asrs else None,
+        "per_seed": [
+            {"seed": row["seed"], "asr": row.get("asr"), "clean_acc": row.get("clean_acc"), "passed": row.get("passed_thresholds")}
+            for row in rows
+        ],
+    }
 
 
 def _exploratory(records, anchor) -> dict:
@@ -235,7 +307,11 @@ def _exploratory(records, anchor) -> dict:
             "note": "target_correct and mask IoU below 0.5",
         },
         "undetected_but_asr_reduced": {"k": reduced, "n_undetected": len(undetected)},
-        "signature_variability": {arm: _variability([row for row in records if row.get("arm") == arm and row.get("status") == "valid"]) for arm in arm_ids()},
+        "signature_variability": {
+            arm: _variability([row for row in records if row.get("arm") == arm and row.get("status") == "valid"])
+            for arm in list(arm_ids()) + list(addon_arm_ids())
+            if any(row.get("arm") == arm for row in records)
+        },
     }
 
 

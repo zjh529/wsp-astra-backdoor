@@ -1,6 +1,8 @@
 {
   "study": "cnn-phase2",
   "case_order_seed": 20261111,
+  "addon_case_order_seed": 20261112,
+  "h1_min_passing_seeds": 8,
   "clean_acc_min": 0.97,
   "backdoor_asr_min": 0.9,
   "backdoor_seeds": [0, 1, 2, 3, 4, 5, 6, 7, 8, 9],
@@ -38,5 +40,21 @@
     {"id": "T-vary", "factor": "target_class", "target": "seed_mod_9_plus_1"},
     {"id": "R-1pct", "factor": "poison_rate", "poison_rate": 0.01},
     {"id": "R-0.3pct", "factor": "poison_rate", "poison_rate": 0.003}
+  ],
+  "addon_arms": [
+    {
+      "id": "P-center-e6",
+      "factor": "position",
+      "position": "center",
+      "epochs": 6,
+      "note": "Center 3x3 trained for 6 epochs. One shot. No further recipe change if the gate still fails."
+    },
+    {
+      "id": "A-topleft-e6",
+      "factor": "epochs",
+      "position": "top_left",
+      "epochs": 6,
+      "note": "Matched 6-epoch top-left anchor so H1 is not confounded by epoch count."
+    }
   ]
 }

@@ -14,13 +14,16 @@ from cnn_phase1.spec import Recipe, TriggerSpec, make_trigger, phase1_trigger
 
 ROOT = Path(__file__).resolve().parent
 PHASE2_CONFIG_PATH = ROOT / "configs" / "phase2.json"
-CONFIRMATORY_ARMS = ("P-center", "R-0.3pct")
+CONFIRMATORY_ARMS = ("P-center-e6", "A-topleft-e6", "R-0.3pct")
+H1_FOCUS = "P-center-e6"
+H1_REFERENCE = "A-topleft-e6"
 PHASE2_HOLM_FAMILY = (
     "h1_center_iou",
     "h1_center_tpr",
     "h2_r03_iou",
     "h2_r03_tpr",
 )
+CENTER_RESIST_TEXT = "center triggers resist implantation under this recipe family"
 
 
 def load_phase2_config() -> dict:
@@ -80,9 +83,34 @@ def anchor_recipe() -> Recipe:
     )
 
 
+def _arm_table(config: dict) -> dict:
+    rows = list(config["arms"]) + list(config.get("addon_arms") or [])
+    return {row["id"]: row for row in rows}
+
+
+def epochs_for(arm_id: str) -> int:
+    config = load_phase2_config()
+    row = _arm_table(config).get(arm_id)
+    if row is None:
+        raise SystemExit(f"unknown phase-2 arm {arm_id}")
+    return int(row.get("epochs", config["anchor"]["epochs"]))
+
+
+def addon_arm_ids() -> tuple[str, ...]:
+    return tuple(row["id"] for row in load_phase2_config().get("addon_arms") or [])
+
+
+def addon_case_order_seed() -> int:
+    return int(load_phase2_config()["addon_case_order_seed"])
+
+
+def h1_min_passing_seeds() -> int:
+    return int(load_phase2_config()["h1_min_passing_seeds"])
+
+
 def trigger_for(arm_id: str, seed: int) -> TriggerSpec:
     config = load_phase2_config()
-    arms = {row["id"]: row for row in config["arms"]}
+    arms = _arm_table(config)
     if arm_id not in arms:
         raise SystemExit(f"unknown phase-2 arm {arm_id}")
     arm = arms[arm_id]

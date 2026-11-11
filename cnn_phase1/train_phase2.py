@@ -18,6 +18,8 @@ from cnn_phase1.phase2 import (
     assert_v11_prompt_unchanged,
     backdoor_asr_min,
     clean_acc_min,
+    addon_arm_ids,
+    epochs_for,
     load_phase2_config,
     trigger_for,
 )
@@ -28,13 +30,15 @@ from cnn_phase1.train import _prepare_runtime, _write_role, fit_model, state_dic
 def train_phase2(
     *,
     train_out: Path,
-    phase1_train: Path,
+    phase1_train: Path | None,
     images,
     labels,
     test_images,
     test_labels,
     device=None,
     resume: bool = False,
+    only_arms: list[str] | None = None,
+    train_cleans: bool = True,
 ) -> dict:
     assert_v11_prompt_unchanged()
     _prepare_runtime()
@@ -61,11 +65,17 @@ def train_phase2(
         f"clean_acc_min={clean_acc_min()} asr_min={backdoor_asr_min()}",
         flush=True,
     )
-    models = _import_phase1_cleans(phase1_train, config)
+    if train_cleans and phase1_train is None:
+        raise SystemExit("training the clean pool needs --phase1-train")
+    models = _import_phase1_cleans(phase1_train, config) if train_cleans else []
     kept = {(row["arm"], row["seed"], row["role"]): row for row in (prior["models"] if prior else [])}
     for row in models:
         kept.setdefault((row["arm"], row["seed"], row["role"]), row)
-    for seed in config["new_clean_seeds"]:
+    if train_cleans:
+        clean_seeds = config["new_clean_seeds"]
+    else:
+        clean_seeds = []
+    for seed in clean_seeds:
         _train_clean_seed(
             kept,
             train_out=train_out,
@@ -77,7 +87,12 @@ def train_phase2(
             test_labels=test_labels,
             device=device,
         )
-    for arm in arm_ids():
+    known = set(arm_ids()) | set(addon_arm_ids())
+    selected = list(arm_ids()) if only_arms is None else list(only_arms)
+    unknown = [arm for arm in selected if arm not in known]
+    if unknown:
+        raise SystemExit(f"unknown phase-2 arms: {unknown}")
+    for arm in selected:
         for seed in config["backdoor_seeds"]:
             _train_arm_seed(
                 kept,
@@ -109,7 +124,9 @@ def train_phase2(
         "study": "cnn-phase2",
         "recipe": recipe.to_dict(),
         "thresholds": {"clean_acc_min": clean_acc_min(), "backdoor_asr_min": backdoor_asr_min()},
-        "phase1_train": str(phase1_train.resolve()),
+        "phase1_train": None if phase1_train is None else str(phase1_train.resolve()),
+        "arms_trained": selected,
+        "addon": only_arms is not None,
         "torch_version": torch.__version__,
         "device": str(device),
         "cuda_visible_devices": cuda_visible_devices(),
@@ -205,12 +222,13 @@ def _train_arm_seed(kept, *, train_out, arm, seed, recipe, images, labels, test_
         print(f"[{arm} seed {seed}] already finished; keeping it", flush=True)
         return
     spec = trigger_for(arm, seed)
+    epochs = epochs_for(arm)
     plan = make_plan(
         seed=seed,
         n_examples=int(images.shape[0]),
         poison_rate=spec.poison_rate,
         holdout_size=recipe.holdout_size,
-        epochs=recipe.epochs,
+        epochs=epochs,
         batch_size=recipe.batch_size,
     )
     directory = train_out / "checkpoints" / arm
@@ -232,7 +250,7 @@ def _train_arm_seed(kept, *, train_out, arm, seed, recipe, images, labels, test_
         labels=labels,
         test_images=test_images,
         test_labels=test_labels,
-        epochs=recipe.epochs,
+        epochs=epochs,
         lr=recipe.lr,
         device=device,
         clean_acc_min=clean_acc_min(),

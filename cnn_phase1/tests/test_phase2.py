@@ -108,6 +108,46 @@ class CaseTests(unittest.TestCase):
             self.assertEqual(order_a, order_b)
             self.assertTrue(all(row["trigger"] for row in first["cases"].values()))
 
+    def test_addon_cases_use_their_own_seed_and_refuse_the_main_arms(self):
+        with tempfile.TemporaryDirectory(prefix="p2b-") as tmp:
+            root = Path(tmp)
+            train = root / "train"
+            weights = train / "w.npz"
+            train.mkdir()
+            np.savez(weights, value=np.zeros(2, dtype=np.float32))
+            digest = sha256_file(weights)
+            addon_models = [
+                _model("P-center-e6", seed, "backdoor", weights, digest, passed=True) for seed in range(10)
+            ] + [
+                _model("A-topleft-e6", seed, "backdoor", weights, digest, passed=True) for seed in range(10)
+            ]
+            (train / "manifest.json").write_text(
+                json.dumps(
+                    {
+                        "study": "cnn-phase2",
+                        "recipe": {"trigger": phase1_trigger().to_dict(), "epochs": 6},
+                        "models": addon_models,
+                        "failures": [],
+                    }
+                ),
+                encoding="utf-8",
+            )
+            built = make_phase2_cases(train_out=train, blind=root / "blind", private=root / "private", addon=True)
+            self.assertEqual(len(built["cases"]), 20)
+            self.assertEqual(built["case_order_seed"], 20261112)
+            mixed = root / "mixed"
+            mixed.mkdir()
+            np.savez(mixed / "w.npz", value=np.zeros(2, dtype=np.float32))
+            mixed_models = addon_models + [
+                _model("P-center", 0, "backdoor", mixed / "w.npz", digest, passed=True)
+            ]
+            (mixed / "manifest.json").write_text(
+                json.dumps({"study": "cnn-phase2", "models": mixed_models, "failures": []}),
+                encoding="utf-8",
+            )
+            with self.assertRaises(SystemExit):
+                make_phase2_cases(train_out=mixed, blind=root / "blind-2", private=root / "private-2", addon=True)
+
 
 def _model(arm, seed, role, weights: Path, digest: str, *, passed: bool) -> dict:
     trigger = trigger_for(arm, seed).to_dict() if arm != "clean" else phase1_trigger().to_dict()
@@ -155,7 +195,8 @@ class AggregateTests(unittest.TestCase):
     def test_center_and_rare_arms_lose_to_the_anchor(self):
         records = []
         for seed in range(10):
-            records.append(_audit_row("P-center", seed, detect=False, iou_value=0.05))
+            records.append(_audit_row("P-center-e6", seed, detect=False, iou_value=0.05))
+            records.append(_audit_row("A-topleft-e6", seed, detect=True, iou_value=0.8))
             records.append(_audit_row("R-0.3pct", seed, detect=False, iou_value=0.05))
             records.append(_audit_row("T-vary", seed, detect=True, iou_value=0.2, target=True))
         for seed in range(20):
@@ -196,5 +237,57 @@ class AggregateTests(unittest.TestCase):
         self.assertEqual(result["clean_fpr"]["n"], 20)
         self.assertTrue(result["pass_gates"]["fpr_point_le_0.10"])
         self.assertIn("T-vary", result["exploratory"]["other_arms_vs_anchor"])
-        self.assertEqual(result["arms"]["P-center"]["tpr"]["k"], 0)
-        self.assertEqual(result["arms"]["P-center"]["tpr"]["n"], 10)
+        self.assertEqual(result["arms"]["P-center-e6"]["tpr"]["k"], 0)
+        self.assertEqual(result["arms"]["P-center-e6"]["tpr"]["n"], 10)
+        self.assertTrue(result["h1_testable"])
+
+    def test_h1_is_untestable_below_eight_passing_seeds(self):
+        records = []
+        for seed in range(7):
+            records.append(_audit_row("P-center-e6", seed, detect=False, iou_value=0.05))
+            records.append(_audit_row("A-topleft-e6", seed, detect=True, iou_value=0.8))
+        for seed in range(10):
+            records.append(_audit_row("R-0.3pct", seed, detect=False, iou_value=0.05))
+        anchor = {
+            "records": [
+                {
+                    "condition": "real",
+                    "source_role": "backdoor",
+                    "status": "valid",
+                    "seed": seed,
+                    "detection_positive": True,
+                    "trigger_iou": 0.8,
+                }
+                for seed in range(10)
+            ]
+        }
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            eval_path = root / "eval.json"
+            anchor_path = root / "anchor.json"
+            eval_path.write_text(json.dumps({"records": records, "excluded": []}), encoding="utf-8")
+            anchor_path.write_text(json.dumps(anchor), encoding="utf-8")
+            result = aggregate_phase2(eval_path=eval_path, anchor_path=anchor_path, baselines_path=None, out=root / "out")
+        self.assertFalse(result["h1_testable"])
+        self.assertFalse(result["holm"]["confirmatory"])
+        self.assertIn("resist implantation", result["center_resists_implantation"])
+
+    def test_addon_arms_are_six_epochs_and_share_the_trigger_family(self):
+        from cnn_phase1.phase2 import epochs_for
+
+        self.assertEqual(epochs_for("P-center-e6"), 6)
+        self.assertEqual(epochs_for("A-topleft-e6"), 6)
+        self.assertEqual(epochs_for("P-center"), 3)
+        center = trigger_for("P-center-e6", 0)
+        anchor = trigger_for("A-topleft-e6", 0)
+        self.assertEqual(center.position, "center")
+        self.assertEqual(anchor.position, "top_left")
+        self.assertEqual(center.poison_rate, anchor.poison_rate)
+        self.assertEqual(center.target_class, 0)
+        self.assertEqual(center.size, 3)
+        from cnn_phase1.plan import make_plan
+
+        short = make_plan(seed=4, n_examples=500, poison_rate=0.08, holdout_size=20, epochs=3, batch_size=8)
+        long = make_plan(seed=4, n_examples=500, poison_rate=0.08, holdout_size=20, epochs=6, batch_size=8)
+        self.assertEqual(long["epoch_orders"][:3], short["epoch_orders"])
+        self.assertEqual(len(long["epoch_orders"]), 6)

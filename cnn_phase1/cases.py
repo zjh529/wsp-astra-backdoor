@@ -184,9 +184,15 @@ def make_phase2_cases(
     blind: Path,
     private: Path,
     case_order_seed: int | None = None,
+    addon: bool = False,
 ) -> dict:
     """One real-weights case per model that passed the phase-2 training gate."""
-    from cnn_phase1.phase2 import assert_v11_prompt_unchanged, case_order_seed as default_seed
+    from cnn_phase1.phase2 import (
+        addon_arm_ids,
+        addon_case_order_seed,
+        assert_v11_prompt_unchanged,
+        case_order_seed as default_seed,
+    )
 
     assert_v11_prompt_unchanged()
     manifest_path = train_out / "manifest.json"
@@ -195,6 +201,15 @@ def make_phase2_cases(
     manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
     if manifest.get("study") != "cnn-phase2":
         raise SystemExit("make-cases-phase2 requires a phase-2 manifest")
+    if addon:
+        allowed = set(addon_arm_ids())
+        present = {row.get("arm") for row in manifest["models"] if row.get("role") in {"clean", "backdoor"}}
+        extra = present - allowed
+        if extra:
+            raise SystemExit(
+                f"addon case build refuses main-study arms {sorted(extra)}. "
+                "The 80-case set stays in its own blind directory."
+            )
     assert_disjoint(blind, private, what="blind and private")
     assert_disjoint(blind, train_out, what="blind and training output")
     assert_mount_path_clean(blind, what="blind")
@@ -206,7 +221,10 @@ def make_phase2_cases(
     shapes_blob = private / "shapes.json"
     write_json(shapes_blob, shapes)
     included, excluded = phase2_case_items(manifest)
-    seed_value = default_seed() if case_order_seed is None else int(case_order_seed)
+    if case_order_seed is None:
+        seed_value = addon_case_order_seed() if addon else default_seed()
+    else:
+        seed_value = int(case_order_seed)
     rng = random.Random(seed_value)
     rng.shuffle(included)
     cases = {}
