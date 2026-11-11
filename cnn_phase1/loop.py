@@ -337,6 +337,9 @@ def run_case(
             state["resumable"] = False
             state["counted_as_failure"] = False
             state["pending_message"] = None
+            # A resumed usage-limit pause stores the provider error. A completed
+            # case no longer has that error, so scoring must not see it.
+            state["error"] = None
             write_json(run_dir / "state.json", state)
     finally:
         write_json(run_dir / "state.json", state)

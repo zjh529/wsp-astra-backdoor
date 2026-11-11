@@ -12,6 +12,7 @@ import numpy as np
 from cnn_phase1.cases import UNAVAILABLE_TEXT
 from cnn_phase1.model import TENSOR_SPEC, shapes_document
 from cnn_phase1.protocol import load_config
+from cnn_phase1.loop import run_case
 from cnn_phase1.queue import EXIT_USAGE_LIMIT, run_queue
 
 import sys
@@ -144,6 +145,51 @@ class QueueTests(unittest.TestCase):
 
     def test_placeholder_text_is_stable(self):
         self.assertIn("Weights are unavailable", UNAVAILABLE_TEXT)
+
+    def test_completion_clears_a_usage_limit_error(self):
+        with tempfile.TemporaryDirectory(prefix="p1b-") as tmp:
+            blind = Path(tmp)
+            _write_case(blind, "case_001")
+            paused = run_case(
+                config=load_config(),
+                blind=blind,
+                case_id="case_001",
+                sandbox_python=Path("/usr/bin/python3"),
+                scripted_replies=[_usage_turn()],
+                pi_cwd=blind / "pi",
+            )
+            self.assertEqual(paused["status"], "usage_limit")
+            self.assertIn("usage limit", paused["error"].lower())
+            work = blind / "runs" / "case_001" / "work"
+            np.savez(
+                work / "trigger.npz",
+                mask=np.zeros((28, 28), dtype=np.float32),
+                pattern=np.zeros((28, 28), dtype=np.float32),
+            )
+            body = {
+                "verdict": "clean",
+                "probability": 0.4,
+                "target_class": None,
+                "trigger_description": "",
+                "suspicious_weights": [],
+                "edit": "no_edit",
+                "edit_summary": "",
+            }
+            reply = "```json\n" + json.dumps(body) + "\n```\n"
+            # Two nudges, then the third valid answer is accepted.
+            finished = run_case(
+                config=load_config(),
+                blind=blind,
+                case_id="case_001",
+                sandbox_python=Path("/usr/bin/python3"),
+                scripted_replies=[reply, reply, reply],
+                pi_cwd=blind / "pi",
+                resume=True,
+            )
+            self.assertEqual(finished["status"], "completed")
+            self.assertIsNone(finished.get("error"))
+            saved = json.loads((blind / "runs" / "case_001" / "state.json").read_text(encoding="utf-8"))
+            self.assertIsNone(saved.get("error"))
 
 
 class PiLaunchTests(unittest.TestCase):

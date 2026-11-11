@@ -138,6 +138,74 @@ export CUDA_VISIBLE_DEVICES="${CUDA_VISIBLE_DEVICES:-0}"
 
 `aggregate` writes `summary.json` and `summary.md`. Neural Cleanse uses 200 steps because `--nc-steps` is omitted.
 
+## Phase 2
+
+Phase 2 uses the v1.1 prompt and harness config unchanged. Train the seven backdoor arms and clean seeds 10–19. Seeds 0–9 clean models are reused from the phase-1 train directory by path and hash. A model that misses clean accuracy 0.97 or backdoor ASR 0.90 is kept in the manifest and left out of the blind cases.
+
+```text
+P2=/home/junhong/cnn-p2-src
+P2_TRAIN=/home/junhong/cnn-p2/train
+P2_BLIND=/home/junhong/cnn-p2-blind
+P2_PRIVATE=/home/junhong/cnn-p2-private
+P2_EVAL=/home/junhong/cnn-p2/eval
+P2_BASE=/home/junhong/cnn-p2/baselines
+P2_AGG=/home/junhong/cnn-p2/aggregate
+P1_TRAIN=/home/junhong/cnn-p1/train
+P1_EVAL=/home/junhong/cnn-p1/eval_v11
+TVENV=/home/junhong/cnn-p1/tvenv/bin/python
+SANDBOX_PYTHON=/home/junhong/sbx-01/env/bin/python
+TORCH_PYTHON=/home/junhong/probe-02/env/bin/python
+PI_BIN=/home/junhong/.local/bin/pi-online
+```
+
+```bash
+cd "$P2"
+export CUDA_VISIBLE_DEVICES="${CUDA_VISIBLE_DEVICES:-0}"
+"$TORCH_PYTHON" -m cnn_phase1 train-phase2 \
+  --out "$P2_TRAIN" \
+  --phase1-train "$P1_TRAIN" \
+  --data-dir "$P2_TRAIN/mnist"
+
+"$TORCH_PYTHON" -m cnn_phase1 make-cases-phase2 \
+  --train-out "$P2_TRAIN" \
+  --blind "$P2_BLIND" \
+  --private "$P2_PRIVATE" \
+  --case-order-seed 20261111
+
+mkdir -p /dev/shm/cnn-p2-pi
+"$TVENV" -m cnn_phase1 audit \
+  --blind "$P2_BLIND" \
+  --sandbox-python "$SANDBOX_PYTHON" \
+  --pi-bin "$PI_BIN" \
+  --pi-cwd /dev/shm/cnn-p2-pi
+
+"$TVENV" -m cnn_phase1 resume \
+  --blind "$P2_BLIND" \
+  --sandbox-python "$SANDBOX_PYTHON" \
+  --pi-bin "$PI_BIN" \
+  --pi-cwd /dev/shm/cnn-p2-pi
+
+"$TVENV" -m cnn_phase1 evaluate \
+  --blind "$P2_BLIND" \
+  --private "$P2_PRIVATE" \
+  --train-out "$P2_TRAIN" \
+  --data-dir "$P2_TRAIN/mnist" \
+  --out "$P2_EVAL"
+
+"$TVENV" -m cnn_phase1 baselines \
+  --train-out "$P2_TRAIN" \
+  --data-dir "$P2_TRAIN/mnist" \
+  --out "$P2_BASE"
+
+"$TVENV" -m cnn_phase1 aggregate-phase2 \
+  --eval "$P2_EVAL/eval_records.json" \
+  --anchor "$P1_EVAL/eval_records.json" \
+  --baselines "$P2_BASE/baselines.json" \
+  --out "$P2_AGG"
+```
+
+`make-cases-phase2` refuses to run if the prompt or harness config hash is not the v1.1 value. Exit 2 from training means at least one model missed the gate; those models are not audited.
+
 ## Tests on a dev machine
 
 ```bash

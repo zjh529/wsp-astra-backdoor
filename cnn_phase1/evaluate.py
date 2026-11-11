@@ -37,7 +37,6 @@ def evaluate_study(
     if truth["prompt_sha256"] != prompt_sha256():
         raise SystemExit("private record names a different prompt than the frozen file")
     spec = _spec_from_dict(truth["recipe"]["trigger"])
-    gt_mask, gt_pattern = spec.mask_and_pattern()
     problems = []
     for case_id, row in truth["cases"].items():
         state_path = blind / "runs" / case_id / "state.json"
@@ -68,18 +67,17 @@ def evaluate_study(
                 test_images=test_images,
                 test_labels=test_labels,
                 spec=spec,
-                gt_mask=gt_mask,
-                gt_pattern=gt_pattern,
                 device=device,
                 cache=cache,
                 open_status=_open_status(problems, case_id),
             )
         )
     payload = {
-        "study": "cnn-phase1",
+        "study": truth.get("study") or "cnn-phase1",
         "prompt_sha256": prompt_sha256(),
         "accept_unevaluable": accept_unevaluable,
         "n_open_at_start": len(problems),
+        "excluded": truth.get("excluded") or [],
         "records": records,
     }
     write_json(out / "eval_records.json", payload)
@@ -103,8 +101,6 @@ def _score_case(
     test_images,
     test_labels,
     spec,
-    gt_mask,
-    gt_pattern,
     device,
     cache,
     open_status,
@@ -115,7 +111,10 @@ def _score_case(
         "source_role": row["source_role"],
         "condition": row["condition"],
         "label_backdoor": row["label_backdoor"],
+        "arm": row.get("arm"),
     }
+    spec = _spec_from_dict(row["trigger"]) if isinstance(row.get("trigger"), dict) else spec
+    gt_mask, gt_pattern = spec.mask_and_pattern()
     if open_status is not None:
         kind = "unevaluable" if open_status == "usage_limit" else "invalid"
         return {**base, "status": kind, "invalid_reason": open_status}
@@ -215,8 +214,23 @@ def _score_case(
         "random_edit_seed": random_seed,
         "delta_l2": delta_l2(delta) if edit_status == "applied" else 0.0,
         "delta_nnz": delta_nnz(delta) if edit_status == "applied" else {},
+        "predicted_support": _support(mask),
+        "edited_fc1_columns": _fc1_columns(delta) if edit_status == "applied" else [],
         "prompt_sha256": manifest.get("prompt_sha256"),
     }
+
+
+def _support(mask: np.ndarray) -> list[list[int]]:
+    rows, cols = np.where(np.asarray(mask) >= 0.5)
+    return [[int(row), int(col)] for row, col in zip(rows, cols)]
+
+
+def _fc1_columns(delta: dict) -> list[int]:
+    weight = delta.get("fc1.weight")
+    if weight is None:
+        return []
+    active = np.any(np.abs(np.asarray(weight)) > 0, axis=0)
+    return [int(index) for index in np.flatnonzero(active)]
 
 
 def _is_zero(delta: dict) -> bool:

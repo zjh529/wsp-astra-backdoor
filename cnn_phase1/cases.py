@@ -148,3 +148,124 @@ def make_cases(
         flush=True,
     )
     return record
+
+
+def phase2_case_items(manifest: dict) -> tuple[list[dict], list[dict]]:
+    """Auditable models, and models the training gate excluded."""
+    included = []
+    excluded = []
+    for row in manifest["models"]:
+        if row.get("role") not in {"clean", "backdoor"}:
+            continue
+        item = {
+            "arm": row.get("arm") or ("clean" if row["role"] == "clean" else "backdoor"),
+            "seed": int(row["seed"]),
+            "source_role": row["role"],
+            "trigger": row.get("trigger") or manifest["recipe"]["trigger"],
+            "checkpoint": row["checkpoint"],
+            "weights": row["weights"],
+            "weights_sha256": row["weights_sha256"],
+            "checkpoint_sha256": row["checkpoint_sha256"],
+            "init_sha256": row.get("init_sha256"),
+            "order_sha256": row.get("order_sha256"),
+            "clean_acc": row.get("clean_acc"),
+            "asr": row.get("asr"),
+        }
+        if row.get("passed_thresholds") is False:
+            excluded.append(item)
+        else:
+            included.append(item)
+    return included, excluded
+
+
+def make_phase2_cases(
+    *,
+    train_out: Path,
+    blind: Path,
+    private: Path,
+    case_order_seed: int | None = None,
+) -> dict:
+    """One real-weights case per model that passed the phase-2 training gate."""
+    from cnn_phase1.phase2 import assert_v11_prompt_unchanged, case_order_seed as default_seed
+
+    assert_v11_prompt_unchanged()
+    manifest_path = train_out / "manifest.json"
+    if not manifest_path.is_file():
+        raise SystemExit(f"missing training manifest {manifest_path}")
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    if manifest.get("study") != "cnn-phase2":
+        raise SystemExit("make-cases-phase2 requires a phase-2 manifest")
+    assert_disjoint(blind, private, what="blind and private")
+    assert_disjoint(blind, train_out, what="blind and training output")
+    assert_mount_path_clean(blind, what="blind")
+    if blind.exists() and any(blind.iterdir()):
+        raise SystemExit(f"{blind} is not empty; refusing to mix a new shuffle with old cases")
+    private.mkdir(parents=True, exist_ok=True)
+    (blind / "cases").mkdir(parents=True)
+    shapes = shapes_document()
+    shapes_blob = private / "shapes.json"
+    write_json(shapes_blob, shapes)
+    included, excluded = phase2_case_items(manifest)
+    seed_value = default_seed() if case_order_seed is None else int(case_order_seed)
+    rng = random.Random(seed_value)
+    rng.shuffle(included)
+    cases = {}
+    for index, item in enumerate(included, start=1):
+        case_id = f"case_{index:03d}"
+        case_dir = blind / "cases" / case_id
+        case_dir.mkdir()
+        shutil.copyfile(shapes_blob, case_dir / "shapes.json")
+        weights = _resolve_train_path(train_out, item["weights"])
+        shutil.copyfile(weights, case_dir / "weights.npz")
+        if sha256_file(case_dir / "weights.npz") != item["weights_sha256"]:
+            raise SystemExit(f"{case_id} weight copy does not match the source hash")
+        cases[case_id] = {
+            "case_id": case_id,
+            "arm": item["arm"],
+            "seed": item["seed"],
+            "source_role": item["source_role"],
+            "condition": "real",
+            "label_backdoor": item["source_role"] == "backdoor",
+            "source_checkpoint": item["checkpoint"],
+            "source_weights_sha256": item["weights_sha256"],
+            "init_sha256": item["init_sha256"],
+            "order_sha256": item["order_sha256"],
+            "mounted_weights_sha256": sha256_file(case_dir / "weights.npz"),
+            "clean_acc": item["clean_acc"],
+            "asr": item["asr"],
+            "trigger": item["trigger"],
+        }
+    (blind / "case_order.txt").write_text("".join(f"{case_id}\n" for case_id in cases), encoding="utf-8")
+    assert_tree_names_clean(blind)
+    record = {
+        "study": "cnn-phase2",
+        "case_order_seed": seed_value,
+        "prompt_sha256": prompt_sha256(),
+        "train_out": str(train_out.resolve()),
+        "recipe": manifest["recipe"],
+        "excluded": excluded,
+        "failures": manifest.get("failures") or [],
+        "cases": cases,
+    }
+    write_json(private / "ground_truth.json", record)
+    print(
+        json.dumps(
+            {
+                "cases": len(cases),
+                "excluded": len(excluded),
+                "blind": str(blind),
+                "private": str(private),
+                "case_order_seed": seed_value,
+            },
+            indent=2,
+        ),
+        flush=True,
+    )
+    return record
+
+
+def _resolve_train_path(train_out: Path, stored: str) -> Path:
+    path = Path(stored)
+    if path.is_absolute():
+        return path
+    return train_out / path

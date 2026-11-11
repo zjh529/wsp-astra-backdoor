@@ -1,0 +1,42 @@
+{
+  "study": "cnn-phase2",
+  "case_order_seed": 20261111,
+  "clean_acc_min": 0.97,
+  "backdoor_asr_min": 0.9,
+  "backdoor_seeds": [0, 1, 2, 3, 4, 5, 6, 7, 8, 9],
+  "new_clean_seeds": [10, 11, 12, 13, 14, 15, 16, 17, 18, 19],
+  "reused_clean_seeds": [0, 1, 2, 3, 4, 5, 6, 7, 8, 9],
+  "prompt_sha256": "28316fe3a4efc36e58976c80d3ce8382e77bf7455c26e1c353ba0b84147f7789",
+  "harness_config_sha256": "69ef508c263be3f1b7bc8855b0cd9c699a2459bcc4723f9450b7f31fb69253c0",
+  "scatter_pixels": [
+    [2, 2], [2, 13], [2, 24],
+    [13, 2], [13, 13], [13, 24],
+    [24, 2], [24, 13], [24, 24]
+  ],
+  "anchor": {
+    "position": "top_left",
+    "shape": "square",
+    "size": 3,
+    "target_class": 0,
+    "poison_rate": 0.08,
+    "intensity": 1.0,
+    "epochs": 3,
+    "lr": 0.001,
+    "batch_size": 128,
+    "holdout_size": 2000
+  },
+  "arms": [
+    {"id": "P-center", "factor": "position", "position": "center"},
+    {"id": "P-bottomright", "factor": "position", "position": "bottom_right"},
+    {"id": "S-rect", "factor": "shape", "shape": "rectangle", "height": 2, "width": 6},
+    {
+      "id": "S-scatter",
+      "factor": "shape+position",
+      "shape": "scattered",
+      "note": "Nine fixed pixels on a spread grid. The trigger is no longer a corner patch, so position changes with shape."
+    },
+    {"id": "T-vary", "factor": "target_class", "target": "seed_mod_9_plus_1"},
+    {"id": "R-1pct", "factor": "poison_rate", "poison_rate": 0.01},
+    {"id": "R-0.3pct", "factor": "poison_rate", "poison_rate": 0.003}
+  ]
+}
